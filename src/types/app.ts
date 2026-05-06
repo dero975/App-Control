@@ -1,0 +1,98 @@
+export type AppSection = 'projects' | 'prompts' | 'settings'
+
+export type DevelopmentEnvironment = string
+
+export type ProjectStatus = 'Attivo' | 'In pausa' | 'Archivio' | 'Idea'
+
+export type PromptType = 'Iniziali / strutturali' | 'Ordinari / operativi' | 'Speciali / sensibili'
+
+export type PromptCategory =
+  | 'Start progetto'
+  | 'Analisi progetto'
+  | 'DNA documentazione'
+  | 'GitHub'
+  | 'Backup'
+  | 'Supabase'
+  | 'SQL'
+  | 'Deploy'
+  | 'Pulizia sicura'
+  | 'Ottimizzazione'
+  | 'Testing'
+  | 'Asset / PWA'
+
+export type Prompt = {
+  id: string
+  title: string
+  type: PromptType
+  category: PromptCategory
+  fullText: string
+  usageNotes: string
+  tags: string[]
+  favorite: boolean
+  lastModified: string
+}
+
+export type EnvVariable = {
+  key: string
+  value: string
+  scope: 'Supabase' | 'GitHub' | 'Deploy' | 'Custom'
+  sensitive: boolean
+}
+
+export type PlatformAccess = {
+  id: string
+  platform: string
+  email: string
+  password: string
+}
+
+export type ProjectVariable = {
+  id: string
+  key: string
+  value: string
+  sensitive: boolean
+  accessAccounts?: PlatformAccess[]
+}
+
+export type ProjectAgentAccess = {
+  projectId: string
+  agentKey: string
+  syncPrompt: string
+}
+
+export type Project = {
+  id: string
+  name: string
+  status: ProjectStatus
+  developmentEnvironment: DevelopmentEnvironment
+  githubRepoUrl: string
+  githubAccountEmail: string
+  linkedSecretLabel: string
+  supabase: {
+    projectUrl: string
+    anonKeyLabel: string
+    serviceRoleLabel: string
+    databaseUrlLabel: string
+  }
+  deploy: {
+    provider: string
+    url: string
+    accountEmail: string
+  }
+  operationalNotes: string
+  agent: ProjectAgentAccess
+  promptIds: string[]
+  assetIds: string[]
+  env: EnvVariable[]
+  dataFields?: ProjectVariable[]
+  platformAccesses?: PlatformAccess[]
+}
+
+export type VisualAsset = {
+  id: string
+  projectId: string
+  name: string
+  type: 'Logo' | 'Icona' | 'Grafica' | 'Immagine pubblica' | 'Altro asset visivo'
+  path: string
+  notes: string
+}

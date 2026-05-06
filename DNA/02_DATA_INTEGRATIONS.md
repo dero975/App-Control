@@ -1,0 +1,56 @@
+# 02 - Data And Integrations
+
+## Fonte dati reale oggi
+
+- La sezione Progetti non carica dati mock locali: usa Supabase dopo sblocco PIN app.
+- `src/data/mockData.ts` contiene ancora solo dati locali per la libreria Prompt.
+- Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_agent_keys`.
+- I tipi condivisi sono in `src/types/app.ts`.
+- Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
+- Non esistono storage immagini, backend custom o workflow CI.
+
+## Tipi principali
+
+- `Project`: progetto, stato, ambiente sviluppo, GitHub, campi Supabase futuri, deploy, note, prompt e immagini collegate.
+- `ProjectAgentAccess`: dati minimi per collegare un progetto esterno ad App Control tramite JSON locale e prompt generico.
+- `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
+- `Prompt`: libreria prompt con tipo, categoria, testo, note, tag, preferito.
+- `VisualAsset`: asset collegato a progetto con path e note.
+
+## Vincoli dati attuali
+
+- I nuovi progetti devono partire senza dati demo o credenziali reali.
+- `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Windsurf` e `Replit`; la UI mantiene fallback per eventuali valori esterni non previsti.
+- `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
+- `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
+- Gli accessi piattaforma del box `sviluppo in` vengono salvati in `project_platform_accesses` solo quando creati dall'utente e salvati.
+- I nuovi progetti partono senza righe `Accessi piattaforme`; ogni accesso viene creato esplicitamente dall'utente.
+- `deploy.provider` alimenta `Deploy con`; se non e tra le opzioni, la UI usa fallback.
+- `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
+
+## Integrazioni future
+
+Supabase e integrato per PIN app e sezione Progetti. Prompt e storage immagini restano fuori dalla fase corrente.
+
+Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
+
+Guardrail:
+
+- Non usare mai `SUPABASE_SERVICE_ROLE_KEY` nel frontend.
+- Il PIN app e una barriera operativa leggera, non sicurezza forte enterprise.
+- Non generare script SQL in blocco.
+- Se richiesti script SQL, produrne uno alla volta e attendere esito prima del successivo.
+- Segreti e blocchi ENV sono salvati nelle colonne `*_ciphertext` come fase ponte; prima di produzione serve cifratura applicativa reale.
+
+## Immagini e asset
+
+- Cartelle predisposte: `public/images`, `public/icons`, `src/assets`.
+- Il tab UI si chiama `Immagini`; il tipo dati resta `VisualAsset`.
+- I nuovi progetti mostrano sempre cinque slot immagine fissi: `logo app`, `logo app 2`, `logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
+- I file immagine inseriti nello UI tramite pulsante o drag and drop sono mantenuti solo nello stato React della sessione come data URL; non esiste ancora upload persistente o storage.
+- Le immagini raster vengono ottimizzate localmente per uso web leggero: target massimo 500 KB, lato maggiore massimo 1200 px, conversione WebP quando riduce il peso. SVG non viene convertito.
+- Il download delle immagini usa il nome dello slot come nome file e viene gestito dal browser nella cartella download predefinita.
+- La persistenza Supabase target deve usare `slot_id` fisso, nome card, nome file, MIME, dimensioni e futuro path Storage; non salvare data URL grezzi come fonte canonica.
+- Gli slot fissi sono: `logo-app`, `logo-app-2`, `logo-app-3`, `home-icon`, `browser-tab-icon`.
+- Non eliminare immagini o asset senza cercare riferimenti in codice, CSS, HTML, manifest o documentazione operativa.
+- Upload e storage persistente non esistono.
