@@ -14,7 +14,3 @@ export async function copyToClipboard(value: string) {
   document.execCommand('copy')
   document.body.removeChild(textarea)
 }
-
-export function formatEnvBlock(env: Array<{ key: string; value: string }>) {
-  return env.map((item) => `${item.key}=${item.value}`).join('\n')
-}

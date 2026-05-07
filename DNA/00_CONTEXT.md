@@ -17,7 +17,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 ## Mappa tecnica
 
 - `src/app`: shell, sidebar desktop, navigazione mobile.
-- `src/components`: componenti condivisi (`CopyButton`, `SensitiveField`, `FieldGroup`, `SectionHeader`, `EmptyState`).
+- `src/components`: componenti condivisi (`CopyButton`, `FieldGroup`, `SectionHeader`, `EmptyState`).
 - `src/features/projects`: gestione principale dei progetti e dei tab interni.
 - `src/features/prompts`: libreria prompt con ricerca, filtri, dettaglio e copia.
 - `src/features/settings`: placeholder essenziale.

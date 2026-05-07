@@ -47,6 +47,9 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 
 - Il tab `Immagini` mostra sempre cinque slot fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
 - Ogni slot consente inserimento file immagine locale tramite pulsante o drag and drop, anteprima, scaricamento del file inserito e rimozione del file dalla sessione.
+- Clic sulla miniatura immagine apre una modale preview dedicata con immagine grande e header coerente con il logo della nav.
+- Lo slot `Icona Schermata Home` espone anche `Editor`: apre una modale grande basata su canvas 512x512, con sfondo colore/sfumatura lineare, radiale o morbida, campione colore tramite `EyeDropper` dove supportato, bordo opzionale, logo inseribile via drag and drop sull'anteprima o file picker e scala proporzionale. Se `Logo app` contiene gia un'immagine e lo slot Home e vuoto, l'editor la usa come logo iniziale. Il salvataggio genera un PNG finale nello stesso slot e passa dal normale autosave Supabase.
+- Il reset generale dell'editor icona Home ripristina colori bianchi, bordo disattivato, scala logo standard e rimuove il logo importato dalla preview. I blocchi `Sfondo` e `Bordo` hanno anche reset indipendenti.
 - Le immagini raster vengono ottimizzate client-side prima del salvataggio in `project_images`: limite massimo target 500 KB, lato maggiore massimo 1200 px, output WebP quando serve comprimere. SVG resta invariato.
 - Il download usa sempre il titolo della card come nome file, mantenendo l'estensione coerente con il formato salvato.
 - La cartella di destinazione download e quella predefinita del browser/PC; la web app non forza path locali arbitrari.
@@ -81,5 +84,4 @@ Fonte: `src/features/settings/SettingsPage.tsx`.
 ## Componenti critici
 
 - `CopyButton`: copia valore, non mostra testo o contorno; lo stato copiato e indicato dall'icona check per 1600 ms.
-- `SensitiveField`: maschera solo quando `sensitive` e true; copia sempre il valore reale.
 - `FieldGroup`: contenitore standard per gruppi di contenuto.
