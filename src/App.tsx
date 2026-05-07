@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AppLayout } from './app/AppLayout'
 import { PinLockPage } from './features/access/PinLockPage'
+import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { PromptsPage } from './features/prompts/PromptsPage'
 import { SettingsPage } from './features/settings/SettingsPage'
@@ -36,6 +37,7 @@ function App() {
       {activeSection === 'projects' ? <ProjectsPage /> : null}
       {activeSection === 'prompts' ? <PromptsPage /> : null}
       {activeSection === 'settings' ? <SettingsPage /> : null}
+      {activeSection === 'dashboard' ? <DashboardPage /> : null}
     </AppLayout>
   )
 }

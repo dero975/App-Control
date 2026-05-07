@@ -30,6 +30,59 @@ Richiede `.env` locale per Supabase:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
+## Deploy Render
+
+Configurazione produzione verificata il `7 Maggio 2026`:
+
+- tipo servizio: `Static Site`
+- repository: `dero975/App-Control`
+- branch deploy: `main`
+- root directory: vuota
+- build command: `npm install && npm run build`
+- publish directory: `dist`
+- environment: `Production`
+
+Variabili ambiente richieste su Render per questa app:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Regole operative Render:
+
+- `VITE_SUPABASE_URL` deve essere la base URL del progetto Supabase, senza suffisso `/rest/v1`.
+- Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
+- Per questa app Render ospita solo il frontend buildato; il backend applicativo resta Supabase.
+- L'auto-deploy corretto e GitHub `main` -> Render `Static Site`.
+
+## Keepalive Supabase
+
+Workflow presente:
+
+- `.github/workflows/supabase-keepalive.yml`
+
+Scopo:
+
+- ping esterno ogni 24 ore circa per ridurre il rischio di pausa su Supabase Free;
+- nessuna scrittura dati;
+- nessuna modifica del runtime app.
+
+Comportamento:
+
+- trigger schedulato giornaliero piu `workflow_dispatch` manuale;
+- usa `curl` con retry, timeout connessione e timeout totale;
+- normalizza `SUPABASE_URL` rimuovendo un eventuale suffisso `/rest/v1`;
+- esegue una sola lettura REST su `prompts?select=id&limit=1`.
+
+Secrets GitHub Actions richiesti:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Regole:
+
+- non usare `SUPABASE_SERVICE_ROLE_KEY` per il keepalive;
+- il keepalive resta infrastruttura esterna: non reintrodurre polling nel frontend.
+
 Export `.env render`:
 
 - Il pulsante `.env render` nel tab `Variabili` copia un blocco generale per deploy Render di altri progetti gestiti da App Control.

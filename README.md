@@ -1,8 +1,16 @@
 # App Control
 
-Web app privata locale per gestire progetti, prompt, variabili operative, immagini e note.
+Web app privata in React, TypeScript e Vite per gestire progetti, prompt, variabili operative, immagini, note e dashboard riepilogativa.
 
 Prima di lavorare sul progetto, leggere `README_OPERATIVO.md`.
+
+## Stato reale
+
+- Accesso app con PIN a 6 cifre sincronizzato su Supabase.
+- Sezioni applicative: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`.
+- `Progetti` e `Prompt` leggono/scrivono dati reali su Supabase via client frontend anon.
+- Deploy produzione attuale su Render `Static Site`.
+- Workflow GitHub Actions presente solo per keepalive Supabase.
 
 ## Stack
 
@@ -10,15 +18,7 @@ Prima di lavorare sul progetto, leggere `README_OPERATIVO.md`.
 - TypeScript
 - Vite
 - CSS custom
-- Mock locali solo per la libreria Prompt
-
-## Stato attuale
-
-- Supabase collegato nella sezione Progetti tramite client frontend e Auth.
-- La sezione Progetti legge/scrive dati reali su Supabase dopo login.
-- La sezione Prompt usa dati locali in `src/data/mockData.ts`.
-- Nessun segreto reale deve stare nel repository.
-- `.env` locale contiene le chiavi operative ed e escluso da Git.
+- Supabase JS
 
 ## Avvio locale
 
@@ -27,11 +27,18 @@ npm install
 npm run dev
 ```
 
+Richiede `.env` locale con:
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
 ## Script
 
-- `npm run dev`: avvia Vite in sviluppo.
-- `npm run build`: typecheck e build produzione.
-- `npm run lint`: controlli ESLint.
-- `npm run preview`: anteprima locale della build.
-- `npm run typecheck`: controllo TypeScript senza build.
-- `npm run check:all`: typecheck, lint e build in sequenza.
+- `npm run dev`: avvia Vite in sviluppo
+- `npm run build`: typecheck e build produzione
+- `npm run lint`: controlli ESLint
+- `npm run preview`: anteprima locale build
+- `npm run typecheck`: controllo TypeScript senza build
+- `npm run check:all`: typecheck, lint e build in sequenza

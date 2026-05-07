@@ -1,4 +1,4 @@
-export type AppSection = 'projects' | 'prompts' | 'settings'
+export type AppSection = 'projects' | 'prompts' | 'settings' | 'dashboard'
 
 export type DevelopmentEnvironment = string
 

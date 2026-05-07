@@ -12,9 +12,9 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 ## Stato sintetico
 
-App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Le sezioni Progetti e Prompt usano Supabase database senza login email/password. Non esistono storage immagini, backend custom o CI.
+App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase.
 
-La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni sono `Prompt` e `Impostazioni`.
+La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni sono `Prompt`, `Impostazioni` e `Dashboard`.
 
 ## DNA canonico
 

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
@@ -344,10 +344,6 @@ function PromptModal({
               <h2 id="prompt-modal-title">Nuovo prompt</h2>
             </div>
           </div>
-
-          <button type="button" className="secondary-button prompt-modal__close" onClick={onClose} aria-label="Chiudi modale prompt">
-            <X aria-hidden="true" className="button-icon" />
-          </button>
         </div>
 
         <div className="prompt-modal__body">
@@ -413,10 +409,6 @@ function ConfirmDeletePromptModal({
             />
             <h2 id="delete-prompt-title">Elimina prompt</h2>
           </div>
-
-          <button type="button" className="secondary-button prompt-modal__close" onClick={onCancel} aria-label="Chiudi conferma eliminazione">
-            <X aria-hidden="true" className="button-icon" />
-          </button>
         </div>
 
         <div className="prompt-confirm-modal__body">

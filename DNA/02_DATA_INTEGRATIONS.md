@@ -6,7 +6,7 @@
 - Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`.
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
-- Non esistono Supabase Storage, backend custom o workflow CI.
+- Non esistono Supabase Storage o backend custom. E presente solo un workflow GitHub Actions separato per keepalive Supabase.
 
 ## Tipi principali
 
@@ -15,6 +15,7 @@
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
 - `Prompt`: libreria prompt minima con `id`, `title`, `category` e `fullText`.
 - `VisualAsset`: asset collegato a progetto con path e note.
+- La `Dashboard` non introduce un nuovo tipo dominio persistito: deriva aggregazioni e filtri direttamente dai `Project` gia caricati.
 
 ## Vincoli dati attuali
 

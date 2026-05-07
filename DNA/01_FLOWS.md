@@ -11,7 +11,7 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
 - `AppLayout` rende sidebar desktop, select mobile e contenuto principale.
 - Su desktop la sidebar e la pagina `Progetti` restano bloccate nel viewport; scorrono solo lista progetti e liste card interne dei tab quando necessario.
-- `navigation.ts` definisce le tre sezioni: `projects`, `prompts`, `settings`.
+- `navigation.ts` definisce quattro sezioni: `projects`, `prompts`, `settings`, `dashboard`.
 
 ## Progetti
 
@@ -91,6 +91,17 @@ Fonte: `src/features/settings/SettingsPage.tsx`.
 - La pagina `Impostazioni` gestisce solo il cambio PIN.
 - `Modifica PIN`: richiede PIN attuale, nuovo PIN e conferma; aggiorna l'hash in Supabase.
 - Il logout non e piu duplicato nella pagina `Impostazioni`: resta solo nella navigazione dell'app.
+
+## Dashboard
+
+Fonte: `src/features/dashboard/DashboardPage.tsx`.
+
+- La pagina `Dashboard` e una vista riepilogativa read-only costruita dai dati reali dei progetti.
+- Mostra solo informazioni utili derivabili da `Dati progetto` e dagli `Accessi piattaforme` collegati a `sviluppo in`.
+- La tabella espone: nome progetto, email GitHub, `sviluppo in`, `deploy con`, accessi piattaforme con relative email.
+- I filtri attuali sono: testo libero, piattaforma e filtro su email duplicate.
+- I badge mostrano quando la stessa email GitHub o la stessa email piattaforma compaiono in piu progetti.
+- La Dashboard non modifica i progetti e non introduce nuove tabelle o persistence dedicate.
 
 ## Componenti critici
 

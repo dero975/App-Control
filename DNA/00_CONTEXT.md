@@ -7,11 +7,13 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - App privata locale per gestire progetti, prompt, variabili, immagini e note operative.
 - Stack: React, TypeScript, Vite, CSS custom, `lucide-react`.
 - Backend custom assente. Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon.
+- Deploy produzione attuale: Render `Static Site` collegato al repository GitHub `dero975/App-Control`; Supabase resta il backend dati.
+- Workflow esterno presente: GitHub Actions `Supabase Keepalive` schedulato, separato dal runtime app.
 - Accesso app con PIN a 6 cifre sincronizzato su Supabase; sessione sbloccata in `sessionStorage` fino a chiusura/esci.
 - Le sezioni Progetti e Prompt leggono/scrivono dati reali su Supabase dopo sblocco PIN app.
 - Tipi dominio in `src/types/app.ts`.
 - Entry point runtime: `src/main.tsx` -> `src/App.tsx` -> `src/app/AppLayout.tsx`.
-- Sezioni navigabili: `Progetti`, `Prompt`, `Impostazioni`.
+- Sezioni navigabili: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`.
 - La sezione `Progetti` contiene anche dati foglio, variabili, immagini, note e sync agent.
 
 ## Mappa tecnica
