@@ -22,6 +22,7 @@ import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../
 import {
   createProjectRecord,
   deleteProjectRecord,
+  fetchProjectById,
   fetchProjects,
   saveProjectSnapshot,
   type ProjectSnapshot,
@@ -148,8 +149,12 @@ export function ProjectsPage() {
         project.status.toLowerCase().includes(normalizedQuery),
     )
 
-    if (sortMode === 'recent-desc') return matchingProjects
-    if (sortMode === 'recent-asc') return [...matchingProjects].reverse()
+    if (sortMode === 'recent-desc' || sortMode === 'recent-asc') {
+      return [...matchingProjects].sort((firstProject, secondProject) => {
+        const timeDiff = Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
+        return sortMode === 'recent-desc' ? timeDiff : -timeDiff
+      })
+    }
 
     return [...matchingProjects].sort((firstProject, secondProject) => {
       const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
@@ -196,9 +201,11 @@ export function ProjectsPage() {
     if (!isSupabaseConfigured) return
 
     await saveProjectSnapshot(snapshot)
-    const refreshedProjects = await fetchProjects()
-    setProjectList(refreshedProjects)
-    setSelectedId(snapshot.project.id)
+    const refreshedProject = await fetchProjectById(snapshot.project.id)
+    setProjectList((currentProjects) =>
+      currentProjects.map((project) => (project.id === refreshedProject.id ? refreshedProject : project)),
+    )
+    setSelectedId(refreshedProject.id)
   }
 
   function toggleAlphabeticalSort() {

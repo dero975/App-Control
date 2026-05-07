@@ -1,10 +1,11 @@
-import { ChevronDown, ChevronUp, PencilLine, Plus, Trash2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { SectionHeader } from '../../components/SectionHeader'
-import { promptCategories, prompts as initialPrompts } from '../../data/mockData'
 import type { Prompt, PromptCategory } from '../../types/app'
+import { defaultPromptCategory, promptCategories } from './promptCatalog'
+import { createPromptRecord, deletePromptRecord, fetchPrompts, updatePromptRecord } from './promptRepository'
 
 type PromptDraft = {
   title: string
@@ -12,34 +13,56 @@ type PromptDraft = {
   fullText: string
 }
 
-const defaultPromptCategory = promptCategories[0]
-
 export function PromptsPage() {
-  const [promptList, setPromptList] = useState<Prompt[]>(() => initialPrompts)
+  const [promptList, setPromptList] = useState<Prompt[]>([])
   const [activeCategory, setActiveCategory] = useState<'Tutte' | PromptCategory>('Tutte')
-  const [openPromptId, setOpenPromptId] = useState(initialPrompts[0]?.id ?? '')
+  const [openPromptId, setOpenPromptId] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState<Prompt | null>(null)
   const [draft, setDraft] = useState<PromptDraft>(() => createEmptyPromptDraft())
-  const [editingPromptId, setEditingPromptId] = useState('')
-  const [editDraft, setEditDraft] = useState<PromptDraft>(() => createEmptyPromptDraft())
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+  const saveTimeoutsRef = useRef<Record<string, number>>({})
 
   const filteredPrompts = useMemo(() => {
     return activeCategory === 'Tutte' ? promptList : promptList.filter((prompt) => prompt.category === activeCategory)
   }, [activeCategory, promptList])
 
+  useEffect(() => {
+    let active = true
+
+    void loadPrompts()
+
+    return () => {
+      active = false
+      for (const timeoutId of Object.values(saveTimeoutsRef.current)) {
+        window.clearTimeout(timeoutId)
+      }
+      saveTimeoutsRef.current = {}
+    }
+
+    async function loadPrompts() {
+      setIsLoading(true)
+      try {
+        const prompts = await fetchPrompts()
+        if (!active) return
+        setPromptList(prompts)
+        setOpenPromptId((current) => (current && prompts.some((prompt) => prompt.id === current) ? current : ''))
+        setErrorMessage('')
+      } catch (error) {
+        if (!active) return
+        setPromptList([])
+        setErrorMessage(error instanceof Error ? error.message : 'Errore caricamento prompt')
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+  }, [])
+
   function openCreatePromptModal() {
     setDraft(createEmptyPromptDraft())
     setCreateModalOpen(true)
-  }
-
-  function openEditPrompt(prompt: Prompt) {
-    setEditDraft({
-      title: prompt.title,
-      category: prompt.category,
-      fullText: prompt.fullText,
-    })
-    setEditingPromptId(prompt.id)
-    setOpenPromptId(prompt.id)
+    setErrorMessage('')
   }
 
   function closePromptModal() {
@@ -58,57 +81,86 @@ export function PromptsPage() {
     }))
   }
 
-  function savePrompt() {
+  async function savePrompt() {
     const title = normalizePromptTitle(draft.title.trim())
     const fullText = draft.fullText.trim()
     if (!title || !fullText) return
 
-    const newPrompt: Prompt = {
-      id: createPromptId(),
-      title,
-      category: draft.category,
-      fullText,
+    try {
+      const newPrompt = await createPromptRecord({
+        title,
+        category: draft.category,
+        fullText,
+      })
+
+      setPromptList((current) => [...current, newPrompt])
+      setOpenPromptId(newPrompt.id)
+      if (activeCategory !== 'Tutte' && activeCategory !== newPrompt.category) {
+        setActiveCategory(newPrompt.category)
+      }
+      setErrorMessage('')
+      closePromptModal()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Errore creazione prompt')
     }
+  }
 
-    setPromptList((current) => [...current, newPrompt])
-    setOpenPromptId(newPrompt.id)
-    if (activeCategory !== 'Tutte' && activeCategory !== newPrompt.category) {
-      setActiveCategory(newPrompt.category)
+  function handlePromptChange(promptId: string, field: keyof PromptDraft, value: string) {
+    const nextValue =
+      field === 'category' ? (value as PromptCategory) : field === 'title' ? normalizePromptTitle(value) : value
+
+    setPromptList((current) => {
+      const nextPrompts = current.map((prompt) => (prompt.id === promptId ? { ...prompt, [field]: nextValue } : prompt))
+      const nextPrompt = nextPrompts.find((prompt) => prompt.id === promptId)
+      if (nextPrompt) schedulePromptSave(nextPrompt)
+      return nextPrompts
+    })
+  }
+
+  async function deletePrompt() {
+    if (!deleteCandidate) return
+
+    const promptId = deleteCandidate.id
+    clearScheduledPromptSave(promptId)
+
+    try {
+      await deletePromptRecord(promptId)
+      setPromptList((current) => current.filter((prompt) => prompt.id !== promptId))
+      setOpenPromptId((current) => (current === promptId ? '' : current))
+      setDeleteCandidate(null)
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Errore eliminazione prompt')
     }
-    closePromptModal()
   }
 
-  function handleEditDraftChange(field: keyof PromptDraft, value: string) {
-    setEditDraft((current) => ({
-      ...current,
-      [field]:
-        field === 'category'
-          ? (value as PromptCategory)
-          : field === 'title'
-            ? normalizePromptTitle(value)
-            : value,
-    }))
+  function schedulePromptSave(prompt: Prompt) {
+    clearScheduledPromptSave(prompt.id)
+    saveTimeoutsRef.current[prompt.id] = window.setTimeout(() => {
+      void persistPrompt(prompt)
+    }, 450)
   }
 
-  function saveEditedPrompt(promptId: string) {
-    const title = normalizePromptTitle(editDraft.title.trim())
-    const fullText = editDraft.fullText.trim()
-    if (!title || !fullText) return
-
-    setPromptList((current) =>
-      current.map((prompt) => (prompt.id === promptId ? { ...prompt, title, category: editDraft.category, fullText } : prompt)),
-    )
-    setEditingPromptId('')
+  function clearScheduledPromptSave(promptId: string) {
+    const timeoutId = saveTimeoutsRef.current[promptId]
+    if (timeoutId) {
+      window.clearTimeout(timeoutId)
+      delete saveTimeoutsRef.current[promptId]
+    }
   }
 
-  function cancelEditPrompt() {
-    setEditingPromptId('')
-  }
-
-  function deletePrompt(promptId: string) {
-    setPromptList((current) => current.filter((prompt) => prompt.id !== promptId))
-    setOpenPromptId((current) => (current === promptId ? '' : current))
-    setEditingPromptId((current) => (current === promptId ? '' : current))
+  async function persistPrompt(prompt: Prompt) {
+    clearScheduledPromptSave(prompt.id)
+    try {
+      await updatePromptRecord(prompt.id, {
+        title: normalizePromptTitle(prompt.title),
+        category: prompt.category,
+        fullText: prompt.fullText,
+      })
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Errore aggiornamento prompt')
+    }
   }
 
   return (
@@ -144,20 +196,19 @@ export function PromptsPage() {
         </button>
       </div>
 
-      {filteredPrompts.length ? (
+      {errorMessage ? <p className="status-message status-message--error">{errorMessage}</p> : null}
+
+      {isLoading ? (
+        <EmptyState title="Caricamento prompt" message="Sto leggendo la libreria Prompt da Supabase." />
+      ) : filteredPrompts.length ? (
         <div className="prompt-library" aria-label="Prompt disponibili">
           {filteredPrompts.map((prompt) => (
             <PromptLibraryCard
               key={prompt.id}
               prompt={prompt}
               open={prompt.id === openPromptId}
-              isEditing={prompt.id === editingPromptId}
-              editDraft={prompt.id === editingPromptId ? editDraft : null}
-              onDelete={() => deletePrompt(prompt.id)}
-              onEdit={() => openEditPrompt(prompt)}
-              onEditChange={handleEditDraftChange}
-              onEditCancel={cancelEditPrompt}
-              onEditSave={() => saveEditedPrompt(prompt.id)}
+              onDelete={() => setDeleteCandidate(prompt)}
+              onChange={(field, value) => handlePromptChange(prompt.id, field, value)}
               onToggle={() => setOpenPromptId((current) => (current === prompt.id ? '' : prompt.id))}
             />
           ))}
@@ -177,6 +228,14 @@ export function PromptsPage() {
           onSave={savePrompt}
         />
       ) : null}
+
+      {deleteCandidate ? (
+        <ConfirmDeletePromptModal
+          promptTitle={deleteCandidate.title}
+          onCancel={() => setDeleteCandidate(null)}
+          onConfirm={deletePrompt}
+        />
+      ) : null}
     </div>
   )
 }
@@ -184,95 +243,73 @@ export function PromptsPage() {
 function PromptLibraryCard({
   prompt,
   open,
-  isEditing,
-  editDraft,
   onDelete,
-  onEdit,
-  onEditCancel,
-  onEditChange,
-  onEditSave,
+  onChange,
   onToggle,
 }: {
   prompt: Prompt
   open: boolean
-  isEditing: boolean
-  editDraft: PromptDraft | null
   onDelete: () => void
-  onEdit: () => void
-  onEditCancel: () => void
-  onEditChange: (field: keyof PromptDraft, value: string) => void
-  onEditSave: () => void
+  onChange: (field: keyof PromptDraft, value: string) => void
   onToggle: () => void
 }) {
-  const isEditSaveDisabled = !editDraft?.title.trim() || !editDraft?.fullText.trim()
-
   return (
     <article className={open ? 'prompt-library-card prompt-library-card--open' : 'prompt-library-card'}>
       <div className="prompt-library-card__header">
         <div className="prompt-library-card__actions">
-          <CopyButton value={prompt.fullText} />
-          <button type="button" className="icon-button prompt-card-action" onClick={onEdit} title="Modifica prompt" aria-label="Modifica prompt">
-            <PencilLine aria-hidden="true" className="button-icon" />
-          </button>
-          <button type="button" className="icon-button prompt-card-action prompt-card-action--danger" onClick={onDelete} title="Elimina prompt" aria-label="Elimina prompt">
-            <Trash2 aria-hidden="true" className="button-icon" />
-          </button>
+          <CopyButton value={buildPromptClipboardValue(prompt)} />
         </div>
 
         <button type="button" className="prompt-library-card__toggle" onClick={onToggle} aria-expanded={open}>
-          <div className="prompt-library-card__heading">
-            <h3>{prompt.title}</h3>
-          </div>
+          {open ? <span className="prompt-library-card__heading prompt-library-card__heading--hidden" aria-hidden="true" /> : (
+            <div className="prompt-library-card__heading">
+              <h3>{prompt.title}</h3>
+            </div>
+          )}
           <span className="prompt-library-card__toggle-icon" aria-hidden="true">
             {open ? <ChevronUp className="button-icon" /> : <ChevronDown className="button-icon" />}
           </span>
+        </button>
+
+        <button
+          type="button"
+          className="inline-icon-button trash-button"
+          onClick={onDelete}
+          title="Elimina prompt"
+          aria-label="Elimina prompt"
+        >
+          <Trash2 aria-hidden="true" className="button-icon" />
         </button>
       </div>
 
       {open ? (
         <div className="prompt-library-card__content">
-          {isEditing && editDraft ? (
-            <>
-              <div className="prompt-library-card__editor">
-                <label className="settings-input">
-                  <span>Titolo</span>
-                  <input value={editDraft.title} type="text" onChange={(event) => onEditChange('title', event.target.value)} />
-                </label>
+          <div className="prompt-library-card__editor">
+            <label className="settings-input">
+              <span>Titolo</span>
+              <input
+                value={prompt.title}
+                type="text"
+                className="prompt-title-input"
+                onChange={(event) => onChange('title', event.target.value)}
+              />
+            </label>
 
-                <label className="settings-input">
-                  <span>Sezione</span>
-                  <select value={editDraft.category} onChange={(event) => onEditChange('category', event.target.value)}>
-                    {promptCategories.map((category) => (
-                      <option value={category} key={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            <label className="settings-input">
+              <span>Sezione</span>
+              <PromptCategoryTabs value={prompt.category} onChange={(category) => onChange('category', category)} />
+            </label>
 
-                <label className="settings-input">
-                  <span>Prompt</span>
-                  <textarea
-                    value={editDraft.fullText}
-                    rows={9}
-                    className="prompt-library-card__textarea"
-                    onChange={(event) => onEditChange('fullText', event.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="prompt-library-card__footer">
-                <button type="button" className="secondary-button" onClick={onEditCancel}>
-                  Annulla
-                </button>
-                <button type="button" className="secondary-button secondary-button--compact" disabled={isEditSaveDisabled} onClick={onEditSave}>
-                  Salva modifiche
-                </button>
-              </div>
-            </>
-          ) : (
-            <textarea value={prompt.fullText} readOnly rows={9} className="prompt-library-card__textarea" />
-          )}
+            <label className="settings-input">
+              <span>Prompt</span>
+              <textarea
+                value={prompt.fullText}
+                rows={9}
+                className="prompt-library-card__textarea"
+                onChange={(event) => onChange('fullText', event.target.value)}
+              />
+            </label>
+          </div>
         </div>
       ) : null}
     </article>
@@ -305,7 +342,6 @@ function PromptModal({
             />
             <div>
               <h2 id="prompt-modal-title">Nuovo prompt</h2>
-              <p>Compila titolo, sezione e testo del prompt mantenendo una struttura chiara e riutilizzabile.</p>
             </div>
           </div>
 
@@ -317,18 +353,17 @@ function PromptModal({
         <div className="prompt-modal__body">
           <label className="settings-input">
             <span>Titolo</span>
-            <input value={draft.title} type="text" onChange={(event) => onChange('title', event.target.value)} />
+            <input
+              value={draft.title}
+              type="text"
+              className="prompt-title-input"
+              onChange={(event) => onChange('title', event.target.value)}
+            />
           </label>
 
           <label className="settings-input">
             <span>Sezione</span>
-            <select value={draft.category} onChange={(event) => onChange('category', event.target.value)}>
-              {promptCategories.map((category) => (
-                <option value={category} key={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <PromptCategoryTabs value={draft.category} onChange={(category) => onChange('category', category)} />
           </label>
 
           <label className="settings-input">
@@ -356,6 +391,54 @@ function PromptModal({
   )
 }
 
+function ConfirmDeletePromptModal({
+  promptTitle,
+  onCancel,
+  onConfirm,
+}: {
+  promptTitle: string
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="modal-backdrop prompt-modal-backdrop" role="presentation">
+      <div className="prompt-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-prompt-title">
+        <div className="prompt-confirm-modal__header">
+          <div className="prompt-confirm-modal__brand">
+            <img
+              src="/icons/nav-logo.png"
+              srcSet="/icons/nav-logo.png 1x, /icons/nav-logo@2x.png 2x"
+              alt="App Control"
+              className="prompt-confirm-modal__logo"
+            />
+            <h2 id="delete-prompt-title">Elimina prompt</h2>
+          </div>
+
+          <button type="button" className="secondary-button prompt-modal__close" onClick={onCancel} aria-label="Chiudi conferma eliminazione">
+            <X aria-hidden="true" className="button-icon" />
+          </button>
+        </div>
+
+        <div className="prompt-confirm-modal__body">
+          <p>
+            Stai per eliminare <strong>{promptTitle}</strong>.
+          </p>
+          <p>Questa azione non e reversibile.</p>
+        </div>
+
+        <div className="confirm-modal__actions">
+          <button type="button" className="secondary-button" onClick={onCancel}>
+            Annulla
+          </button>
+          <button type="button" className="danger-button" onClick={onConfirm}>
+            Elimina prompt
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function createEmptyPromptDraft(): PromptDraft {
   return {
     title: '',
@@ -364,11 +447,42 @@ function createEmptyPromptDraft(): PromptDraft {
   }
 }
 
-function createPromptId() {
-  return `prompt-${Date.now()}`
-}
-
 function normalizePromptTitle(value: string) {
   if (!value) return ''
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+}
+
+function buildPromptClipboardValue(prompt: Prompt) {
+  const title = prompt.title.trim()
+  const fullText = prompt.fullText.trim()
+
+  if (!title) return fullText
+  if (!fullText) return `Titolo: ${title}`
+
+  return `Titolo: ${title}\n\n${fullText}`
+}
+
+function PromptCategoryTabs({
+  value,
+  onChange,
+}: {
+  value: PromptCategory
+  onChange: (category: PromptCategory) => void
+}) {
+  return (
+    <div className="prompt-category-tabs" role="tablist" aria-label="Sezione prompt">
+      {promptCategories.map((category) => (
+        <button
+          key={category}
+          type="button"
+          role="tab"
+          aria-selected={value === category}
+          className={value === category ? 'tab-button tab-button--active' : 'tab-button'}
+          onClick={() => onChange(category)}
+        >
+          {category}
+        </button>
+      ))}
+    </div>
+  )
 }

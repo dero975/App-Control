@@ -4,7 +4,7 @@ export type DevelopmentEnvironment = string
 
 export type ProjectStatus = 'Attivo' | 'In pausa' | 'Archivio' | 'Idea'
 
-export type PromptCategory = 'Prompt iniziali' | 'Prompt manutenzione'
+export type PromptCategory = 'Prompt iniziali' | 'Prompt manutenzione' | 'Prompt vari'
 
 export type Prompt = {
   id: string

@@ -84,50 +84,24 @@ export async function fetchProjects() {
     .order('updated_at', { ascending: false })
   if (projectsError) throw projectsError
 
-  const projectIds = (projects ?? []).map((project) => project.id)
-  if (!projectIds.length) return []
+  return mapProjects((projects as ProjectRow[] | null) ?? [])
+}
 
-  const [
-    { data: envRows, error: envError },
-    { data: agentRows, error: agentError },
-    { data: accessRows, error: accessError },
-    { data: fieldRows, error: fieldError },
-    imageRows,
-  ] = await Promise.all([
-    client
-      .from('project_env_variables')
-      .select('project_id, key, value_text, value_ciphertext, scope, is_sensitive')
-      .in('project_id', projectIds)
-      .order('sort_order', { ascending: true }),
-    client.from('project_agent_keys').select('project_id, key_prefix, key_ciphertext, sync_prompt').in('project_id', projectIds),
-    client
-      .from('project_platform_accesses')
-      .select('id, project_id, platform, email, password_ciphertext, sort_order')
-      .in('project_id', projectIds)
-      .order('sort_order', { ascending: true }),
-    client
-      .from('project_data_fields')
-      .select('id, project_id, field_key, label, value_text, value_ciphertext, is_secret, sort_order')
-      .in('project_id', projectIds)
-      .order('sort_order', { ascending: true }),
-    fetchImageRows(projectIds),
-  ])
+export async function fetchProjectById(projectId: string) {
+  const client = requireSupabase()
 
-  if (envError) throw envError
-  if (agentError) throw agentError
-  if (accessError) throw accessError
-  if (fieldError) throw fieldError
+  const { data, error } = await client
+    .from('projects')
+    .select(
+      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+    )
+    .eq('id', projectId)
+    .single()
 
-  return (projects as ProjectRow[]).map((project) =>
-    mapProjectRow(
-      project,
-      (envRows as EnvVariableRow[] | null)?.filter((row) => row.project_id === project.id) ?? [],
-      (agentRows as AgentKeyRow[] | null)?.find((row) => row.project_id === project.id),
-      (accessRows as PlatformAccessRow[] | null)?.filter((row) => row.project_id === project.id) ?? [],
-      (fieldRows as DataFieldRow[] | null)?.filter((row) => row.project_id === project.id) ?? [],
-      imageRows.filter((row) => row.project_id === project.id),
-    ),
-  )
+  if (error) throw error
+
+  const projects = await mapProjects([data as ProjectRow])
+  return projects[0]
 }
 
 export async function createProjectRecord(project: Project) {
@@ -324,6 +298,88 @@ async function saveProjectImages(projectId: string, images: ProjectImage[]) {
     const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId).in('slot_id', emptySlotIds)
     if (deleteError) throw deleteError
   }
+}
+
+async function mapProjects(projects: ProjectRow[]) {
+  const projectIds = projects.map((project) => project.id)
+  if (!projectIds.length) return []
+
+  const { envRows, agentRows, accessRows, fieldRows, imageRows } = await fetchProjectRelations(projectIds)
+  const envByProjectId = groupRowsByProjectId(envRows)
+  const accessByProjectId = groupRowsByProjectId(accessRows)
+  const fieldByProjectId = groupRowsByProjectId(fieldRows)
+  const imageByProjectId = groupRowsByProjectId(imageRows)
+  const agentByProjectId = new Map(agentRows.map((row) => [row.project_id, row]))
+
+  return projects.map((project) =>
+    mapProjectRow(
+      project,
+      envByProjectId.get(project.id) ?? [],
+      agentByProjectId.get(project.id),
+      accessByProjectId.get(project.id) ?? [],
+      fieldByProjectId.get(project.id) ?? [],
+      imageByProjectId.get(project.id) ?? [],
+    ),
+  )
+}
+
+async function fetchProjectRelations(projectIds: string[]) {
+  const client = requireSupabase()
+
+  const [
+    { data: envRows, error: envError },
+    { data: agentRows, error: agentError },
+    { data: accessRows, error: accessError },
+    { data: fieldRows, error: fieldError },
+    imageRows,
+  ] = await Promise.all([
+    client
+      .from('project_env_variables')
+      .select('project_id, key, value_text, value_ciphertext, scope, is_sensitive')
+      .in('project_id', projectIds)
+      .order('sort_order', { ascending: true }),
+    client.from('project_agent_keys').select('project_id, key_prefix, key_ciphertext, sync_prompt').in('project_id', projectIds),
+    client
+      .from('project_platform_accesses')
+      .select('id, project_id, platform, email, password_ciphertext, sort_order')
+      .in('project_id', projectIds)
+      .order('sort_order', { ascending: true }),
+    client
+      .from('project_data_fields')
+      .select('id, project_id, field_key, label, value_text, value_ciphertext, is_secret, sort_order')
+      .in('project_id', projectIds)
+      .order('sort_order', { ascending: true }),
+    fetchImageRows(projectIds),
+  ])
+
+  if (envError) throw envError
+  if (agentError) throw agentError
+  if (accessError) throw accessError
+  if (fieldError) throw fieldError
+
+  return {
+    envRows: (envRows as EnvVariableRow[] | null) ?? [],
+    agentRows: (agentRows as AgentKeyRow[] | null) ?? [],
+    accessRows: (accessRows as PlatformAccessRow[] | null) ?? [],
+    fieldRows: (fieldRows as DataFieldRow[] | null) ?? [],
+    imageRows,
+  }
+}
+
+function groupRowsByProjectId<T extends { project_id: string }>(rows: T[]) {
+  const groupedRows = new Map<string, T[]>()
+
+  for (const row of rows) {
+    const currentRows = groupedRows.get(row.project_id)
+    if (currentRows) {
+      currentRows.push(row)
+      continue
+    }
+
+    groupedRows.set(row.project_id, [row])
+  }
+
+  return groupedRows
 }
 
 function mapProjectRow(

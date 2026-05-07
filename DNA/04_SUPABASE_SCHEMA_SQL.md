@@ -2,7 +2,7 @@
 
 Documento canonico per lo schema Supabase target. Deve restare coerente con il codice reale prima di eseguire script in SQL Editor.
 
-Stato attuale del codice: Supabase e collegato per PIN app e sezione Progetti tramite client frontend anon. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
+Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
 
 Stato setup Supabase eseguito nella fase corrente:
 
@@ -10,7 +10,8 @@ Stato setup Supabase eseguito nella fase corrente:
 - attivati trigger `set_updated_at`;
 - RLS attiva; le policy owner iniziali sono state sostituite dalla fase PIN con policy permissive anon/auth per le tabelle operative;
 - creata tabella `app_control_settings` per PIN sincronizzato;
-- non creare ancora `prompts`, `project_prompts` e `app_settings`: prompt e impostazioni restano esclusi dalla fase corrente.
+- la sezione `Prompt` usa ora la tabella reale `prompts` con persistenza completa create/read/update/delete;
+- non creare `project_prompts` o `app_settings`: non esistono piu esigenze runtime coerenti con quelle tabelle nel codice attuale.
 
 ## Regole prima di eseguire SQL
 
@@ -49,7 +50,7 @@ Mappatura:
 - Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.
 - Tab `Note`: target dati `projects.operational_notes`; verificare il repository corrente prima di assumere persistenza completa degli update da UI.
 - Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
-- Prompt library: `prompts` e relazione futura `project_prompts`, esclusi dalla fase corrente.
+- Prompt library: `prompts`; non esiste relazione corrente `project_prompts`.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.
 - PIN app: `app_control_settings`.
 
@@ -59,6 +60,7 @@ Mappatura:
 - `status`, `scope`, `type` e `category` hanno check constraint per i valori attuali del codice.
 - RLS attiva su tutte le tabelle dati.
 - Dopo la fase PIN, l'app usa client anon e policy permissive `*_app_all`; `projects.user_id` resta nullable per non dipendere da Supabase Auth.
+- La futura tabella `prompts` deve seguire lo stesso modello operativo della fase PIN: nessuna dipendenza da `auth.users`, nessun `user_id` obbligatorio e policy permissive `anon/auth` coerenti con il resto dell'app privata.
 - Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
 - Il PIN app e salvato come hash in `app_control_settings`; non sostituisce cifratura dei segreti.
 - Le colonne `*_ciphertext` non cifrano da sole: indicano dati da cifrare lato applicazione prima della persistenza.
@@ -70,6 +72,11 @@ Mappatura:
 - `project_images.data_url` conserva l'anteprima/file ottimizzato per ripristino dopo refresh; non inserire immagini non ottimizzate o superiori al limite operativo UI.
 - Il nome download immagine si calcola dal titolo card e dall'estensione reale, non va salvato come dato canonico.
 - Gli slot immagine fissi sono sempre renderizzati dalla UI anche quando non esistono record immagine persistiti.
+- Il modello dati reale dei prompt concluso in UI e minimale: `title`, `category`, `full_text`, `created_at`, `updated_at`.
+- Le categorie canoniche prompt sono solo `Prompt iniziali`, `Prompt manutenzione`, `Prompt vari`.
+- Non usare nello schema prompt campi legacy non presenti nel codice reale: `type`, `usage_notes`, `tags`, `favorite`, `last_modified`.
+- Non usare una relazione `project_prompts`: oggi i prompt non sono collegati a singoli progetti.
+- La pagina `Impostazioni` usa solo `app_control_settings` per il PIN; non creare `app_settings`.
 
 ## Tabelle target
 
@@ -80,10 +87,10 @@ Mappatura:
 - `project_images`
 - `project_agent_keys`
 - `app_control_settings`
+- `prompts`
 
 Tabelle future non attive nella fase corrente:
 
-- `prompts`
 - `project_prompts`
 - `app_settings`
 
@@ -486,52 +493,67 @@ before update on public.project_agent_keys
 for each row execute function public.set_updated_at();
 ```
 
-## Script 7 - Prompt
+## Script 7A - Verifica stato prompt attuale
 
-Non eseguire nella fase corrente: prompt e impostazioni sono esclusi fino a nuova decisione funzionale.
+Eseguire per primo. Serve a capire se il database e gia vuoto lato prompt, se esiste una tabella compatibile o se e presente uno schema legacy da non aggiornare alla cieca.
 
 ```sql
-create table public.prompts (
+select
+  table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in ('prompts', 'project_prompts', 'app_settings')
+order by table_name;
+
+select
+  column_name,
+  data_type,
+  is_nullable
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'prompts'
+order by ordinal_position;
+
+select
+  schemaname,
+  tablename,
+  policyname,
+  roles,
+  cmd
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'prompts'
+order by policyname;
+
+select
+  tgrelid::regclass as table_name,
+  tgname as trigger_name
+from pg_trigger
+where not tgisinternal
+  and tgrelid = 'public.prompts'::regclass;
+```
+
+## Script 7B - Crea tabella `prompts` coerente con il codice reale
+
+Eseguire solo dopo verifica positiva dello Script 7A o dopo avere confermato che eventuali tabelle legacy possono essere migrate/rimosse.
+
+```sql
+create table if not exists public.prompts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   title text not null,
-  type text not null check (type in ('Iniziali / strutturali', 'Ordinari / operativi', 'Speciali / sensibili')),
-  category text not null check (category in (
-    'Start progetto',
-    'Analisi progetto',
-    'DNA documentazione',
-    'GitHub',
-    'Backup',
-    'Supabase',
-    'SQL',
-    'Deploy',
-    'Pulizia sicura',
-    'Ottimizzazione',
-    'Testing',
-    'Asset / PWA'
-  )),
-  full_text text not null,
-  usage_notes text not null default '',
-  tags text[] not null default '{}',
-  favorite boolean not null default false,
-  last_modified date not null default current_date,
+  category text not null check (category in ('Prompt iniziali', 'Prompt manutenzione', 'Prompt vari')),
+  full_text text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table public.project_prompts (
-  project_id uuid not null references public.projects(id) on delete cascade,
-  prompt_id uuid not null references public.prompts(id) on delete cascade,
-  notes text not null default '',
-  created_at timestamptz not null default now(),
-  primary key (project_id, prompt_id)
-);
+create index if not exists prompts_category_updated_idx
+  on public.prompts (category, updated_at desc);
 
-create index prompts_user_category_idx on public.prompts (user_id, category);
-create index prompts_user_type_idx on public.prompts (user_id, type);
-create index prompts_user_favorite_idx on public.prompts (user_id, favorite);
-create index project_prompts_prompt_idx on public.project_prompts (prompt_id);
+create index if not exists prompts_title_idx
+  on public.prompts (title);
 
+drop trigger if exists prompts_set_updated_at on public.prompts;
 create trigger prompts_set_updated_at
 before update on public.prompts
 for each row execute function public.set_updated_at();
@@ -539,7 +561,7 @@ for each row execute function public.set_updated_at();
 
 ## Script 8 - Impostazioni
 
-Non eseguire nella fase corrente: prompt e impostazioni sono esclusi fino a nuova decisione funzionale.
+Non eseguire. La pagina `Impostazioni` reale non usa `app_settings`: oggi gestisce solo il PIN tramite `app_control_settings`.
 
 ```sql
 create table public.app_settings (
@@ -558,168 +580,27 @@ before update on public.app_settings
 for each row execute function public.set_updated_at();
 ```
 
-## Script 9 - RLS e policy Auth legacy
+## Script 9 - RLS e policy Prompt per fase PIN attuale
 
-Non eseguire nella fase PIN attuale. Questo blocco resta come riferimento solo se in futuro si decide di tornare a Supabase Auth con ownership per utente. La configurazione operativa corrente e lo `Script 0B`, con `app_control_settings`, PIN e policy anon/auth permissive per l'app privata.
+Eseguire solo dopo avere creato una tabella `prompts` compatibile con il codice reale.
 
 ```sql
-alter table public.projects enable row level security;
-alter table public.project_data_fields enable row level security;
-alter table public.project_platform_accesses enable row level security;
-alter table public.project_env_variables enable row level security;
-alter table public.project_images enable row level security;
-alter table public.project_agent_keys enable row level security;
 alter table public.prompts enable row level security;
-alter table public.project_prompts enable row level security;
-alter table public.app_settings enable row level security;
 
-create policy projects_owner_all
-on public.projects
-for all
-to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+drop policy if exists prompts_owner_all on public.prompts;
+drop policy if exists prompts_app_all on public.prompts;
 
-create policy project_data_fields_owner_all
-on public.project_data_fields
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_data_fields.project_id
-      and p.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_data_fields.project_id
-      and p.user_id = auth.uid()
-  )
-);
-
-create policy project_platform_accesses_owner_all
-on public.project_platform_accesses
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_platform_accesses.project_id
-      and p.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_platform_accesses.project_id
-      and p.user_id = auth.uid()
-  )
-);
-
-create policy project_env_variables_owner_all
-on public.project_env_variables
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_env_variables.project_id
-      and p.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_env_variables.project_id
-      and p.user_id = auth.uid()
-  )
-);
-
-create policy project_images_owner_all
-on public.project_images
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_images.project_id
-      and p.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_images.project_id
-      and p.user_id = auth.uid()
-  )
-);
-
-create policy project_agent_keys_owner_all
-on public.project_agent_keys
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_agent_keys.project_id
-      and p.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_agent_keys.project_id
-      and p.user_id = auth.uid()
-  )
-);
-
-create policy prompts_owner_all
+create policy prompts_app_all
 on public.prompts
 for all
-to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+to anon, authenticated
+using (true)
+with check (true);
 
-create policy project_prompts_owner_all
-on public.project_prompts
-for all
-to authenticated
-using (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_prompts.project_id
-      and p.user_id = auth.uid()
-  )
-  and exists (
-    select 1 from public.prompts pr
-    where pr.id = project_prompts.prompt_id
-      and pr.user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1 from public.projects p
-    where p.id = project_prompts.project_id
-      and p.user_id = auth.uid()
-  )
-  and exists (
-    select 1 from public.prompts pr
-    where pr.id = project_prompts.prompt_id
-      and pr.user_id = auth.uid()
-  )
-);
-
-create policy app_settings_owner_all
-on public.app_settings
-for all
-to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+grant select, insert, update, delete on public.prompts to anon, authenticated;
 ```
 
-## Script 10 - Verifica finale
+## Script 10 - Verifica finale Prompt + base schema
 
 ```sql
 select table_name
@@ -733,8 +614,7 @@ where table_schema = 'public'
     'project_images',
     'project_agent_keys',
     'prompts',
-    'project_prompts',
-    'app_settings'
+    'app_control_settings'
   )
 order by table_name;
 
@@ -749,8 +629,7 @@ where schemaname = 'public'
     'project_images',
     'project_agent_keys',
     'prompts',
-    'project_prompts',
-    'app_settings'
+    'app_control_settings'
   )
 order by tablename;
 
@@ -765,8 +644,7 @@ where schemaname = 'public'
     'project_images',
     'project_agent_keys',
     'prompts',
-    'project_prompts',
-    'app_settings'
+    'app_control_settings'
   )
 order by tablename, policyname;
 
@@ -786,5 +664,6 @@ order by table_name::text, trigger_name;
 - Migrazione dei dati locali di sessione in record reali.
 - Storage bucket per immagini.
 - Seed dei prompt o delle immagini.
+- Persistenza reale della libreria Prompt finche non vengono eseguiti e verificati gli script `7A`, `7B`, `9`, `10`.
 
 Questi punti richiedono una richiesta esplicita e modifiche codice dedicate.

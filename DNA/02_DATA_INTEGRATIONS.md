@@ -2,8 +2,7 @@
 
 ## Fonte dati reale oggi
 
-- La sezione Progetti non carica dati mock locali: usa Supabase dopo sblocco PIN app.
-- `src/data/mockData.ts` contiene ancora solo dati locali per la libreria Prompt.
+- Le sezioni Progetti e Prompt usano Supabase dopo sblocco PIN app.
 - Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`.
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
@@ -14,7 +13,7 @@
 - `Project`: progetto, date `createdAt` / `updatedAt`, stato, ambiente sviluppo, GitHub, campo `linkedSecretLabel`, campi Supabase, deploy, note, prompt e immagini collegate.
 - `ProjectAgentAccess`: dati minimi per collegare un progetto esterno ad App Control tramite JSON locale e prompt generico.
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
-- `Prompt`: libreria prompt minima con `title`, `category` e `fullText`.
+- `Prompt`: libreria prompt minima con `id`, `title`, `category` e `fullText`.
 - `VisualAsset`: asset collegato a progetto con path e note.
 
 ## Vincoli dati attuali
@@ -33,11 +32,9 @@
 
 ## Integrazioni future
 
-Supabase e integrato per PIN app e sezione Progetti. Prompt e Supabase Storage restano fuori dalla fase corrente; le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
+Supabase e integrato per PIN app, sezione Progetti e libreria Prompt. Le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
 
-La libreria prompt oggi resta mock locale in `src/data/mockData.ts` e non usa ancora tabelle dedicate o persistenza remota.
-
-La UI `Prompt` puo creare, modificare ed eliminare card solo nello stato locale runtime del client; chiusura o refresh riportano i dati ai mock correnti finche non verra introdotta persistenza dedicata.
+La libreria prompt usa la tabella `prompts` e non dipende piu da mock locali. La UI crea, modifica, elimina e ricarica card reali via client Supabase anon coerente con la fase PIN.
 
 Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 

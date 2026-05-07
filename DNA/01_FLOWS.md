@@ -74,10 +74,14 @@ Fonte: `src/features/projects/ProjectsPage.tsx`.
 Fonte: `src/features/prompts`.
 
 - La pagina `Prompt` e una libreria essenziale di card operative.
-- Le sole categorie canoniche attuali sono `Prompt iniziali` e `Prompt manutenzione`.
+- Le categorie canoniche attuali sono `Prompt iniziali`, `Prompt manutenzione` e `Prompt vari`.
 - Ogni card mostra solo il titolo; la categoria resta come filtro della pagina e non viene ripetuta nel corpo della card. Il testo completo del prompt si visualizza solo quando la card viene aperta con click.
 - Il pulsante copia e sempre disponibile sulla card anche quando il prompt e chiuso; non esiste piu il secondo pulsante copia nel footer aperto.
-- I prompt della libreria sono oggi gestiti localmente in memoria runtime: e possibile creare un nuovo prompt tramite modale dedicata, mentre modifica ed eliminazione avvengono direttamente sulla card aperta, senza persistenza remota.
+- I prompt della libreria vengono caricati da Supabase all'apertura della pagina. Nessuna card deve risultare aperta di default al primo caricamento.
+- `Nuovo prompt` crea un record reale in `prompts` tramite modale dedicata.
+- Modifica titolo, sezione e testo avviene direttamente sulla card aperta con autosave debounced verso Supabase.
+- Eliminazione prompt parte direttamente dalla card ma passa da una modale di conferma prima della rimozione reale da Supabase.
+- `Copia prompt` copia sempre `Titolo: ...` seguito da una riga vuota e poi dal testo completo del prompt.
 - Non esistono piu pannello dettaglio laterale, tag, note d'uso, preferiti o data ultima modifica.
 
 ## Impostazioni

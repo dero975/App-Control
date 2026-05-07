@@ -12,7 +12,7 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 ## Stato sintetico
 
-App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. La sezione Progetti usa Supabase database per leggere/salvare progetti, dati progetto, accessi piattaforme, variabili ENV e Agent Sync senza login email/password. La sezione Prompt usa ancora mock locali. Non esistono storage immagini, backend custom o CI.
+App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Le sezioni Progetti e Prompt usano Supabase database senza login email/password. Non esistono storage immagini, backend custom o CI.
 
 La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni sono `Prompt` e `Impostazioni`.
 
@@ -20,7 +20,7 @@ La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dat
 
 - `DNA/00_CONTEXT.md`: stato reale, architettura e guardrail non negoziabili.
 - `DNA/01_FLOWS.md`: flussi UI e logiche critiche attuali.
-- `DNA/02_DATA_INTEGRATIONS.md`: dati, mock, integrazioni assenti/future e vincoli.
+- `DNA/02_DATA_INTEGRATIONS.md`: dati reali, integrazioni attive/future e vincoli.
 - `DNA/03_OPERATIONS.md`: script, validazione e workflow operativo.
 - `DNA/04_SUPABASE_SCHEMA_SQL.md`: schema Supabase target e script SQL ordinati.
 
@@ -29,7 +29,7 @@ La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dat
 - Il codice reale e fonte primaria.
 - Non creare documentazione parallela o doppia.
 - Non introdurre backend, Supabase, SQL, auth o storage senza richiesta esplicita.
-- Supabase e gia integrato solo per `Progetti` e PIN app: non usare `SUPABASE_SERVICE_ROLE_KEY` nel frontend e non loggare mai segreti.
+- Supabase e gia integrato per `Progetti`, `Prompt` e PIN app: non usare `SUPABASE_SERVICE_ROLE_KEY` nel frontend e non loggare mai segreti.
 - Non inserire segreti reali in codice, mock o documentazione.
 - In `Agent sync`, mantenere solo prompt generico stabile non modificabile e JSON di collegamento per progetto; non duplicare chiavi o credenziali in viste parallele.
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.

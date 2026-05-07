@@ -6,9 +6,9 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 
 - App privata locale per gestire progetti, prompt, variabili, immagini e note operative.
 - Stack: React, TypeScript, Vite, CSS custom, `lucide-react`.
-- Backend custom assente. Supabase e collegato per PIN app e sezione Progetti tramite client frontend anon.
+- Backend custom assente. Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon.
 - Accesso app con PIN a 6 cifre sincronizzato su Supabase; sessione sbloccata in `sessionStorage` fino a chiusura/esci.
-- La sezione Progetti legge/scrive progetti reali su Supabase dopo sblocco PIN; i mock residui in `src/data/mockData.ts` riguardano la libreria Prompt.
+- Le sezioni Progetti e Prompt leggono/scrivono dati reali su Supabase dopo sblocco PIN app.
 - Tipi dominio in `src/types/app.ts`.
 - Entry point runtime: `src/main.tsx` -> `src/App.tsx` -> `src/app/AppLayout.tsx`.
 - Sezioni navigabili: `Progetti`, `Prompt`, `Impostazioni`.
@@ -19,7 +19,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `src/app`: shell, sidebar desktop, navigazione mobile.
 - `src/components`: componenti condivisi (`CopyButton`, `FieldGroup`, `SectionHeader`, `EmptyState`).
 - `src/features/projects`: gestione principale dei progetti e dei tab interni.
-- `src/features/prompts`: libreria prompt minima con categorie, apertura card e copia.
+- `src/features/prompts`: libreria prompt con filtri categoria, CRUD reale Supabase, copia e modale creazione.
 - `src/features/settings`: gestione PIN app e sicurezza locale.
 - `src/lib/clipboard.ts`: helper condiviso per copia clipboard.
 - `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*`.
