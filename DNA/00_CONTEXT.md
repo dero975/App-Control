@@ -21,7 +21,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `src/features/projects`: gestione principale dei progetti e dei tab interni.
 - `src/features/prompts`: libreria prompt con ricerca, filtri, dettaglio e copia.
 - `src/features/settings`: placeholder essenziale.
-- `src/lib/clipboard.ts`: copia clipboard e formattazione blocchi ENV.
+- `src/lib/clipboard.ts`: helper condiviso per copia clipboard.
 - `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*`.
 - `src/lib/pinAccess.ts`: verifica e modifica PIN app via Supabase.
 - `src/features/projects/projectRepository.ts`: accesso dati Supabase per Progetti.
