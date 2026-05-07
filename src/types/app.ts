@@ -54,6 +54,16 @@ export type ProjectVariable = {
   accessAccounts?: PlatformAccess[]
 }
 
+export type ProjectImage = {
+  id: string
+  name: string
+  fileName: string
+  mimeType: string
+  dataUrl: string
+  sizeBytes: number
+  originalSizeBytes: number
+}
+
 export type ProjectAgentAccess = {
   projectId: string
   agentKey: string
@@ -86,6 +96,7 @@ export type Project = {
   env: EnvVariable[]
   dataFields?: ProjectVariable[]
   platformAccesses?: PlatformAccess[]
+  images?: ProjectImage[]
 }
 
 export type VisualAsset = {

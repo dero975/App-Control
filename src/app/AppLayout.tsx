@@ -17,7 +17,12 @@ export function AppLayout({ activeSection, children, onLock, onNavigate }: AppLa
 
       <div className="mobile-nav" aria-label="Navigazione mobile">
         <div className="mobile-nav__brand">
-          <strong>App Control</strong>
+          <img
+            src="/icons/nav-logo.png"
+            srcSet="/icons/nav-logo.png 1x, /icons/nav-logo@2x.png 2x"
+            alt="App Control"
+            className="brand-logo"
+          />
         </div>
         <select value={activeSection} onChange={(event) => onNavigate(event.target.value as AppSection)}>
           {navigationItems.map((item) => (

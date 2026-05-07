@@ -35,7 +35,7 @@ export function PinLockPage({ onUnlock }: PinLockPageProps) {
   }
 
   return (
-    <div className="page-stack page-stack--narrow">
+    <div className="page-stack page-stack--narrow app-entry">
       <SectionHeader title="App Control" />
       <FieldGroup title="Accesso app" description="Inserisci il PIN a 6 cifre per aprire l'applicazione.">
         <form className="auth-form" onSubmit={submitPin}>

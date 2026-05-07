@@ -27,7 +27,7 @@ Fonte codice primaria:
 
 - Tipi: `src/types/app.ts`
 - Progetti e tab: `src/features/projects/ProjectsPage.tsx`
-- ENV: `src/features/projects/EnvForm.tsx`
+- ENV e `.env render`: `src/features/projects/ProjectsPage.tsx`
 - Prompt: `src/features/prompts`
 
 Mappatura:
@@ -44,10 +44,10 @@ Mappatura:
   - `deploy con`: `projects.deploy_provider`
   - campi aggiunti manualmente: `project_data_fields`
 - Tab `Variabili`: `project_env_variables`.
-- Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva in sessione `slot_id`, `name`, `fileName`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
-- Persistenza immagini target: non salvare data URL grezzi nel database; salvare metadati e futuro path Storage. Il file resta da gestire con Storage quando verra implementato.
+- Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva `slot_id`, `name`, `fileName`, `mimeType`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
+- Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.
 - Tab `Note`: `projects.operational_notes`.
-- Pannello `Agent sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
+- Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
 - Prompt library: `prompts` e relazione futura `project_prompts`, esclusi dalla fase corrente.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.
 - PIN app: `app_control_settings`.
@@ -58,6 +58,7 @@ Mappatura:
 - `status`, `scope`, `type` e `category` hanno check constraint per i valori attuali del codice.
 - RLS attiva su tutte le tabelle dati.
 - Dopo la fase PIN, l'app usa client anon e policy permissive `*_app_all`; `projects.user_id` resta nullable per non dipendere da Supabase Auth.
+- Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
 - Il PIN app e salvato come hash in `app_control_settings`; non sostituisce cifratura dei segreti.
 - Le colonne `*_ciphertext` non cifrano da sole: indicano dati da cifrare lato applicazione prima della persistenza.
 - Le password piattaforma sono visibili in UI per richiesta funzionale, ma devono essere cifrate at-rest.
@@ -65,6 +66,7 @@ Mappatura:
 - Il prompt di sincronizzazione resta generico; `projectId` e `agentKey` stanno nel JSON per progetto.
 - Le Agent Key non devono essere salvate solo in chiaro: target consigliato `key_hash` per verifica e `key_ciphertext` solo se l'app deve poterle mostrare.
 - `project_images.slot_id` identifica lo slot funzionale; `name` e il titolo visibile/download.
+- `project_images.data_url` conserva l'anteprima/file ottimizzato per ripristino dopo refresh; non inserire immagini non ottimizzate o superiori al limite operativo UI.
 - Il nome download immagine si calcola dal titolo card e dall'estensione reale, non va salvato come dato canonico.
 - Gli slot immagine fissi sono sempre renderizzati dalla UI anche quando non esistono record immagine persistiti.
 
@@ -216,7 +218,7 @@ $$;
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid default auth.uid() references auth.users(id) on delete cascade,
-  agent_project_id text not null unique,
+  agent_project_id text not null,
   name text not null,
   status text not null default 'Attivo' check (status in ('Attivo', 'In pausa', 'Archivio', 'Idea')),
   development_environment text not null default 'Windsurf',
@@ -228,12 +230,14 @@ create table public.projects (
   deploy_account_email text not null default '',
   operational_notes text not null default '',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (user_id, agent_project_id)
 );
 
 create index projects_user_updated_idx on public.projects (user_id, updated_at desc);
 create index projects_user_status_idx on public.projects (user_id, status);
 create index projects_user_name_idx on public.projects (user_id, name);
+create index projects_user_agent_project_idx on public.projects (user_id, agent_project_id);
 
 create trigger projects_set_updated_at
 before update on public.projects
@@ -323,6 +327,7 @@ create table public.project_images (
   size_bytes integer not null default 0 check (size_bytes >= 0),
   original_size_bytes integer not null default 0 check (original_size_bytes >= 0),
   path text not null default '',
+  data_url text not null default '',
   notes text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
@@ -350,7 +355,8 @@ add column if not exists slot_id text,
 add column if not exists file_name text not null default '',
 add column if not exists mime_type text not null default '',
 add column if not exists size_bytes integer not null default 0,
-add column if not exists original_size_bytes integer not null default 0;
+add column if not exists original_size_bytes integer not null default 0,
+add column if not exists data_url text not null default '';
 
 update public.project_images
 set slot_id = case
@@ -378,9 +384,9 @@ $$;
 update public.project_images
 set
   name = case slot_id
-    when 'logo-app' then 'logo app'
-    when 'logo-app-2' then 'logo app 2'
-    when 'logo-app-3' then 'logo app 3'
+    when 'logo-app' then 'Logo app'
+    when 'logo-app-2' then 'Logo app 2'
+    when 'logo-app-3' then 'Logo app 3'
     when 'home-icon' then 'Icona Schermata Home'
     when 'browser-tab-icon' then 'Icona Tab Browser (favicon)'
     else name
@@ -444,7 +450,7 @@ select
 from information_schema.columns
 where table_schema = 'public'
   and table_name = 'project_images'
-  and column_name in ('slot_id', 'name', 'file_name', 'mime_type', 'size_bytes', 'original_size_bytes', 'path')
+  and column_name in ('slot_id', 'name', 'file_name', 'mime_type', 'size_bytes', 'original_size_bytes', 'path', 'data_url')
 order by ordinal_position;
 ```
 

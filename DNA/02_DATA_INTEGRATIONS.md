@@ -4,14 +4,14 @@
 
 - La sezione Progetti non carica dati mock locali: usa Supabase dopo sblocco PIN app.
 - `src/data/mockData.ts` contiene ancora solo dati locali per la libreria Prompt.
-- Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_agent_keys`.
+- Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`.
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
-- Non esistono storage immagini, backend custom o workflow CI.
+- Non esistono Supabase Storage, backend custom o workflow CI.
 
 ## Tipi principali
 
-- `Project`: progetto, stato, ambiente sviluppo, GitHub, campi Supabase futuri, deploy, note, prompt e immagini collegate.
+- `Project`: progetto, stato, ambiente sviluppo, GitHub, campi Supabase, deploy, note, prompt e immagini collegate.
 - `ProjectAgentAccess`: dati minimi per collegare un progetto esterno ad App Control tramite JSON locale e prompt generico.
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
 - `Prompt`: libreria prompt con tipo, categoria, testo, note, tag, preferito.
@@ -30,7 +30,7 @@
 
 ## Integrazioni future
 
-Supabase e integrato per PIN app e sezione Progetti. Prompt e storage immagini restano fuori dalla fase corrente.
+Supabase e integrato per PIN app e sezione Progetti. Prompt e Supabase Storage restano fuori dalla fase corrente; le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
 
 Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 
@@ -45,12 +45,16 @@ Guardrail:
 ## Immagini e asset
 
 - Cartelle predisposte: `public/images`, `public/icons`, `src/assets`.
+- Intro app: `src/App.tsx` usa `public/icons/splash-logo.png`, variante 256x256 ottimizzata dal file `logo app`.
+- Brand navbar: `src/app/Sidebar.tsx` e `src/app/AppLayout.tsx` usano `public/icons/nav-logo.png` con retina `public/icons/nav-logo@2x.png`.
+- Icone installazione app: `public/manifest.webmanifest` usa `public/icons/app-icon-192.png` e `public/icons/app-icon-512.png`; iOS usa `public/icons/apple-touch-icon.png`.
+- Icone tab browser: `index.html` usa `public/icons/favicon-32.png` e `public/icons/favicon-16.png`; non usare WebP come favicon primaria per compatibilita browser.
 - Il tab UI si chiama `Immagini`; il tipo dati resta `VisualAsset`.
-- I nuovi progetti mostrano sempre cinque slot immagine fissi: `logo app`, `logo app 2`, `logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
-- I file immagine inseriti nello UI tramite pulsante o drag and drop sono mantenuti solo nello stato React della sessione come data URL; non esiste ancora upload persistente o storage.
+- I nuovi progetti mostrano sempre cinque slot immagine fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
+- I file immagine inseriti nello UI tramite pulsante o drag and drop vengono ottimizzati in locale e salvati in `project_images` con `data_url`; al refresh la UI ricostruisce gli slot dai record Supabase.
 - Le immagini raster vengono ottimizzate localmente per uso web leggero: target massimo 500 KB, lato maggiore massimo 1200 px, conversione WebP quando riduce il peso. SVG non viene convertito.
 - Il download delle immagini usa il nome dello slot come nome file e viene gestito dal browser nella cartella download predefinita.
-- La persistenza Supabase target deve usare `slot_id` fisso, nome card, nome file, MIME, dimensioni e futuro path Storage; non salvare data URL grezzi come fonte canonica.
+- La persistenza Supabase usa `slot_id` fisso, nome card, nome file, MIME, dimensioni e `data_url` ottimizzato. `path` resta disponibile per un futuro passaggio a Supabase Storage.
 - Gli slot fissi sono: `logo-app`, `logo-app-2`, `logo-app-3`, `home-icon`, `browser-tab-icon`.
 - Non eliminare immagini o asset senza cercare riferimenti in codice, CSS, HTML, manifest o documentazione operativa.
-- Upload e storage persistente non esistono.
+- Supabase Storage non e ancora usato: le immagini restano in database come data URL ottimizzato, con limite operativo UI di 500 KB prima della codifica base64.

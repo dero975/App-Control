@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Download, Plus, Trash2, Upload } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Download, FileText, Plus, Trash2, Upload } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
-import { SectionHeader } from '../../components/SectionHeader'
+import { copyToClipboard } from '../../lib/clipboard'
 import { isSupabaseConfigured } from '../../lib/supabase'
-import type { PlatformAccess, Project, ProjectVariable } from '../../types/app'
+import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
 import {
   createProjectRecord,
   deleteProjectRecord,
@@ -18,12 +18,13 @@ type ProjectImageSlot = {
   id: string
   name: string
   fileName: string
+  mimeType: string
   dataUrl: string
   sizeBytes: number
   originalSizeBytes: number
 }
 
-const projectTabs = ['Dati progetto', 'Variabili', 'Immagini', 'Note'] as const
+const projectTabs = ['Dati progetto', 'Variabili', 'Immagini', 'Note', 'Sync'] as const
 const orderedProjectKeys = [
   'LINK_DEPLOY',
   'GITHUB_URL',
@@ -53,9 +54,9 @@ const selectableFieldConfigs: Record<string, SelectableFieldConfig> = {
 }
 const addSelectOptionValue = '__add_option__'
 const defaultProjectImageSlots = [
-  { id: 'logo-app', name: 'logo app' },
-  { id: 'logo-app-2', name: 'logo app 2' },
-  { id: 'logo-app-3', name: 'logo app 3' },
+  { id: 'logo-app', name: 'Logo app' },
+  { id: 'logo-app-2', name: 'Logo app 2' },
+  { id: 'logo-app-3', name: 'Logo app 3' },
   { id: 'home-icon', name: 'Icona Schermata Home' },
   { id: 'browser-tab-icon', name: 'Icona Tab Browser (favicon)' },
 ] as const
@@ -161,9 +162,7 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="page-stack">
-      <SectionHeader title="Progetti" />
-
+    <div className="page-stack projects-page">
       <div className="split-workspace">
         <aside className="index-panel">
           <div className="toolbar">
@@ -240,21 +239,50 @@ function ProjectDetail({
 }) {
   const [sheetFields, setSheetFields] = useState<ProjectVariable[]>(() => buildSheetFields(project))
   const [variables, setVariables] = useState<ProjectVariable[]>(() => buildProjectVariables(project))
-  const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots())
+  const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots(project.images))
   const [saveStatus, setSaveStatus] = useState('')
+  const didMountRef = useRef(false)
+  const saveContextRef = useRef({ onSave, project })
+  const saveVersionRef = useRef(0)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
   const deployLink = getDeployLink(sheetFields, project)
 
-  async function handleSave() {
-    if (!onSave) return
+  useEffect(() => {
+    saveContextRef.current = { onSave, project }
+  }, [onSave, project])
 
-    setSaveStatus('Salvataggio in corso')
-    try {
-      await onSave({ project, sheetFields, variables })
-      setSaveStatus('Salvato')
-    } catch (error) {
-      setSaveStatus(error instanceof Error ? error.message : 'Errore salvataggio')
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
     }
+
+    const currentSaveVersion = saveVersionRef.current + 1
+    saveVersionRef.current = currentSaveVersion
+    setSaveStatus('Salvataggio automatico')
+
+    const saveTimer = window.setTimeout(() => {
+      const { onSave: saveSnapshot, project: currentProject } = saveContextRef.current
+      if (!saveSnapshot) return
+
+      saveSnapshot({ project: currentProject, sheetFields, variables, images: imageSlots })
+        .then(() => {
+          if (saveVersionRef.current === currentSaveVersion) {
+            setSaveStatus('Salvato')
+          }
+        })
+        .catch((error: unknown) => {
+          if (saveVersionRef.current === currentSaveVersion) {
+            setSaveStatus(error instanceof Error ? error.message : 'Errore salvataggio')
+          }
+        })
+    }, 650)
+
+    return () => window.clearTimeout(saveTimer)
+  }, [imageSlots, sheetFields, variables])
+
+  function handleImageSlotsChange(nextImageSlots: ProjectImageSlot[]) {
+    setImageSlots(nextImageSlots)
   }
 
   return (
@@ -272,11 +300,6 @@ function ProjectDetail({
           ) : null}
         </div>
         <div className="detail-heading__actions">
-          {onSave ? (
-            <button type="button" className="secondary-button" onClick={handleSave}>
-              Salva modifiche
-            </button>
-          ) : null}
           <button type="button" className="danger-button" onClick={onRequestDelete}>
             <Trash2 aria-hidden="true" className="button-icon" />
             Elimina progetto
@@ -299,8 +322,8 @@ function ProjectDetail({
         ))}
       </div>
 
-      {activeTab === 'Dati progetto' ? (
-        <>
+      <div className="tab-scroll-area">
+        {activeTab === 'Dati progetto' ? (
           <VariablesPanel
             addLabel="Aggiungi campo"
             onChange={setSheetFields}
@@ -308,24 +331,24 @@ function ProjectDetail({
             valueAriaLabel="Valore campo foglio"
             variables={sheetFields}
           />
-          <ProjectAgentPanel project={project} />
-        </>
-      ) : null}
-      {activeTab === 'Variabili' ? (
-        <VariablesPanel
-          addLabel="Aggiungi variabile"
-          onChange={setVariables}
-          title="Variabili"
-          valueAriaLabel="Valore variabile"
-          variables={variables}
-        />
-      ) : null}
-      {activeTab === 'Immagini' ? <ProjectImagesPanel slots={imageSlots} onChange={setImageSlots} /> : null}
-      {activeTab === 'Note' ? (
-        <FieldGroup title="Note operative">
-          <textarea value={project.operationalNotes} readOnly rows={7} />
-        </FieldGroup>
-      ) : null}
+        ) : null}
+        {activeTab === 'Variabili' ? (
+          <VariablesPanel
+            addLabel="Aggiungi variabile"
+            onChange={setVariables}
+            title="Variabili"
+            valueAriaLabel="Valore variabile"
+            variables={variables}
+          />
+        ) : null}
+        {activeTab === 'Immagini' ? <ProjectImagesPanel slots={imageSlots} onChange={handleImageSlotsChange} /> : null}
+        {activeTab === 'Note' ? (
+          <FieldGroup title="Note operative">
+            <textarea value={project.operationalNotes} readOnly rows={7} />
+          </FieldGroup>
+        ) : null}
+        {activeTab === 'Sync' ? <ProjectAgentPanel project={project} /> : null}
+      </div>
     </div>
   )
 }
@@ -374,6 +397,15 @@ function VariablesPanel({
   title: string
   valueAriaLabel: string
 }) {
+  const [envBlockCopied, setEnvBlockCopied] = useState(false)
+
+  useEffect(() => {
+    if (!envBlockCopied) return
+
+    const timeout = window.setTimeout(() => setEnvBlockCopied(false), 1600)
+    return () => window.clearTimeout(timeout)
+  }, [envBlockCopied])
+
   function updateVariable(id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) {
     onChange(variables.map((variable) => (variable.id === id ? { ...variable, [field]: value } : variable)))
   }
@@ -440,15 +472,40 @@ function VariablesPanel({
     ])
   }
 
+  async function copyEnvBlock() {
+    const envBlock = formatDeployEnvForChat(variables)
+    if (!envBlock) return
+
+    await copyToClipboard(envBlock)
+    setEnvBlockCopied(true)
+  }
+
+  const envBlock = formatDeployEnvForChat(variables)
+  const isVariablesPanel = title === 'Variabili'
+
   return (
-    <div className="detail-stack">
+    <div className="tab-panel-stack">
       <FieldGroup
         title={title}
         action={
-          <button type="button" className="secondary-button" onClick={addVariable}>
-            <Plus aria-hidden="true" className="button-icon" />
-            {addLabel}
-          </button>
+          <div className="field-group-action-row">
+            {isVariablesPanel ? (
+              <button
+                type="button"
+                className="secondary-button secondary-button--compact"
+                disabled={!envBlock}
+                onClick={copyEnvBlock}
+                title="Copia .env deploy Render"
+              >
+                <FileText aria-hidden="true" className="button-icon" />
+                {envBlockCopied ? 'Copiato' : '.env render'}
+              </button>
+            ) : null}
+            <button type="button" className="secondary-button" onClick={addVariable}>
+              <Plus aria-hidden="true" className="button-icon" />
+              {addLabel}
+            </button>
+          </div>
         }
       >
         <div className="editable-variable-list">
@@ -468,6 +525,69 @@ function VariablesPanel({
       </FieldGroup>
     </div>
   )
+}
+
+function formatDeployEnvForChat(variables: ProjectVariable[]) {
+  const variableMap = new Map(variables.map((variable) => [normalizeEnvKey(variable.key), variable.value.trim()]))
+  const supabaseUrl = normalizeSupabaseProjectUrl(variableMap.get('SUPABASE_URL') || variableMap.get('VITE_SUPABASE_URL') || '')
+  const supabaseAnonKey = variableMap.get('SUPABASE_ANON_KEY') || variableMap.get('VITE_SUPABASE_ANON_KEY') || ''
+  const deployEnv = [
+    {
+      key: 'SUPABASE_URL',
+      value: supabaseUrl,
+    },
+    {
+      key: 'VITE_SUPABASE_URL',
+      value: supabaseUrl,
+    },
+    {
+      key: 'SUPABASE_ANON_KEY',
+      value: supabaseAnonKey,
+    },
+    {
+      key: 'VITE_SUPABASE_ANON_KEY',
+      value: supabaseAnonKey,
+    },
+    {
+      key: 'SUPABASE_SERVICE_ROLE_KEY',
+      value: variableMap.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+    },
+    {
+      key: 'SUPABASE_DB_URL',
+      value: variableMap.get('SUPABASE_DB_URL') || variableMap.get('DATABASE_URL') || '',
+    },
+    {
+      key: 'DATABASE_URL',
+      value: variableMap.get('DATABASE_URL') || variableMap.get('SUPABASE_DB_URL') || '',
+    },
+    {
+      key: 'GITHUB_URL',
+      value: variableMap.get('GITHUB_URL') || '',
+    },
+    {
+      key: 'GITHUB_TOKEN',
+      value: variableMap.get('GITHUB_TOKEN') || '',
+    },
+  ]
+
+  return deployEnv
+    .map((variable) => `${variable.key}=${formatEnvValue(variable.value)}`)
+    .join('\n')
+}
+
+function normalizeEnvKey(key: string) {
+  return key.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function formatEnvValue(value: string) {
+  if (!value) return ''
+  if (!/[\s"'`$\\]/.test(value)) return value
+
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+function normalizeSupabaseProjectUrl(value: string) {
+  return value.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '')
 }
 
 function VariableEditorCard({
@@ -670,6 +790,7 @@ function createEmptyProject(index: number): Project {
     },
     promptIds: [],
     assetIds: [],
+    images: [],
     env: [
       { key: 'SUPABASE_URL', value: '', scope: 'Supabase', sensitive: false },
       { key: 'SUPABASE_ANON_KEY', value: '', scope: 'Supabase', sensitive: true },
@@ -737,7 +858,7 @@ function ProjectImagesPanel({
   }
 
   function clearSlot(slotId: string) {
-    updateSlot(slotId, { dataUrl: '', fileName: '', originalSizeBytes: 0, sizeBytes: 0 })
+    updateSlot(slotId, { dataUrl: '', fileName: '', mimeType: '', originalSizeBytes: 0, sizeBytes: 0 })
   }
 
   function downloadSlot(slot: ProjectImageSlot) {
@@ -850,22 +971,30 @@ function AssetName({ name }: { name: string }) {
   )
 }
 
-function buildProjectImageSlots(): ProjectImageSlot[] {
-  return defaultProjectImageSlots.map((slot) => ({
-    ...slot,
-    fileName: '',
-    dataUrl: '',
-    originalSizeBytes: 0,
-    sizeBytes: 0,
-  }))
+function buildProjectImageSlots(images: ProjectImage[] = []): ProjectImageSlot[] {
+  return defaultProjectImageSlots.map((slot) => {
+    const image = images.find((currentImage) => currentImage.id === slot.id)
+
+    return {
+      ...slot,
+      fileName: image?.fileName ?? '',
+      mimeType: image?.mimeType ?? '',
+      dataUrl: image?.dataUrl ?? '',
+      originalSizeBytes: image?.originalSizeBytes ?? 0,
+      sizeBytes: image?.sizeBytes ?? 0,
+    }
+  })
 }
 
-async function optimizeImageFile(file: File): Promise<Pick<ProjectImageSlot, 'dataUrl' | 'fileName' | 'originalSizeBytes' | 'sizeBytes'>> {
+async function optimizeImageFile(
+  file: File,
+): Promise<Pick<ProjectImageSlot, 'dataUrl' | 'fileName' | 'mimeType' | 'originalSizeBytes' | 'sizeBytes'>> {
   if (file.type === 'image/svg+xml') {
     const dataUrl = await readBlobAsDataUrl(file)
     return {
       dataUrl,
       fileName: file.name,
+      mimeType: file.type,
       originalSizeBytes: file.size,
       sizeBytes: file.size,
     }
@@ -895,6 +1024,7 @@ async function optimizeImageFile(file: File): Promise<Pick<ProjectImageSlot, 'da
   return {
     dataUrl,
     fileName: sourceBlob === file ? file.name : `${stripFileExtension(file.name)}.webp`,
+    mimeType: sourceBlob.type || file.type,
     originalSizeBytes: file.size,
     sizeBytes: sourceBlob.size,
   }

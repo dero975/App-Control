@@ -1,4 +1,4 @@
-import type { PlatformAccess, Project, ProjectVariable } from '../../types/app'
+import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
 import { supabase } from '../../lib/supabase'
 
 type ProjectRow = {
@@ -52,10 +52,23 @@ type DataFieldRow = {
   sort_order: number
 }
 
+type ImageRow = {
+  project_id: string
+  slot_id: string
+  name: string
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  original_size_bytes: number
+  data_url: string
+  sort_order: number
+}
+
 export type ProjectSnapshot = {
   project: Project
   sheetFields: ProjectVariable[]
   variables: ProjectVariable[]
+  images: ProjectImage[]
 }
 
 export async function fetchProjects() {
@@ -77,6 +90,7 @@ export async function fetchProjects() {
     { data: agentRows, error: agentError },
     { data: accessRows, error: accessError },
     { data: fieldRows, error: fieldError },
+    imageRows,
   ] = await Promise.all([
     client
       .from('project_env_variables')
@@ -94,6 +108,7 @@ export async function fetchProjects() {
       .select('id, project_id, field_key, label, value_text, value_ciphertext, is_secret, sort_order')
       .in('project_id', projectIds)
       .order('sort_order', { ascending: true }),
+    fetchImageRows(projectIds),
   ])
 
   if (envError) throw envError
@@ -108,6 +123,7 @@ export async function fetchProjects() {
       (agentRows as AgentKeyRow[] | null)?.find((row) => row.project_id === project.id),
       (accessRows as PlatformAccessRow[] | null)?.filter((row) => row.project_id === project.id) ?? [],
       (fieldRows as DataFieldRow[] | null)?.filter((row) => row.project_id === project.id) ?? [],
+      imageRows.filter((row) => row.project_id === project.id),
     ),
   )
 }
@@ -172,6 +188,7 @@ export async function createProjectRecord(project: Project) {
     },
     [],
     [],
+    [],
   )
 }
 
@@ -181,7 +198,7 @@ export async function deleteProjectRecord(projectId: string) {
   if (error) throw error
 }
 
-export async function saveProjectSnapshot({ project, sheetFields, variables }: ProjectSnapshot) {
+export async function saveProjectSnapshot({ project, sheetFields, variables, images }: ProjectSnapshot) {
   const client = requireSupabase()
   const name = getFieldValue(sheetFields, 'nome progetto') || project.name
   const githubEmail = getFieldValue(sheetFields, 'mail github')
@@ -208,6 +225,7 @@ export async function saveProjectSnapshot({ project, sheetFields, variables }: P
   await saveDataFields(project.id, sheetFields)
   await savePlatformAccesses(project.id, sheetFields)
   await saveEnvVariables(project.id, variables)
+  await saveProjectImages(project.id, images)
 }
 
 async function saveDataFields(projectId: string, sheetFields: ProjectVariable[]) {
@@ -272,12 +290,47 @@ async function saveEnvVariables(projectId: string, variables: ProjectVariable[])
   if (error) throw error
 }
 
+async function saveProjectImages(projectId: string, images: ProjectImage[]) {
+  const client = requireSupabase()
+  const emptySlotIds = images.filter((image) => !image.dataUrl).map((image) => image.id)
+  const imageRows = images
+    .filter((image) => image.dataUrl)
+    .map((image, index) => ({
+      project_id: projectId,
+      slot_id: image.id,
+      name: image.name,
+      type: image.id.includes('icon') ? 'Icona' : 'Logo',
+      file_name: image.fileName,
+      mime_type: image.mimeType || getDataUrlMimeType(image.dataUrl),
+      size_bytes: image.sizeBytes,
+      original_size_bytes: image.originalSizeBytes,
+      path: '',
+      data_url: image.dataUrl,
+      sort_order: index,
+    }))
+
+  if (!imageRows.length) {
+    const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId)
+    if (deleteError) throw deleteError
+    return
+  }
+
+  const { error: upsertError } = await client.from('project_images').upsert(imageRows, { onConflict: 'project_id,slot_id' })
+  if (upsertError) throw upsertError
+
+  if (emptySlotIds.length) {
+    const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId).in('slot_id', emptySlotIds)
+    if (deleteError) throw deleteError
+  }
+}
+
 function mapProjectRow(
   project: ProjectRow,
   envRows: EnvVariableRow[],
   agentRow?: AgentKeyRow,
   platformAccessRows: PlatformAccessRow[] = [],
   dataFieldRows: DataFieldRow[] = [],
+  imageRows: ImageRow[] = [],
 ): Project {
   return {
     id: project.id,
@@ -319,6 +372,32 @@ function mapProjectRow(
       sensitive: field.is_secret,
     })),
     platformAccesses: platformAccessRows.map(mapPlatformAccess),
+    images: imageRows.map(mapProjectImage),
+  }
+}
+
+async function fetchImageRows(projectIds: string[]) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('project_images')
+    .select('project_id, slot_id, name, file_name, mime_type, size_bytes, original_size_bytes, data_url, sort_order')
+    .in('project_id', projectIds)
+    .order('sort_order', { ascending: true })
+
+  if (!error) return (data as ImageRow[] | null) ?? []
+  if (error.code === '42703' || error.code === 'PGRST204') return []
+  throw error
+}
+
+function mapProjectImage(row: ImageRow): ProjectImage {
+  return {
+    id: row.slot_id,
+    name: row.name,
+    fileName: row.file_name,
+    mimeType: row.mime_type,
+    dataUrl: row.data_url,
+    sizeBytes: row.size_bytes,
+    originalSizeBytes: row.original_size_bytes,
   }
 }
 
@@ -349,6 +428,10 @@ function requireSupabase() {
 
 function getFieldValue(fields: ProjectVariable[], key: string) {
   return fields.find((field) => field.key.trim().toLowerCase() === key.toLowerCase())?.value.trim() ?? ''
+}
+
+function getDataUrlMimeType(dataUrl: string) {
+  return dataUrl.match(/^data:([^;]+);/)?.[1] ?? ''
 }
 
 function normalizeFieldKey(key: string) {

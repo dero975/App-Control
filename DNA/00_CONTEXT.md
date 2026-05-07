@@ -12,7 +12,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - Tipi dominio in `src/types/app.ts`.
 - Entry point runtime: `src/main.tsx` -> `src/App.tsx` -> `src/app/AppLayout.tsx`.
 - Sezioni navigabili: `Progetti`, `Prompt`, `Impostazioni`.
-- La sezione `Progetti` contiene anche dati foglio, variabili, immagini e note.
+- La sezione `Progetti` contiene anche dati foglio, variabili, immagini, note e sync agent.
 
 ## Mappa tecnica
 
@@ -34,7 +34,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `SUPABASE_SERVICE_ROLE_KEY`, DB URL e token GitHub devono restare solo in `.env` locale o sistemi sicuri: mai frontend, log, markdown o chat.
 - Non hardcodare segreti reali in mock, codice o documentazione.
 - Non creare dashboard: la UI resta sezione -> lista/indice -> dettaglio -> tab/sottosezioni.
-- Non separare `Dati progetto` o `Immagini` come voci sidebar: restano dentro `Progetti`.
+- Non separare `Dati progetto`, `Variabili`, `Immagini` o `Sync` come voci sidebar: restano tab dentro `Progetti`.
 - Non duplicare documentazione con lo stesso scopo.
 - Aggiornare `DNA/` solo quando cambia una logica, un vincolo, un flusso o un workflow reale.
 - Se `DNA/` e codice divergono, vale il codice e `DNA/` va riallineato.

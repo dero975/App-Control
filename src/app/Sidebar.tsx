@@ -11,10 +11,12 @@ export function Sidebar({ activeSection, onLock, onNavigate }: SidebarProps) {
   return (
     <aside className="sidebar" aria-label="Navigazione principale">
       <div className="sidebar__brand">
-        <div>
-          <strong>App Control</strong>
-          <span>Private workspace</span>
-        </div>
+        <img
+          src="/icons/nav-logo.png"
+          srcSet="/icons/nav-logo.png 1x, /icons/nav-logo@2x.png 2x"
+          alt="App Control"
+          className="brand-logo"
+        />
       </div>
 
       <nav className="sidebar__nav">
@@ -32,13 +34,9 @@ export function Sidebar({ activeSection, onLock, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="sidebar__footer">
-        <span>Light mode</span>
-        <strong>Supabase sync</strong>
-        <button type="button" className="sidebar-lock-button" onClick={onLock}>
-          Esci
-        </button>
-      </div>
+      <button type="button" className="sidebar-lock-button" onClick={onLock}>
+        Esci
+      </button>
     </aside>
   )
 }

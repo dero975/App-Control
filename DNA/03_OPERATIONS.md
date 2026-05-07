@@ -30,6 +30,13 @@ Richiede `.env` locale per Supabase:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
+Export `.env render`:
+
+- Il pulsante `.env render` nel tab `Variabili` copia un blocco generale per deploy Render di altri progetti gestiti da App Control.
+- Include sempre le chiavi standard, anche se vuote: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, `GITHUB_URL`, `GITHUB_TOKEN`.
+- `SUPABASE_URL` viene normalizzata senza suffisso `/rest/v1`.
+- Per app frontend Vite usare solo le variabili `VITE_*` nel codice client; le chiavi server (`SERVICE_ROLE`, `DB_URL`, token) sono da usare solo in backend/server/API private.
+
 Variabili non esposte al frontend:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -53,6 +60,7 @@ npm run dev -- --host 127.0.0.1 --port 5001
 - Dopo modifiche codice: preferire `npm run check:all` quando il tempo lo consente; altrimenti almeno `npm run build`, aggiungendo `npm run lint` quando si cambia TypeScript/React.
 - Dopo modifiche solo documentali: non serve build, salvo sospetto di riferimenti rotti in codice.
 - Dopo modifiche UI: controllare layout desktop/mobile se il task riguarda responsive o visual.
+- Dopo modifiche a manifest o icone pubbliche: eseguire almeno `npm run build` e verificare che gli asset risultino copiati in `dist`.
 
 ## Git e file generati
 
