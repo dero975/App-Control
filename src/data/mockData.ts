@@ -1,57 +1,34 @@
-import type { Prompt } from '../types/app'
+import type { Prompt, PromptCategory } from '../types/app'
 
 export const prompts: Prompt[] = [
   {
     id: 'prompt-01',
-    title: 'Avvio progetto ordinato',
-    type: 'Iniziali / strutturali',
-    category: 'Start progetto',
+    title: 'Crea struttura iniziale progetto',
+    category: 'Prompt iniziali',
     fullText:
-      'Crea una base React TypeScript modulare, senza dati sensibili, pronta per evolvere con Supabase in una fase successiva.',
-    usageNotes: 'Da usare quando si inizializza una nuova app o si riorganizza una base esistente.',
-    tags: ['bootstrap', 'react', 'codex'],
-    favorite: true,
-    lastModified: '2026-05-01',
+      'Crea la struttura iniziale del progetto in modo ordinato, modulare e coerente. Imposta cartelle, file base, configurazioni essenziali e convenzioni pulite senza introdurre codice inutile o dati sensibili. Mantieni il progetto leggero, leggibile e pronto per evoluzioni future.',
   },
   {
     id: 'prompt-02',
-    title: 'Analisi tecnica progetto',
-    type: 'Ordinari / operativi',
-    category: 'Analisi progetto',
+    title: 'Avvio sicuro con documentazione DNA',
+    category: 'Prompt iniziali',
     fullText:
-      'Analizza struttura, dipendenze, script, rischi tecnici e prossimi passi. Non modificare file finche non e chiaro il piano.',
-    usageNotes: 'Utile prima di refactor o interventi su repository non recenti.',
-    tags: ['audit', 'qualita', 'repo'],
-    favorite: false,
-    lastModified: '2026-04-24',
+      'Analizza il repository, verifica la struttura reale del codice e crea o aggiorna i file DNA strettamente necessari in modo coerente con il progetto. Non inventare informazioni, non duplicare documentazione e non modificare logiche runtime senza conferma.',
   },
   {
     id: 'prompt-03',
-    title: 'Pulizia sicura prima del deploy',
-    type: 'Speciali / sensibili',
-    category: 'Pulizia sicura',
+    title: 'Pulizia codice sicura',
+    category: 'Prompt manutenzione',
     fullText:
-      'Verifica che non ci siano token, password, chiavi service role o file locali versionati. Non stampare segreti nei log.',
-    usageNotes: 'Da usare prima di commit, build pubbliche o collegamenti a provider esterni.',
-    tags: ['sicurezza', 'deploy', 'env'],
-    favorite: true,
-    lastModified: '2026-04-29',
+      'Analizza il progetto e applica solo pulizie sicure: rimuovi codice morto verificato, ridondanze evidenti e piccoli sprechi, senza alterare logiche, UX, database, routing o deploy. Se trovi rischi o dubbi, fermati e genera prima un report.',
+  },
+  {
+    id: 'prompt-04',
+    title: 'Aggiorna file MD, backup e commit',
+    category: 'Prompt manutenzione',
+    fullText:
+      'Aggiorna la documentazione operativa realmente necessaria, crea un nuovo backup coerente con la convenzione del progetto, esegui i controlli minimi sensati e solo dopo procedi con commit e push se il repository e pulito e i controlli sono verdi.',
   },
 ]
 
-export const promptTypes = ['Iniziali / strutturali', 'Ordinari / operativi', 'Speciali / sensibili'] as const
-
-export const promptCategories = [
-  'Start progetto',
-  'Analisi progetto',
-  'DNA documentazione',
-  'GitHub',
-  'Backup',
-  'Supabase',
-  'SQL',
-  'Deploy',
-  'Pulizia sicura',
-  'Ottimizzazione',
-  'Testing',
-  'Asset / PWA',
-] as const
+export const promptCategories: readonly PromptCategory[] = ['Prompt iniziali', 'Prompt manutenzione'] as const

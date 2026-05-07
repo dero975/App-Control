@@ -1,116 +1,98 @@
+import { ChevronDown, ChevronUp, Copy } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
-import { FieldGroup } from '../../components/FieldGroup'
+import { EmptyState } from '../../components/EmptyState'
 import { SectionHeader } from '../../components/SectionHeader'
-import { promptCategories, prompts, promptTypes } from '../../data/mockData'
-import type { PromptCategory, PromptType } from '../../types/app'
-import { PromptCard } from './PromptCard'
+import { promptCategories, prompts } from '../../data/mockData'
+import type { Prompt, PromptCategory } from '../../types/app'
 
 export function PromptsPage() {
-  const [selectedId, setSelectedId] = useState(prompts[0]?.id ?? '')
-  const [query, setQuery] = useState('')
-  const [type, setType] = useState<'Tutti' | PromptType>('Tutti')
-  const [category, setCategory] = useState<'Tutte' | PromptCategory>('Tutte')
+  const [activeCategory, setActiveCategory] = useState<'Tutte' | PromptCategory>('Tutte')
+  const [openPromptId, setOpenPromptId] = useState(prompts[0]?.id ?? '')
 
   const filteredPrompts = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    return prompts.filter((prompt) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        prompt.title.toLowerCase().includes(normalizedQuery) ||
-        prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
-        prompt.fullText.toLowerCase().includes(normalizedQuery)
-      const matchesType = type === 'Tutti' || prompt.type === type
-      const matchesCategory = category === 'Tutte' || prompt.category === category
-
-      return matchesQuery && matchesType && matchesCategory
-    })
-  }, [category, query, type])
-
-  const selectedPrompt = filteredPrompts.find((prompt) => prompt.id === selectedId) ?? filteredPrompts[0]
+    return activeCategory === 'Tutte' ? prompts : prompts.filter((prompt) => prompt.category === activeCategory)
+  }, [activeCategory])
 
   return (
-    <div className="page-stack">
+    <div className="page-stack prompts-page">
       <SectionHeader
-        eyebrow="Libreria operativa"
+        eyebrow="Libreria prompt"
         title="Prompt"
-        description="Card compatte con testo completo, note d'uso, tag, preferiti e copia rapida per gli agent."
+        description="Una raccolta semplice di prompt pronti all'uso: scegli la categoria, apri la card e copia il testo quando serve."
       />
 
-      <div className="toolbar toolbar--horizontal">
-        <label>
-          <span>Cerca</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Titolo, tag, testo" />
-        </label>
-        <label>
-          <span>Tipo</span>
-          <select value={type} onChange={(event) => setType(event.target.value as typeof type)}>
-            <option value="Tutti">Tutti</option>
-            {promptTypes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Categoria</span>
-          <select value={category} onChange={(event) => setCategory(event.target.value as typeof category)}>
-            <option value="Tutte">Tutte</option>
-            {promptCategories.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="prompt-category-bar" role="tablist" aria-label="Categorie prompt">
+        <button
+          type="button"
+          className={activeCategory === 'Tutte' ? 'tab-button tab-button--active' : 'tab-button'}
+          onClick={() => setActiveCategory('Tutte')}
+        >
+          Tutte
+        </button>
+        {promptCategories.map((category) => (
+          <button
+            type="button"
+            key={category}
+            className={activeCategory === category ? 'tab-button tab-button--active' : 'tab-button'}
+            onClick={() => setActiveCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
       </div>
 
-      <div className="split-workspace split-workspace--wide-index">
-        <section className="card-grid" aria-label="Prompt disponibili">
+      {filteredPrompts.length ? (
+        <div className="prompt-library" aria-label="Prompt disponibili">
           {filteredPrompts.map((prompt) => (
-            <PromptCard key={prompt.id} prompt={prompt} selected={prompt.id === selectedPrompt?.id} onSelect={setSelectedId} />
+            <PromptLibraryCard
+              key={prompt.id}
+              prompt={prompt}
+              open={prompt.id === openPromptId}
+              onToggle={() => setOpenPromptId((current) => (current === prompt.id ? '' : prompt.id))}
+            />
           ))}
-        </section>
-
-        <aside className="detail-panel detail-panel--sticky">
-          {selectedPrompt ? (
-            <div className="detail-stack">
-              <div className="detail-heading">
-                <div>
-                  <span className="meta-label">{selectedPrompt.category}</span>
-                  <h2>{selectedPrompt.title}</h2>
-                </div>
-                <CopyButton value={selectedPrompt.fullText} />
-              </div>
-
-              <FieldGroup title="Testo completo">
-                <textarea value={selectedPrompt.fullText} readOnly rows={9} />
-              </FieldGroup>
-
-              <FieldGroup title="Note d'uso">
-                <p className="body-copy">{selectedPrompt.usageNotes}</p>
-              </FieldGroup>
-
-              <div className="metadata-grid">
-                <InfoPill label="Tipo" value={selectedPrompt.type} />
-                <InfoPill label="Ultima modifica" value={selectedPrompt.lastModified} />
-                <InfoPill label="Preferito" value={selectedPrompt.favorite ? 'Si' : 'No'} />
-              </div>
-            </div>
-          ) : null}
-        </aside>
-      </div>
+        </div>
+      ) : (
+        <EmptyState
+          title="Nessun prompt in questa categoria"
+          message="Aggiungi nuovi prompt oppure torna alla vista completa per consultarli tutti."
+        />
+      )}
     </div>
   )
 }
 
-function InfoPill({ label, value }: { label: string; value: string }) {
+function PromptLibraryCard({ prompt, open, onToggle }: { prompt: Prompt; open: boolean; onToggle: () => void }) {
   return (
-    <div className="info-pill">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+    <article className={open ? 'prompt-library-card prompt-library-card--open' : 'prompt-library-card'}>
+      <div className="prompt-library-card__header">
+        <button type="button" className="prompt-library-card__toggle" onClick={onToggle} aria-expanded={open}>
+          <div className="prompt-library-card__heading">
+            <h3>{prompt.title}</h3>
+          </div>
+          <span className="prompt-library-card__toggle-icon" aria-hidden="true">
+            {open ? <ChevronUp className="button-icon" /> : <ChevronDown className="button-icon" />}
+          </span>
+        </button>
+
+        <div className="prompt-library-card__actions">
+          <CopyButton value={prompt.fullText} />
+        </div>
+      </div>
+
+      {open ? (
+        <div className="prompt-library-card__content">
+          <textarea value={prompt.fullText} readOnly rows={9} className="prompt-library-card__textarea" />
+          <div className="prompt-library-card__footer">
+            <CopyButton value={prompt.fullText} />
+            <span className="prompt-library-card__hint">
+              <Copy className="button-icon" aria-hidden="true" />
+              Copia disponibile anche dalla card chiusa
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </article>
   )
 }

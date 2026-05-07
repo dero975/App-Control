@@ -14,7 +14,7 @@
 - `Project`: progetto, date `createdAt` / `updatedAt`, stato, ambiente sviluppo, GitHub, campo `linkedSecretLabel`, campi Supabase, deploy, note, prompt e immagini collegate.
 - `ProjectAgentAccess`: dati minimi per collegare un progetto esterno ad App Control tramite JSON locale e prompt generico.
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
-- `Prompt`: libreria prompt con tipo, categoria, testo, note, tag, preferito.
+- `Prompt`: libreria prompt minima con `title`, `category` e `fullText`.
 - `VisualAsset`: asset collegato a progetto con path e note.
 
 ## Vincoli dati attuali
@@ -34,6 +34,8 @@
 ## Integrazioni future
 
 Supabase e integrato per PIN app e sezione Progetti. Prompt e Supabase Storage restano fuori dalla fase corrente; le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
+
+La libreria prompt oggi resta mock locale in `src/data/mockData.ts` e non usa ancora tabelle dedicate o persistenza remota.
 
 Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 

@@ -575,6 +575,16 @@ function VariablesPanel({
   const envBlock = formatDeployEnvForChat(variables)
   const isVariablesPanel = title === 'Variabili'
   const isBarePanel = title === 'Dati progetto' || title === 'Variabili'
+  const githubEmailIndex = variables.findIndex((variable) => isGithubEmailField(variable.key))
+  const githubPasswordIndex = variables.findIndex((variable) => isGithubPasswordField(variable.key))
+  const hasGroupedGithubCredentials = title === 'Dati progetto' && githubEmailIndex !== -1 && githubPasswordIndex !== -1
+  const githubCredentialsStartIndex = hasGroupedGithubCredentials ? Math.min(githubEmailIndex, githubPasswordIndex) : -1
+  const githubCredentialsEndIndex = hasGroupedGithubCredentials ? Math.max(githubEmailIndex, githubPasswordIndex) : -1
+  const deployIndex = variables.findIndex((variable) => isDeployField(variable.key))
+  const deployPasswordIndex = deployIndex === -1 ? -1 : variables.findIndex((variable, index) => index > deployIndex && isGithubPasswordField(variable.key))
+  const hasGroupedDeployCredentials = title === 'Dati progetto' && deployIndex !== -1 && deployPasswordIndex !== -1
+  const deployCredentialsStartIndex = hasGroupedDeployCredentials ? Math.min(deployIndex, deployPasswordIndex) : -1
+  const deployCredentialsEndIndex = hasGroupedDeployCredentials ? Math.max(deployIndex, deployPasswordIndex) : -1
 
   return (
     <div className="tab-panel-stack">
@@ -603,21 +613,148 @@ function VariablesPanel({
         }
       >
         <div className="editable-variable-list">
-          {variables.map((variable) => (
-            <VariableEditorCard
-              key={variable.id}
-              variable={variable}
-              onAddAccess={addPlatformAccess}
-              onDelete={deleteVariable}
-              onDeleteAccess={deletePlatformAccess}
-              onUpdateAccess={updatePlatformAccess}
-              onUpdate={updateVariable}
-              valueAriaLabel={valueAriaLabel}
-            />
-          ))}
+          {variables.map((variable, index) => {
+            if (hasGroupedGithubCredentials && index === githubCredentialsStartIndex) {
+              return (
+                <GitHubCredentialsCard
+                  key="github-credentials"
+                  emailVariable={variables[githubEmailIndex]}
+                  passwordVariable={variables[githubPasswordIndex]}
+                  onDelete={deleteVariable}
+                  onUpdate={updateVariable}
+                  valueAriaLabel={valueAriaLabel}
+                />
+              )
+            }
+
+            if (hasGroupedDeployCredentials && index === deployCredentialsStartIndex) {
+              return (
+                <DeployCredentialsCard
+                  key="deploy-credentials"
+                  deployVariable={variables[deployIndex]}
+                  passwordVariable={variables[deployPasswordIndex]}
+                  onDelete={deleteVariable}
+                  onUpdate={updateVariable}
+                  valueAriaLabel={valueAriaLabel}
+                />
+              )
+            }
+
+            if (hasGroupedGithubCredentials && index === githubCredentialsEndIndex) {
+              return null
+            }
+
+            if (hasGroupedDeployCredentials && index === deployCredentialsEndIndex) {
+              return null
+            }
+
+            return (
+              <VariableEditorCard
+                key={variable.id}
+                variable={variable}
+                onAddAccess={addPlatformAccess}
+                onDelete={deleteVariable}
+                onDeleteAccess={deletePlatformAccess}
+                onUpdateAccess={updatePlatformAccess}
+                onUpdate={updateVariable}
+                valueAriaLabel={valueAriaLabel}
+              />
+            )
+          })}
         </div>
       </FieldGroup>
     </div>
+  )
+}
+
+function DeployCredentialsCard({
+  deployVariable,
+  passwordVariable,
+  onDelete,
+  onUpdate,
+  valueAriaLabel,
+}: {
+  deployVariable: ProjectVariable
+  passwordVariable: ProjectVariable
+  onDelete: (id: string) => void
+  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  valueAriaLabel: string
+}) {
+  const selectFieldConfig = getSelectableFieldConfig(deployVariable.key)
+  const selectValue = selectFieldConfig ? getSelectValue(deployVariable.value, selectFieldConfig) : deployVariable.value
+  const selectOptions = selectFieldConfig ? getSelectOptions(selectValue, selectFieldConfig.options) : []
+
+  function addSelectOption() {
+    if (!selectFieldConfig) return
+
+    const nextValue = window.prompt(selectFieldConfig.promptLabel)
+    const normalizedValue = nextValue?.trim()
+    if (!normalizedValue) return
+
+    onUpdate(deployVariable.id, 'value', normalizedValue)
+  }
+
+  function handleSelectChange(value: string) {
+    if (value === addSelectOptionValue) {
+      addSelectOption()
+      return
+    }
+
+    onUpdate(deployVariable.id, 'value', value)
+  }
+
+  return (
+    <article className="editable-variable-card editable-variable-card--grouped">
+      <div className="grouped-variable-stack">
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{deployVariable.key}</span>
+            {selectFieldConfig ? (
+              <div className="variable-select-row">
+                <select value={selectValue} onChange={(event) => handleSelectChange(event.target.value)}>
+                  {selectOptions.map((option) => (
+                    <option value={option} key={option}>
+                      {option}
+                    </option>
+                  ))}
+                  <option value={addSelectOptionValue}>+ Aggiungi</option>
+                </select>
+              </div>
+            ) : null}
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(deployVariable.id)}
+            aria-label="Elimina deploy con"
+            title="Elimina deploy con"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{passwordVariable.key}</span>
+            <input
+              value={passwordVariable.value}
+              type="text"
+              onChange={(event) => onUpdate(passwordVariable.id, 'value', event.target.value)}
+            />
+            <CopyButton value={passwordVariable.value} iconOnly className="copy-button--inside-input" />
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(passwordVariable.id)}
+            aria-label="Elimina Password deploy"
+            title="Elimina Password deploy"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </article>
   )
 }
 
@@ -771,6 +908,68 @@ function VariableEditorCard({
       >
         <Trash2 aria-hidden="true" />
       </button>
+    </article>
+  )
+}
+
+function GitHubCredentialsCard({
+  emailVariable,
+  passwordVariable,
+  onDelete,
+  onUpdate,
+  valueAriaLabel,
+}: {
+  emailVariable: ProjectVariable
+  passwordVariable: ProjectVariable
+  onDelete: (id: string) => void
+  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  valueAriaLabel: string
+}) {
+  return (
+    <article className="editable-variable-card editable-variable-card--grouped">
+      <div className="grouped-variable-stack">
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{emailVariable.key}</span>
+            <input
+              value={emailVariable.value}
+              type="text"
+              onChange={(event) => onUpdate(emailVariable.id, 'value', event.target.value)}
+            />
+            <CopyButton value={emailVariable.value} iconOnly className="copy-button--inside-input" />
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(emailVariable.id)}
+            aria-label="Elimina Mail github"
+            title="Elimina Mail github"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{passwordVariable.key}</span>
+            <input
+              value={passwordVariable.value}
+              type="text"
+              onChange={(event) => onUpdate(passwordVariable.id, 'value', event.target.value)}
+            />
+            <CopyButton value={passwordVariable.value} iconOnly className="copy-button--inside-input" />
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(passwordVariable.id)}
+            aria-label="Elimina Password"
+            title="Elimina Password"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </article>
   )
 }
@@ -1949,6 +2148,18 @@ function buildSheetFields(project: Project): ProjectVariable[] {
     },
     ...(project.dataFields ?? []),
   ]
+}
+
+function isGithubEmailField(key: string) {
+  return key.trim().toLowerCase() === 'mail github'
+}
+
+function isGithubPasswordField(key: string) {
+  return key.trim().toLowerCase() === 'password'
+}
+
+function isDeployField(key: string) {
+  return key.trim().toLowerCase() === 'deploy con'
 }
 
 function getProjectPreviewMeta(project: Project) {

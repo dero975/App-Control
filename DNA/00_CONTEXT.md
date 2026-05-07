@@ -19,8 +19,8 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `src/app`: shell, sidebar desktop, navigazione mobile.
 - `src/components`: componenti condivisi (`CopyButton`, `FieldGroup`, `SectionHeader`, `EmptyState`).
 - `src/features/projects`: gestione principale dei progetti e dei tab interni.
-- `src/features/prompts`: libreria prompt con ricerca, filtri, dettaglio e copia.
-- `src/features/settings`: placeholder essenziale.
+- `src/features/prompts`: libreria prompt minima con categorie, apertura card e copia.
+- `src/features/settings`: gestione PIN app e sicurezza locale.
 - `src/lib/clipboard.ts`: helper condiviso per copia clipboard.
 - `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*`.
 - `src/lib/pinAccess.ts`: verifica e modifica PIN app via Supabase.

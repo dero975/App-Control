@@ -73,17 +73,19 @@ Fonte: `src/features/projects/ProjectsPage.tsx`.
 
 Fonte: `src/features/prompts`.
 
-- Ricerca su titolo, tag e testo completo.
-- Filtri per tipo e categoria.
-- Lista a card, dettaglio laterale, copia testo completo.
-- Il pulsante `Modifica` e presente come UI, ma non implementa ancora editing reale.
+- La pagina `Prompt` e una libreria essenziale di card operative.
+- Le sole categorie canoniche attuali sono `Prompt iniziali` e `Prompt manutenzione`.
+- Ogni card mostra solo il titolo; la categoria resta come filtro della pagina e non viene ripetuta nel corpo della card. Il testo completo del prompt si visualizza solo quando la card viene aperta con click.
+- Il pulsante copia e sempre disponibile sia a card chiusa sia a card aperta.
+- Non esistono piu pannello dettaglio laterale, tag, note d'uso, preferiti, data ultima modifica o pulsante `Modifica`.
 
 ## Impostazioni
 
 Fonte: `src/features/settings/SettingsPage.tsx`.
 
-- Card `Modifica PIN`: richiede PIN attuale, nuovo PIN e conferma; aggiorna l'hash in Supabase.
-- Card `Sessione`: consente di uscire dall'app cancellando lo sblocco in `sessionStorage`.
+- La pagina `Impostazioni` gestisce solo il cambio PIN.
+- `Modifica PIN`: richiede PIN attuale, nuovo PIN e conferma; aggiorna l'hash in Supabase.
+- Il logout non e piu duplicato nella pagina `Impostazioni`: resta solo nella navigazione dell'app.
 
 ## Componenti critici
 

@@ -4,32 +4,13 @@ export type DevelopmentEnvironment = string
 
 export type ProjectStatus = 'Attivo' | 'In pausa' | 'Archivio' | 'Idea'
 
-export type PromptType = 'Iniziali / strutturali' | 'Ordinari / operativi' | 'Speciali / sensibili'
-
-export type PromptCategory =
-  | 'Start progetto'
-  | 'Analisi progetto'
-  | 'DNA documentazione'
-  | 'GitHub'
-  | 'Backup'
-  | 'Supabase'
-  | 'SQL'
-  | 'Deploy'
-  | 'Pulizia sicura'
-  | 'Ottimizzazione'
-  | 'Testing'
-  | 'Asset / PWA'
+export type PromptCategory = 'Prompt iniziali' | 'Prompt manutenzione'
 
 export type Prompt = {
   id: string
   title: string
-  type: PromptType
   category: PromptCategory
   fullText: string
-  usageNotes: string
-  tags: string[]
-  favorite: boolean
-  lastModified: string
 }
 
 export type EnvVariable = {

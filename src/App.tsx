@@ -35,7 +35,7 @@ function App() {
     <AppLayout activeSection={activeSection} onLock={lockApp} onNavigate={setActiveSection}>
       {activeSection === 'projects' ? <ProjectsPage /> : null}
       {activeSection === 'prompts' ? <PromptsPage /> : null}
-      {activeSection === 'settings' ? <SettingsPage onLock={lockApp} /> : null}
+      {activeSection === 'settings' ? <SettingsPage /> : null}
     </AppLayout>
   )
 }
