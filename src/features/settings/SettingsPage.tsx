@@ -1,4 +1,4 @@
-import { KeyRound, ShieldCheck } from 'lucide-react'
+import { KeyRound } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { FieldGroup } from '../../components/FieldGroup'
 import { SectionHeader } from '../../components/SectionHeader'
@@ -45,27 +45,8 @@ export function SettingsPage() {
   return (
     <div className="page-stack settings-page">
       <SectionHeader
-        eyebrow="Sicurezza"
         title="Impostazioni"
-        description="Gestisci accesso locale e sessione dell'app con lo stesso linguaggio pulito del resto di App Control."
       />
-
-      <div className="settings-hero">
-        <div className="settings-hero__badge">
-          <ShieldCheck aria-hidden="true" className="button-icon" />
-          <span>Accesso protetto</span>
-        </div>
-        <div className="settings-hero__meta">
-          <div className="info-pill">
-            <strong>PIN sincronizzato</strong>
-            <span>Valido tra dispositivi collegati a Supabase</span>
-          </div>
-          <div className="info-pill">
-            <strong>Sessione locale</strong>
-            <span>Si chiude con logout o chiusura browser</span>
-          </div>
-        </div>
-      </div>
 
       <div className="settings-layout">
         <FieldGroup

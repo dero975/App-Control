@@ -37,6 +37,8 @@ Supabase e integrato per PIN app e sezione Progetti. Prompt e Supabase Storage r
 
 La libreria prompt oggi resta mock locale in `src/data/mockData.ts` e non usa ancora tabelle dedicate o persistenza remota.
 
+La UI `Prompt` puo creare, modificare ed eliminare card solo nello stato locale runtime del client; chiusura o refresh riportano i dati ai mock correnti finche non verra introdotta persistenza dedicata.
+
 Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 
 Guardrail:
