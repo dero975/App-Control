@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Download, FileText, Pipette, Plus, Trash2, Upload } from 'lucide-react'
+import {
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
+  Check,
+  ClockArrowDown,
+  ClockArrowUp,
+  Copy,
+  Download,
+  FileText,
+  Pipette,
+  Plus,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
@@ -61,6 +74,7 @@ const defaultProjectImageSlots = [
   { id: 'browser-tab-icon', name: 'Icona Tab Browser (favicon)' },
 ] as const
 const homeIconSlotId = 'home-icon'
+const browserTabIconSlotId = 'browser-tab-icon'
 const homeIconEditorSize = 512
 const homeIconCornerRadius = 110
 const gradientModeOptions = [
@@ -74,12 +88,20 @@ const maxImageBytes = 500 * 1024
 const maxImageEdge = 1200
 const defaultSyncPrompt =
   'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per caricare da App Control le variabili autorizzate del progetto. Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
+const imageIntegrationPromptBySlotId: Record<string, string> = {
+  [homeIconSlotId]:
+    'Cerca nel progetto il file con nome esatto `icona schermata home.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona schermata Home/PWA dell’app. Se per una corretta integrazione servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
+  [browserTabIconSlotId]:
+    'Cerca nel progetto il file con nome esatto `icona Tab Browser.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona della tab del browser/favicons dell’app. Se per compatibilita browser servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
+}
+type ProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
 
 export function ProjectsPage() {
   const [projectList, setProjectList] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [activeTab, setActiveTab] = useState<(typeof projectTabs)[number]>('Dati progetto')
   const [query, setQuery] = useState('')
+  const [sortMode, setSortMode] = useState<ProjectListSortMode>('recent-desc')
   const [deleteCandidate, setDeleteCandidate] = useState<Project | null>(null)
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
@@ -118,14 +140,22 @@ export function ProjectsPage() {
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return projectList.filter(
+    const matchingProjects = projectList.filter(
       (project) =>
         !normalizedQuery ||
         project.name.toLowerCase().includes(normalizedQuery) ||
         project.developmentEnvironment.toLowerCase().includes(normalizedQuery) ||
         project.status.toLowerCase().includes(normalizedQuery),
     )
-  }, [projectList, query])
+
+    if (sortMode === 'recent-desc') return matchingProjects
+    if (sortMode === 'recent-asc') return [...matchingProjects].reverse()
+
+    return [...matchingProjects].sort((firstProject, secondProject) => {
+      const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
+      return sortMode === 'name-asc' ? sortResult : -sortResult
+    })
+  }, [projectList, query, sortMode])
 
   const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
 
@@ -171,6 +201,20 @@ export function ProjectsPage() {
     setSelectedId(snapshot.project.id)
   }
 
+  function toggleAlphabeticalSort() {
+    setSortMode((currentSortMode) => (currentSortMode === 'name-asc' ? 'name-desc' : 'name-asc'))
+  }
+
+  function toggleRecencySort() {
+    setSortMode((currentSortMode) => (currentSortMode === 'recent-asc' ? 'recent-desc' : 'recent-asc'))
+  }
+
+  const isAlphabeticalSortActive = sortMode === 'name-asc' || sortMode === 'name-desc'
+  const isRecencySortActive = sortMode === 'recent-asc' || sortMode === 'recent-desc'
+  const alphabeticalSortLabel = sortMode === 'name-desc' ? 'Ordina progetti Z-A' : 'Ordina progetti A-Z'
+  const recencySortLabel =
+    sortMode === 'recent-asc' ? 'Ordina progetti dal meno recente al piu recente' : 'Ordina progetti dal piu recente al meno recente'
+
   return (
     <div className="page-stack projects-page">
       <div className="split-workspace">
@@ -182,10 +226,42 @@ export function ProjectsPage() {
               placeholder="Cerca.."
               aria-label="Cerca progetto"
             />
-            <button type="button" className="secondary-button" onClick={createProject}>
-              <Plus aria-hidden="true" className="button-icon" />
-              Nuovo progetto
-            </button>
+            <div className="toolbar__row">
+              <div className="toolbar__icon-filters" aria-label="Ordinamento lista progetti">
+                <button
+                  type="button"
+                  className={isAlphabeticalSortActive ? 'secondary-button icon-filter-button icon-filter-button--active' : 'secondary-button icon-filter-button'}
+                  onClick={toggleAlphabeticalSort}
+                  aria-label={alphabeticalSortLabel}
+                  title={alphabeticalSortLabel}
+                >
+                  {sortMode === 'name-desc' ? (
+                    <ArrowDownWideNarrow aria-hidden="true" className="button-icon" />
+                  ) : (
+                    <ArrowUpWideNarrow aria-hidden="true" className="button-icon" />
+                  )}
+                </button>
+              </div>
+              <button type="button" className="secondary-button toolbar__primary-action" onClick={createProject}>
+                <Plus aria-hidden="true" className="button-icon" />
+                Nuovo progetto
+              </button>
+              <div className="toolbar__icon-filters" aria-label="Ordinamento lista progetti">
+                <button
+                  type="button"
+                  className={isRecencySortActive ? 'secondary-button icon-filter-button icon-filter-button--active' : 'secondary-button icon-filter-button'}
+                  onClick={toggleRecencySort}
+                  aria-label={recencySortLabel}
+                  title={recencySortLabel}
+                >
+                  {sortMode === 'recent-asc' ? (
+                    <ClockArrowUp aria-hidden="true" className="button-icon" />
+                  ) : (
+                    <ClockArrowDown aria-hidden="true" className="button-icon" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="record-list" aria-label="Progetti">
@@ -200,6 +276,7 @@ export function ProjectsPage() {
                 }}
               >
                 <strong>{project.name}</strong>
+                <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
                 <small>{getProjectPreviewMeta(project)}</small>
               </button>
             ))}
@@ -250,12 +327,13 @@ function ProjectDetail({
   const [sheetFields, setSheetFields] = useState<ProjectVariable[]>(() => buildSheetFields(project))
   const [variables, setVariables] = useState<ProjectVariable[]>(() => buildProjectVariables(project))
   const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots(project.images))
-  const [saveStatus, setSaveStatus] = useState('')
+  const [operationalNotes, setOperationalNotes] = useState(project.operationalNotes)
   const didMountRef = useRef(false)
   const saveContextRef = useRef({ onSave, project })
   const saveVersionRef = useRef(0)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
   const deployLink = getDeployLink(sheetFields, project)
+  const createdAtLabel = formatProjectUpdatedAt(project.createdAt)
 
   useEffect(() => {
     saveContextRef.current = { onSave, project }
@@ -269,27 +347,25 @@ function ProjectDetail({
 
     const currentSaveVersion = saveVersionRef.current + 1
     saveVersionRef.current = currentSaveVersion
-    setSaveStatus('Salvataggio automatico')
 
     const saveTimer = window.setTimeout(() => {
       const { onSave: saveSnapshot, project: currentProject } = saveContextRef.current
       if (!saveSnapshot) return
 
-      saveSnapshot({ project: currentProject, sheetFields, variables, images: imageSlots })
-        .then(() => {
-          if (saveVersionRef.current === currentSaveVersion) {
-            setSaveStatus('Salvato')
-          }
-        })
-        .catch((error: unknown) => {
-          if (saveVersionRef.current === currentSaveVersion) {
-            setSaveStatus(error instanceof Error ? error.message : 'Errore salvataggio')
-          }
-        })
+      saveSnapshot({
+        project: {
+          ...currentProject,
+          operationalNotes,
+        },
+        sheetFields,
+        variables,
+        images: imageSlots,
+      })
+        .catch(() => {})
     }, 650)
 
     return () => window.clearTimeout(saveTimer)
-  }, [imageSlots, sheetFields, variables])
+  }, [imageSlots, operationalNotes, sheetFields, variables])
 
   function handleImageSlotsChange(nextImageSlots: ProjectImageSlot[]) {
     setImageSlots(nextImageSlots)
@@ -308,6 +384,7 @@ function ProjectDetail({
               <CopyButton value={deployLink} iconOnly />
             </div>
           ) : null}
+          <p className="project-created-at">{`Data creazione: ${createdAtLabel}`}</p>
         </div>
         <div className="detail-heading__actions">
           <button type="button" className="danger-button" onClick={onRequestDelete}>
@@ -316,8 +393,6 @@ function ProjectDetail({
           </button>
         </div>
       </div>
-
-      {saveStatus ? <p className="status-message">{saveStatus}</p> : null}
 
       <div className="tab-row" role="tablist" aria-label="Sezioni progetto">
         {projectTabs.map((tab) => (
@@ -353,9 +428,16 @@ function ProjectDetail({
         ) : null}
         {activeTab === 'Immagini' ? <ProjectImagesPanel slots={imageSlots} onChange={handleImageSlotsChange} /> : null}
         {activeTab === 'Note' ? (
-          <FieldGroup title="Note operative">
-            <textarea value={project.operationalNotes} readOnly rows={7} />
-          </FieldGroup>
+          <div className="notes-panel">
+            <FieldGroup title="Note operative" className="field-group--bare">
+              <textarea
+                value={operationalNotes}
+                rows={7}
+                className="notes-panel-textarea"
+                onChange={(event) => setOperationalNotes(event.target.value)}
+              />
+            </FieldGroup>
+          </div>
         ) : null}
         {activeTab === 'Sync' ? <ProjectAgentPanel project={project} /> : null}
       </div>
@@ -492,11 +574,13 @@ function VariablesPanel({
 
   const envBlock = formatDeployEnvForChat(variables)
   const isVariablesPanel = title === 'Variabili'
+  const isBarePanel = title === 'Dati progetto' || title === 'Variabili'
 
   return (
     <div className="tab-panel-stack">
       <FieldGroup
-        title={title}
+        className={isBarePanel ? 'field-group--bare' : ''}
+        title={isBarePanel ? undefined : title}
         action={
           <div className="field-group-action-row">
             {isVariablesPanel ? (
@@ -776,6 +860,8 @@ function createEmptyProject(index: number): Project {
   return {
     id: `project-${Date.now()}`,
     name,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: 'Attivo',
     developmentEnvironment: 'Windsurf',
     githubRepoUrl: '',
@@ -864,7 +950,15 @@ function ProjectImagesPanel({
   const [dragTargetId, setDragTargetId] = useState('')
   const [previewSlot, setPreviewSlot] = useState<ProjectImageSlot | null>(null)
   const [editorSlot, setEditorSlot] = useState<ProjectImageSlot | null>(null)
+  const [copiedPromptSlotId, setCopiedPromptSlotId] = useState('')
   const primaryLogoDataUrl = slots.find((slot) => slot.id === 'logo-app')?.dataUrl ?? ''
+
+  useEffect(() => {
+    if (!copiedPromptSlotId) return
+
+    const timeout = window.setTimeout(() => setCopiedPromptSlotId(''), 1600)
+    return () => window.clearTimeout(timeout)
+  }, [copiedPromptSlotId])
 
   function updateSlot(slotId: string, nextSlot: Partial<ProjectImageSlot>) {
     onChange(slots.map((slot) => (slot.id === slotId ? { ...slot, ...nextSlot } : slot)))
@@ -896,6 +990,14 @@ function ProjectImagesPanel({
     setDragTargetId('')
     const imageFile = Array.from(fileList).find((file) => file.type.startsWith('image/'))
     void handleImageChange(slotId, imageFile)
+  }
+
+  async function copyImagePrompt(slotId: string) {
+    const prompt = imageIntegrationPromptBySlotId[slotId]
+    if (!prompt) return
+
+    await copyToClipboard(prompt)
+    setCopiedPromptSlotId(slotId)
   }
 
   return (
@@ -937,25 +1039,46 @@ function ProjectImagesPanel({
               <div className="asset-thumb" aria-hidden="true" />
             )}
             <div className="asset-item__body">
-              <AssetName name={slot.name} />
+              <div className="asset-item__title-row">
+                <AssetName name={slot.name} />
+                {imageIntegrationPromptBySlotId[slot.id] ? (
+                  <button
+                    type="button"
+                    className="asset-inline-prompt-button"
+                    onClick={() => void copyImagePrompt(slot.id)}
+                    aria-label={copiedPromptSlotId === slot.id ? `Prompt copiato per ${slot.name}` : `Copia prompt per ${slot.name}`}
+                    title={copiedPromptSlotId === slot.id ? 'Prompt copiato' : 'Copia prompt'}
+                  >
+                    {copiedPromptSlotId === slot.id ? (
+                      <Check aria-hidden="true" className="button-icon" />
+                    ) : (
+                      <Copy aria-hidden="true" className="button-icon" />
+                    )}
+                  </button>
+                ) : null}
+                {slot.id === homeIconSlotId ? (
+                  <button
+                    type="button"
+                    className="asset-inline-prompt-button editor-icon-button"
+                    onClick={() => setEditorSlot(slot)}
+                    aria-label="Editor icona Home"
+                    title="Editor icona Home"
+                  >
+                    <span className="editor-icon-button__glyph" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
               {slot.fileName ? <span>{slot.fileName}</span> : null}
               {slot.sizeBytes ? <span>{formatFileSize(slot.sizeBytes)}</span> : null}
             </div>
+
             <div className="asset-item__actions">
-              {slot.id === homeIconSlotId ? (
-                <button
-                  type="button"
-                  className="inline-icon-button editor-icon-button"
-                  onClick={() => setEditorSlot(slot)}
-                  aria-label="Editor icona Home"
-                  title="Editor icona Home"
-                >
-                  <span className="editor-icon-button__glyph" aria-hidden="true" />
-                </button>
-              ) : null}
-              <label className="secondary-button asset-file-button">
+              <label
+                className="secondary-button icon-filter-button asset-side-action-button asset-file-button"
+                aria-label={`Inserisci immagine per ${slot.name}`}
+                title="Inserisci immagine"
+              >
                 <Upload aria-hidden="true" className="button-icon" />
-                Inserisci
                 <input
                   accept="image/*"
                   type="file"
@@ -967,17 +1090,18 @@ function ProjectImagesPanel({
               </label>
               <button
                 type="button"
-                className="secondary-button"
+                className="secondary-button icon-filter-button asset-side-action-button"
                 disabled={!slot.dataUrl}
                 onClick={() => downloadSlot(slot)}
+                aria-label={`Scarica ${slot.name}`}
+                title="Scarica immagine"
               >
                 <Download aria-hidden="true" className="button-icon" />
-                Scarica
               </button>
               {slot.dataUrl ? (
                 <button
                   type="button"
-                  className="inline-icon-button trash-button"
+                  className="secondary-button icon-filter-button asset-side-action-button trash-button"
                   onClick={() => clearSlot(slot.id)}
                   aria-label={`Rimuovi ${slot.name}`}
                   title={`Rimuovi ${slot.name}`}
@@ -1751,29 +1875,31 @@ function ProjectAgentPanel({ project }: { project: Project }) {
   const agentConfig = formatAgentConfig(project)
 
   return (
-    <FieldGroup title="Agent sync">
-      <div className="agent-sync-block">
-        <div className="agent-sync-block__header">
-          <span>Prompt sincronizzazione</span>
-        </div>
-        <div className="agent-sync-box">
-          <div className="agent-sync-readonly" aria-label="Prompt sincronizzazione">
-            {project.agent.syncPrompt}
+    <div className="agent-sync-panel">
+      <FieldGroup title="Agent sync" className="field-group--bare">
+        <div className="agent-sync-block">
+          <div className="agent-sync-block__header">
+            <span>Prompt sincronizzazione</span>
           </div>
-          <CopyButton value={project.agent.syncPrompt} className="copy-button--inside-panel" />
+          <div className="agent-sync-box">
+            <div className="agent-sync-readonly" aria-label="Prompt sincronizzazione">
+              {project.agent.syncPrompt}
+            </div>
+            <CopyButton value={project.agent.syncPrompt} className="copy-button--inside-panel" />
+          </div>
         </div>
-      </div>
 
-      <div className="agent-sync-block">
-        <div className="agent-sync-block__header">
-          <span>.agent/app-control.json</span>
+        <div className="agent-sync-block">
+          <div className="agent-sync-block__header">
+            <span>.agent/app-control.json</span>
+          </div>
+          <div className="agent-sync-box">
+            <pre>{agentConfig}</pre>
+            <CopyButton value={agentConfig} className="copy-button--inside-panel" />
+          </div>
         </div>
-        <div className="agent-sync-box">
-          <pre>{agentConfig}</pre>
-          <CopyButton value={agentConfig} className="copy-button--inside-panel" />
-        </div>
-      </div>
-    </FieldGroup>
+      </FieldGroup>
+    </div>
   )
 }
 
@@ -1828,6 +1954,30 @@ function buildSheetFields(project: Project): ProjectVariable[] {
 function getProjectPreviewMeta(project: Project) {
   const sheetFields = buildSheetFields(project)
   return `${getFieldValue(sheetFields, 'sviluppo in')} / ${getFieldValue(sheetFields, 'deploy con')}`
+}
+
+function formatProjectUpdatedAt(value: string) {
+  const updatedAtDate = new Date(value)
+  if (Number.isNaN(updatedAtDate.getTime())) return 'Data ultima modifica non disponibile'
+
+  const formatter = new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+
+  const formattedParts = formatter.formatToParts(updatedAtDate)
+  const day = formattedParts.find((part) => part.type === 'day')?.value ?? ''
+  const month = formattedParts.find((part) => part.type === 'month')?.value ?? ''
+  const year = formattedParts.find((part) => part.type === 'year')?.value ?? ''
+  const hour = formattedParts.find((part) => part.type === 'hour')?.value ?? ''
+  const minute = formattedParts.find((part) => part.type === 'minute')?.value ?? ''
+  const capitalizedMonth = month ? `${month.charAt(0).toUpperCase()}${month.slice(1)}` : ''
+
+  return `${day} ${capitalizedMonth} ${year} - ${hour}.${minute}`
 }
 
 function normalizeSelectableFieldValue(key: string, value: string) {

@@ -73,6 +73,8 @@ export type ProjectAgentAccess = {
 export type Project = {
   id: string
   name: string
+  createdAt: string
+  updatedAt: string
   status: ProjectStatus
   developmentEnvironment: DevelopmentEnvironment
   githubRepoUrl: string

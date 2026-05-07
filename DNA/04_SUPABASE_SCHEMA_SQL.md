@@ -33,12 +33,13 @@ Fonte codice primaria:
 Mappatura:
 
 - Lista progetti e header dettaglio: `projects`.
+- `created_at` alimenta la `Data creazione` del dettaglio; `updated_at` alimenta `Ultima modifica` nella lista progetti.
 - JSON sync progetto: `projects.agent_project_id` piu `project_agent_keys`.
 - Preview progetto `sviluppo in / deploy con`: `projects.development_environment` e `projects.deploy_provider`.
 - Tab `Dati progetto`:
   - `nome progetto`: `projects.name`
   - `mail github`: `projects.github_account_email`
-  - `Password`: `project_data_fields` con `field_key = 'password'`, `is_secret = true`, `visible_by_default = true`
+  - `Password`: `projects.linked_secret_label_ciphertext`
   - `sviluppo in`: `projects.development_environment`
   - accessi piattaforme dentro `sviluppo in`: `project_platform_accesses`
   - `deploy con`: `projects.deploy_provider`
@@ -46,7 +47,7 @@ Mappatura:
 - Tab `Variabili`: `project_env_variables`.
 - Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva `slot_id`, `name`, `fileName`, `mimeType`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
 - Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.
-- Tab `Note`: `projects.operational_notes`.
+- Tab `Note`: target dati `projects.operational_notes`; verificare il repository corrente prima di assumere persistenza completa degli update da UI.
 - Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
 - Prompt library: `prompts` e relazione futura `project_prompts`, esclusi dalla fase corrente.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.

@@ -72,6 +72,9 @@ npm run dev -- --host 127.0.0.1 --port 5001
 - Se la cartella non e ancora un repository Git, inizializzare Git solo su richiesta esplicita di commit/push, collegare il remote GitHub corretto e verificare `.gitignore` prima del primo commit.
 - Remote operativo atteso per questo progetto: `https://github.com/dero975/App-Control.git`.
 - Branch operativo richiesto: `main`.
+- Prima di commit/push verificare almeno `git status --short --branch`, `git remote -v` e `git branch --show-current`.
+- Prima del push eseguire preferibilmente `npm run check:all` se il commit contiene codice o stile; per commit solo documentali bastano controlli mirati e verifica stato Git.
+- Push previsto: `git push origin main`, senza `--force`.
 
 ## Manutenzione DNA
 

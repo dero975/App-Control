@@ -19,15 +19,17 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
+- La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; ogni card mostra anche `Ultima modifica` su una sola riga.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
 - Le modifiche al dettaglio progetto vengono salvate automaticamente su Supabase con debounce breve; non esiste pulsante manuale `Salva modifiche`.
 - Selezionando un progetto si torna sempre al tab `Dati progetto`.
 - Tab interni: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
+- L'header dettaglio mostra titolo progetto, link deploy se presente e `Data creazione` formattata sotto al link.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
 - `Variabili` usa `buildProjectVariables(project)` e ordina variabili tecniche con `orderedProjectKeys`; il salvataggio scrive `project_env_variables`.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
-- `Note` mostra `operationalNotes` in textarea read-only.
+- `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
 - Il prompt di sincronizzazione non deve essere rigenerato per ogni progetto: identifica il flusso. Il JSON cambia per progetto e contiene `projectId` e `agentKey`.
 - In `Agent sync`, le icone copia stanno dentro al box relativo e non hanno testo o contorno.
@@ -47,13 +49,15 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 
 - Il tab `Immagini` mostra sempre cinque slot fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
 - Ogni slot consente inserimento file immagine locale tramite pulsante o drag and drop, anteprima, scaricamento del file inserito e rimozione del file dalla sessione.
+- Le card `Icona Schermata Home` e `Icona Tab Browser (favicon)` espongono anche un pulsante piccolo `Copia prompt` accanto al titolo, che copia negli appunti un prompt operativo universale per Codex/Windsurf, specifico per quel tipo di icona.
 - Clic sulla miniatura immagine apre una modale preview dedicata con immagine grande e header coerente con il logo della nav.
-- Lo slot `Icona Schermata Home` espone anche `Editor`: apre una modale grande basata su canvas 512x512, con sfondo colore/sfumatura lineare, radiale o morbida, campione colore tramite `EyeDropper` dove supportato, bordo opzionale, logo inseribile via drag and drop sull'anteprima o file picker e scala proporzionale. Se `Logo app` contiene gia un'immagine e lo slot Home e vuoto, l'editor la usa come logo iniziale. Il salvataggio genera un PNG finale nello stesso slot e passa dal normale autosave Supabase.
+- Lo slot `Icona Schermata Home` espone anche `Editor` accanto al titolo: apre una modale grande basata su canvas 512x512, con sfondo colore/sfumatura lineare, radiale o morbida, campione colore tramite `EyeDropper` dove supportato, bordo opzionale, logo inseribile via drag and drop sull'anteprima o file picker e scala proporzionale. Se `Logo app` contiene gia un'immagine e lo slot Home e vuoto, l'editor la usa come logo iniziale. Il salvataggio genera un PNG finale nello stesso slot e passa dal normale autosave Supabase.
 - Il reset generale dell'editor icona Home ripristina colori bianchi, bordo disattivato, scala logo standard e rimuove il logo importato dalla preview. I blocchi `Sfondo` e `Bordo` hanno anche reset indipendenti.
 - Le immagini raster vengono ottimizzate client-side prima del salvataggio in `project_images`: limite massimo target 500 KB, lato maggiore massimo 1200 px, output WebP quando serve comprimere. SVG resta invariato.
 - Il download usa sempre il titolo della card come nome file, mantenendo l'estensione coerente con il formato salvato.
 - La cartella di destinazione download e quella predefinita del browser/PC; la web app non forza path locali arbitrari.
 - Le card restano visibili anche se non viene inserita nessuna immagine.
+- Quando uno slot e vuoto, il riquadro miniatura resta bianco di default.
 - Se un nome contiene una nota tra parentesi, la nota e renderizzata come testo secondario non bold.
 
 ## Variabili ENV e Render

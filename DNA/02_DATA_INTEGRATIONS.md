@@ -11,7 +11,7 @@
 
 ## Tipi principali
 
-- `Project`: progetto, stato, ambiente sviluppo, GitHub, campi Supabase, deploy, note, prompt e immagini collegate.
+- `Project`: progetto, date `createdAt` / `updatedAt`, stato, ambiente sviluppo, GitHub, campo `linkedSecretLabel`, campi Supabase, deploy, note, prompt e immagini collegate.
 - `ProjectAgentAccess`: dati minimi per collegare un progetto esterno ad App Control tramite JSON locale e prompt generico.
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
 - `Prompt`: libreria prompt con tipo, categoria, testo, note, tag, preferito.
@@ -23,10 +23,13 @@
 - `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Windsurf` e `Replit`; la UI mantiene fallback per eventuali valori esterni non previsti.
 - `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
 - `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
+- Il dettaglio progetto mostra `createdAt`; la lista progetti mostra `updatedAt` come `Ultima modifica`.
 - Gli accessi piattaforma del box `sviluppo in` vengono salvati in `project_platform_accesses` solo quando creati dall'utente e salvati.
 - I nuovi progetti partono senza righe `Accessi piattaforme`; ogni accesso viene creato esplicitamente dall'utente.
 - `deploy.provider` alimenta `Deploy con`; se non e tra le opzioni, la UI usa fallback.
 - `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
+- Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
+- `operationalNotes` viene letto dalla colonna `projects.operational_notes` e la UI lo include nello snapshot di autosave; verificare sempre il codice repository prima di assumere persistenza completa degli update.
 
 ## Integrazioni future
 
@@ -52,6 +55,8 @@ Guardrail:
 - Il tab UI si chiama `Immagini`; il tipo dati resta `VisualAsset`.
 - I nuovi progetti mostrano sempre cinque slot immagine fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
 - I file immagine inseriti nello UI tramite pulsante o drag and drop vengono ottimizzati in locale e salvati in `project_images` con `data_url`; al refresh la UI ricostruisce gli slot dai record Supabase.
+- Gli slot `home-icon` e `browser-tab-icon` espongono anche un utility UI non persistita: pulsante `Copia prompt` che copia un prompt universale per chiedere a Codex/Windsurf di cercare il file sorgente con nome esatto, ottimizzarlo, integrarlo correttamente nel progetto e rimuovere il file originario non ottimizzato.
+- Per `home-icon`, l'azione `Editor` resta una utility UI locale collegata allo stesso slot immagine e non introduce nuove tabelle o storage separati.
 - Le immagini raster vengono ottimizzate localmente per uso web leggero: target massimo 500 KB, lato maggiore massimo 1200 px, conversione WebP quando riduce il peso. SVG non viene convertito.
 - Il download delle immagini usa il nome dello slot come nome file e viene gestito dal browser nella cartella download predefinita.
 - La persistenza Supabase usa `slot_id` fisso, nome card, nome file, MIME, dimensioni e `data_url` ottimizzato. `path` resta disponibile per un futuro passaggio a Supabase Storage.

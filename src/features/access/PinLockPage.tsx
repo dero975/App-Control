@@ -1,6 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { FieldGroup } from '../../components/FieldGroup'
-import { SectionHeader } from '../../components/SectionHeader'
 import { appUnlockedStorageKey, isValidPin, verifyAppPin } from '../../lib/pinAccess'
 
 type PinLockPageProps = {
@@ -35,12 +33,16 @@ export function PinLockPage({ onUnlock }: PinLockPageProps) {
   }
 
   return (
-    <div className="page-stack page-stack--narrow app-entry">
-      <SectionHeader title="App Control" />
-      <FieldGroup title="Accesso app" description="Inserisci il PIN a 6 cifre per aprire l'applicazione.">
-        <form className="auth-form" onSubmit={submitPin}>
-          <label>
-            <span>PIN</span>
+    <div className="lock-screen app-entry">
+      <div className="lock-screen__glow" aria-hidden="true" />
+      <div className="lock-screen__panel">
+        <div className="lock-screen__brand">
+          <img src="/icons/splash-logo.png" alt="App Control" className="lock-screen__logo" />
+          <h1>Insert PIN</h1>
+        </div>
+
+        <form className="lock-screen__form" onSubmit={submitPin}>
+          <label className="lock-screen__field">
             <input
               value={pin}
               inputMode="numeric"
@@ -48,15 +50,22 @@ export function PinLockPage({ onUnlock }: PinLockPageProps) {
               pattern="[0-9]{6}"
               type="password"
               autoComplete="current-password"
+              placeholder="••••••"
+              autoFocus
               onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
             />
           </label>
-          <button type="submit" className="secondary-button">
+
+          <button type="submit" className="secondary-button lock-screen__submit">
             Accedi
           </button>
         </form>
-        {status ? <p className="status-message">{status}</p> : null}
-      </FieldGroup>
+
+        <div className="lock-screen__footer">
+          <span>Sessione locale protetta con PIN sincronizzato.</span>
+          {status ? <p className="status-message lock-screen__status">{status}</p> : null}
+        </div>
+      </div>
     </div>
   )
 }
