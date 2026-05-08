@@ -46,6 +46,8 @@ Mappatura:
   - `deploy con`: `projects.deploy_provider`
   - campi aggiunti manualmente: `project_data_fields`
 - Tab `Variabili`: `project_env_variables`.
+- Set canonico variabili progetto atteso in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- `LINK_DEPLOY ADMIN` e `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` non sono piu input canonici da compilare in App Control: vanno derivate quando richieste dal codice reale o dal provider target.
 - Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva `slot_id`, `name`, `fileName`, `mimeType`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
 - Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.
 - Tab `Note`: target dati `projects.operational_notes`; verificare il repository corrente prima di assumere persistenza completa degli update da UI.
@@ -66,7 +68,8 @@ Mappatura:
 - Le colonne `*_ciphertext` non cifrano da sole: indicano dati da cifrare lato applicazione prima della persistenza.
 - Le password piattaforma sono visibili in UI per richiesta funzionale, ma devono essere cifrate at-rest.
 - Le Agent Key devono essere generate da App Control nel formato `XXXXX-XXXXX-XXXXX-XXXXX`.
-- Il prompt di sincronizzazione resta generico; `projectId` e `agentKey` stanno nel JSON per progetto.
+- Il prompt di sincronizzazione resta generico; `projectId` e `agentKey` stanno nel JSON per progetto. Il prompt deve anche istruire l'agent a derivare automaticamente le variabili `VITE_SUPABASE_*` da `SUPABASE_*` quando il progetto usa Vite e a trattare `SUPABASE_DB_URL` come alias di `DATABASE_URL` solo quando richiesto.
+- Se l'app o il progetto esterno richiede un link admin dedicato, `LINK_DEPLOY ADMIN` va trattata come variabile derivata di `LINK_DEPLOY` con default `${LINK_DEPLOY}/admina`, sovrascrivibile manualmente senza perdere il fallback automatico.
 - Le Agent Key non devono essere salvate solo in chiaro: target consigliato `key_hash` per verifica e `key_ciphertext` solo se l'app deve poterle mostrare.
 - `project_images.slot_id` identifica lo slot funzionale; `name` e il titolo visibile/download.
 - `project_images.data_url` conserva l'anteprima/file ottimizzato per ripristino dopo refresh; non inserire immagini non ottimizzate o superiori al limite operativo UI.

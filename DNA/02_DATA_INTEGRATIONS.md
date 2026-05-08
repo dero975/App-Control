@@ -23,11 +23,16 @@
 - `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Windsurf` e `Replit`; la UI mantiene fallback per eventuali valori esterni non previsti.
 - `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
 - `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
+- Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- `LINK_DEPLOY ADMIN` non e input canonico obbligatorio: la UI lo deriva automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma puo essere salvato come override manuale dentro `project_env_variables`.
+- `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non vengono piu salvate come input canonici: vanno derivate quando il codice reale del progetto sincronizzato usa env client-side Vite.
+- `SUPABASE_DB_URL` non e piu una variabile canonica da compilare: resta solo alias derivabile di `DATABASE_URL` per script o provider che la richiedono.
 - Il dettaglio progetto mostra `createdAt`; la lista progetti mostra `updatedAt` come `Ultima modifica`.
 - Gli accessi piattaforma del box `sviluppo in` vengono salvati in `project_platform_accesses` solo quando creati dall'utente e salvati.
 - I nuovi progetti partono senza righe `Accessi piattaforme`; ogni accesso viene creato esplicitamente dall'utente.
 - `deploy.provider` alimenta `Deploy con`; se non e tra le opzioni, la UI usa fallback.
 - `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
+- `getDeployAdminLink` usa prima la variabile `LINK_DEPLOY ADMIN` se presente; in assenza di override costruisce automaticamente `${LINK_DEPLOY}/admina` rimuovendo eventuali slash finali.
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
 - `operationalNotes` viene letto dalla colonna `projects.operational_notes` e la UI lo include nello snapshot di autosave; verificare sempre il codice repository prima di assumere persistenza completa degli update.
 

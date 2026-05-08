@@ -26,11 +26,17 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Selezionando un progetto si torna sempre al tab `Dati progetto`.
 - Tab interni: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
 - L'header dettaglio mostra titolo progetto, link deploy se presente e `Data creazione` formattata sotto al link.
+- Se `LINK_DEPLOY` e presente, l'header dettaglio mostra anche il link admin derivato `.../admina`; il valore puo essere sovrascritto dalla variabile `LINK_DEPLOY ADMIN`.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
 - `Variabili` usa `buildProjectVariables(project)` e ordina variabili tecniche con `orderedProjectKeys`; il salvataggio scrive `project_env_variables`.
+- Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container; `LINK_DEPLOY ADMIN` nasce automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma resta modificabile manualmente dall'admin.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
+- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- `LINK_DEPLOY ADMIN` non e una variabile canonica da compilare a mano: il flusso `Sync` deve trattarla come derivata di `LINK_DEPLOY`, salvo override manuale gia presente nel progetto.
+- Se il progetto sincronizzato usa Vite o altre env client-side, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vanno derivate rispettivamente da `SUPABASE_URL` e `SUPABASE_ANON_KEY`; non devono essere attese come campi separati dentro App Control.
+- Se uno script o un provider richiede `SUPABASE_DB_URL`, va trattata come alias di `DATABASE_URL` e generata solo quando necessaria.
 - Il prompt di sincronizzazione non deve essere rigenerato per ogni progetto: identifica il flusso. Il JSON cambia per progetto e contiene `projectId` e `agentKey`.
 - In `Agent sync`, le icone copia stanno dentro al box relativo e non hanno testo o contorno.
 - Nella lista progetti la preview mostra solo `sviluppo in / deploy con`; non mostra stato o conteggio immagini.
@@ -65,8 +71,10 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 Fonte: `src/features/projects/ProjectsPage.tsx`.
 
 - Il pulsante `.env render` nel tab `Variabili` copia un preset generale per deploy Render di altri progetti.
-- Il blocco include sempre le chiavi standard, anche se vuote: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, `GITHUB_URL`, `GITHUB_TOKEN`.
-- `SUPABASE_URL` e `VITE_SUPABASE_URL` vengono normalizzate senza suffisso `/rest/v1`.
+- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- `LINK_DEPLOY ADMIN` viene derivata automaticamente da `LINK_DEPLOY` con suffisso `/admina`; se l'admin modifica quel valore, la derivazione automatica non deve sovrascrivere il custom value.
+- Il pulsante `.env render` genera automaticamente anche le variabili derivate richieste da alcuni stack o provider: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`.
+- `SUPABASE_URL` e l'eventuale `VITE_SUPABASE_URL` derivata vengono normalizzate senza suffisso `/rest/v1`.
 - Il blocco puo contenere segreti: non stamparlo in log o documentazione.
 
 ## Prompt

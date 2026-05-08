@@ -1944,7 +1944,7 @@ code {
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--gray-soft);
+  background: linear-gradient(180deg, #f0f3ee 0%, #f5f7f4 100%);
 }
 
 .editable-variable-card--grouped {
@@ -1952,10 +1952,45 @@ code {
   align-items: start;
 }
 
+.editable-variable-card--github {
+  border-color: rgba(111, 154, 191, 0.24);
+  background: linear-gradient(180deg, rgba(239, 246, 252, 0.96) 0%, rgba(246, 250, 253, 0.98) 100%);
+}
+
+.editable-variable-card--github .fixed-field-name {
+  color: #42739d;
+}
+
+.editable-variable-card--deploy {
+  border-color: rgba(182, 162, 95, 0.26);
+  background: linear-gradient(180deg, rgba(251, 247, 234, 0.96) 0%, rgba(253, 250, 241, 0.98) 100%);
+}
+
+.editable-variable-card--deploy .fixed-field-name {
+  color: #b7892a;
+}
+
 .grouped-variable-stack {
   display: grid;
   gap: 14px;
   min-width: 0;
+}
+
+.grouped-card-title {
+  display: block;
+  width: 100%;
+  color: #42739d;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  padding-left: 16px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.grouped-card-title--deploy {
+  color: #b7892a;
 }
 
 .grouped-variable-row {
@@ -1989,6 +2024,10 @@ code {
 
 .fixed-field-name::first-letter {
   text-transform: uppercase;
+}
+
+.fixed-field-name--hidden {
+  display: none;
 }
 
 .variable-value-input {

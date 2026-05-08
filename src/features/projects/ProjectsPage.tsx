@@ -46,8 +46,10 @@ const orderedProjectKeys = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_DB_URL',
+  'DATABASE_URL',
 ] as const
+const deployPasswordFieldKey = 'Password deploy'
+const deployAdminLinkKey = 'LINK_DEPLOY ADMIN'
 type SelectableFieldConfig = {
   options: readonly string[]
   promptLabel: string
@@ -87,8 +89,10 @@ const defaultHomeIconBackgroundColor = '#ffffff'
 const defaultHomeIconGradientColor = '#ffffff'
 const maxImageBytes = 500 * 1024
 const maxImageEdge = 1200
-const defaultSyncPrompt =
+const legacyDefaultSyncPrompt =
   'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per caricare da App Control le variabili autorizzate del progetto. Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
+const defaultSyncPrompt =
+  'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per collegare il progetto e leggere da App Control solo i dati canonici disponibili: Dati progetto (`Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`) e Variabili (`LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`). Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Analizza il codice reale del repository per capire quali variabili servono davvero. Se il progetto usa Vite o altre env client-side, deriva quando necessario `VITE_SUPABASE_URL` da `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da `SUPABASE_ANON_KEY`, senza aspettarti che siano salvate come campi separati in App Control. Se uno script, template o provider richiede `SUPABASE_DB_URL`, trattala come alias di `DATABASE_URL` e generala solo quando serve. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
 const imageIntegrationPromptBySlotId: Record<string, string> = {
   [homeIconSlotId]:
     'Cerca nel progetto il file con nome esatto `icona schermata home.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona schermata Home/PWA dell’app. Se per una corretta integrazione servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
@@ -340,6 +344,7 @@ function ProjectDetail({
   const saveVersionRef = useRef(0)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
   const deployLink = getDeployLink(sheetFields, project)
+  const deployAdminLink = getDeployAdminLink(variables, deployLink)
   const createdAtLabel = formatProjectUpdatedAt(project.createdAt)
 
   useEffect(() => {
@@ -389,6 +394,14 @@ function ProjectDetail({
                 {deployLink}
               </a>
               <CopyButton value={deployLink} iconOnly />
+            </div>
+          ) : null}
+          {deployAdminLink ? (
+            <div className="project-deploy-link">
+              <a href={deployAdminLink} target="_blank" rel="noreferrer">
+                {deployAdminLink}
+              </a>
+              <CopyButton value={deployAdminLink} iconOnly />
             </div>
           ) : null}
           <p className="project-created-at">{`Data creazione: ${createdAtLabel}`}</p>
@@ -506,7 +519,27 @@ function VariablesPanel({
   }, [envBlockCopied])
 
   function updateVariable(id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) {
-    onChange(variables.map((variable) => (variable.id === id ? { ...variable, [field]: value } : variable)))
+    const currentVariables = variables
+    const targetVariable = currentVariables.find((variable) => variable.id === id)
+
+    if (targetVariable && field === 'value' && isLinkDeployField(targetVariable.key)) {
+      const currentAdminVariable = currentVariables.find((variable) => isLinkDeployAdminField(variable.key))
+      const currentAutoAdminValue = buildDefaultDeployAdminLink(targetVariable.value)
+      const nextDeployValue = String(value)
+      const nextAutoAdminValue = buildDefaultDeployAdminLink(nextDeployValue)
+
+      onChange(
+        currentVariables.map((variable) => {
+          if (variable.id === id) return { ...variable, value: nextDeployValue }
+          if (!currentAdminVariable || variable.id !== currentAdminVariable.id) return variable
+          if (currentAdminVariable.value && currentAdminVariable.value !== currentAutoAdminValue) return variable
+          return { ...variable, value: nextAutoAdminValue }
+        }),
+      )
+      return
+    }
+
+    onChange(currentVariables.map((variable) => (variable.id === id ? { ...variable, [field]: value } : variable)))
   }
 
   function updatePlatformAccess(variableId: string, accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) {
@@ -588,10 +621,17 @@ function VariablesPanel({
   const githubCredentialsStartIndex = hasGroupedGithubCredentials ? Math.min(githubEmailIndex, githubPasswordIndex) : -1
   const githubCredentialsEndIndex = hasGroupedGithubCredentials ? Math.max(githubEmailIndex, githubPasswordIndex) : -1
   const deployIndex = variables.findIndex((variable) => isDeployField(variable.key))
-  const deployPasswordIndex = deployIndex === -1 ? -1 : variables.findIndex((variable, index) => index > deployIndex && isGithubPasswordField(variable.key))
+  const deployPasswordIndex =
+    deployIndex === -1 ? -1 : variables.findIndex((variable, index) => index > deployIndex && isDeployPasswordField(variable.key))
   const hasGroupedDeployCredentials = title === 'Dati progetto' && deployIndex !== -1 && deployPasswordIndex !== -1
   const deployCredentialsStartIndex = hasGroupedDeployCredentials ? Math.min(deployIndex, deployPasswordIndex) : -1
   const deployCredentialsEndIndex = hasGroupedDeployCredentials ? Math.max(deployIndex, deployPasswordIndex) : -1
+  const linkDeployIndex = variables.findIndex((variable) => isLinkDeployField(variable.key))
+  const linkDeployAdminIndex =
+    linkDeployIndex === -1 ? -1 : variables.findIndex((variable, index) => index > linkDeployIndex && isLinkDeployAdminField(variable.key))
+  const hasGroupedDeployLinks = title === 'Variabili' && linkDeployIndex !== -1 && linkDeployAdminIndex !== -1
+  const deployLinksStartIndex = hasGroupedDeployLinks ? Math.min(linkDeployIndex, linkDeployAdminIndex) : -1
+  const deployLinksEndIndex = hasGroupedDeployLinks ? Math.max(linkDeployIndex, linkDeployAdminIndex) : -1
 
   return (
     <div className="tab-panel-stack">
@@ -634,6 +674,19 @@ function VariablesPanel({
               )
             }
 
+            if (hasGroupedDeployLinks && index === deployLinksStartIndex) {
+              return (
+                <DeployLinksCard
+                  key="deploy-links"
+                  deployLinkVariable={variables[linkDeployIndex]}
+                  deployAdminLinkVariable={variables[linkDeployAdminIndex]}
+                  onDelete={deleteVariable}
+                  onUpdate={updateVariable}
+                  valueAriaLabel={valueAriaLabel}
+                />
+              )
+            }
+
             if (hasGroupedDeployCredentials && index === deployCredentialsStartIndex) {
               return (
                 <DeployCredentialsCard
@@ -648,6 +701,10 @@ function VariablesPanel({
             }
 
             if (hasGroupedGithubCredentials && index === githubCredentialsEndIndex) {
+              return null
+            }
+
+            if (hasGroupedDeployLinks && index === deployLinksEndIndex) {
               return null
             }
 
@@ -711,11 +768,14 @@ function DeployCredentialsCard({
   }
 
   return (
-    <article className="editable-variable-card editable-variable-card--grouped">
+    <article className="editable-variable-card editable-variable-card--grouped editable-variable-card--deploy">
       <div className="grouped-variable-stack">
+        <div className="grouped-card-title grouped-card-title--deploy">Deploy con</div>
         <div className="grouped-variable-row">
           <label className="variable-value-input" aria-label={valueAriaLabel}>
-            <span className="fixed-field-name">{deployVariable.key}</span>
+            <span className="fixed-field-name fixed-field-name--hidden" aria-hidden="true">
+              {deployVariable.key}
+            </span>
             {selectFieldConfig ? (
               <div className="variable-select-row">
                 <select value={selectValue} onChange={(event) => handleSelectChange(event.target.value)}>
@@ -742,7 +802,7 @@ function DeployCredentialsCard({
 
         <div className="grouped-variable-row">
           <label className="variable-value-input" aria-label={valueAriaLabel}>
-            <span className="fixed-field-name">{passwordVariable.key}</span>
+            <span className="fixed-field-name">Password</span>
             <input
               value={passwordVariable.value}
               type="text"
@@ -813,6 +873,68 @@ function formatDeployEnvForChat(variables: ProjectVariable[]) {
     .join('\n')
 }
 
+function DeployLinksCard({
+  deployLinkVariable,
+  deployAdminLinkVariable,
+  onDelete,
+  onUpdate,
+  valueAriaLabel,
+}: {
+  deployLinkVariable: ProjectVariable
+  deployAdminLinkVariable: ProjectVariable
+  onDelete: (id: string) => void
+  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  valueAriaLabel: string
+}) {
+  return (
+    <article className="editable-variable-card editable-variable-card--grouped">
+      <div className="grouped-variable-stack">
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{deployLinkVariable.key}</span>
+            <input
+              value={deployLinkVariable.value}
+              type="text"
+              onChange={(event) => onUpdate(deployLinkVariable.id, 'value', event.target.value)}
+            />
+            <CopyButton value={deployLinkVariable.value} iconOnly className="copy-button--inside-input" />
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(deployLinkVariable.id)}
+            aria-label="Elimina LINK_DEPLOY"
+            title="Elimina LINK_DEPLOY"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="grouped-variable-row">
+          <label className="variable-value-input" aria-label={valueAriaLabel}>
+            <span className="fixed-field-name">{deployAdminLinkVariable.key}</span>
+            <input
+              value={deployAdminLinkVariable.value}
+              type="text"
+              onChange={(event) => onUpdate(deployAdminLinkVariable.id, 'value', event.target.value)}
+            />
+            <CopyButton value={deployAdminLinkVariable.value} iconOnly className="copy-button--inside-input" />
+          </label>
+          <button
+            type="button"
+            className="inline-icon-button trash-button"
+            onClick={() => onDelete(deployAdminLinkVariable.id)}
+            aria-label="Elimina LINK_DEPLOY ADMIN"
+            title="Elimina LINK_DEPLOY ADMIN"
+          >
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function normalizeEnvKey(key: string) {
   return key.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
 }
@@ -847,6 +969,10 @@ function VariableEditorCard({
 }) {
   const selectFieldConfig = getSelectableFieldConfig(variable.key)
   const isDevelopmentField = variable.key.trim().toLowerCase() === 'sviluppo in'
+  const isGitHubVariable = ['GITHUB_URL', 'GITHUB_TOKEN'].includes(variable.key.trim().toUpperCase())
+  const isSupabaseVariable = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL'].includes(
+    variable.key.trim().toUpperCase(),
+  )
   const selectValue = selectFieldConfig ? getSelectValue(variable.value, selectFieldConfig) : variable.value
   const selectOptions = selectFieldConfig ? getSelectOptions(selectValue, selectFieldConfig.options) : []
 
@@ -870,7 +996,9 @@ function VariableEditorCard({
   }
 
   return (
-    <article className="editable-variable-card">
+    <article
+      className={`editable-variable-card${isGitHubVariable ? ' editable-variable-card--github' : ''}${isSupabaseVariable ? ' editable-variable-card--deploy' : ''}`}
+    >
       <div className="variable-field-stack">
         <label className="variable-value-input" aria-label={valueAriaLabel}>
           <span className="fixed-field-name">{variable.key}</span>
@@ -933,11 +1061,12 @@ function GitHubCredentialsCard({
   valueAriaLabel: string
 }) {
   return (
-    <article className="editable-variable-card editable-variable-card--grouped">
+    <article className="editable-variable-card editable-variable-card--grouped editable-variable-card--github">
       <div className="grouped-variable-stack">
+        <div className="grouped-card-title">GitHub</div>
         <div className="grouped-variable-row">
           <label className="variable-value-input" aria-label={valueAriaLabel}>
-            <span className="fixed-field-name">{emailVariable.key}</span>
+            <span className="fixed-field-name">Mail accesso</span>
             <input
               value={emailVariable.value}
               type="text"
@@ -949,8 +1078,8 @@ function GitHubCredentialsCard({
             type="button"
             className="inline-icon-button trash-button"
             onClick={() => onDelete(emailVariable.id)}
-            aria-label="Elimina Mail github"
-            title="Elimina Mail github"
+            aria-label="Elimina Mail accesso"
+            title="Elimina Mail accesso"
           >
             <Trash2 aria-hidden="true" />
           </button>
@@ -1093,13 +1222,20 @@ function createEmptyProject(index: number): Project {
     promptIds: [],
     assetIds: [],
     images: [],
+    dataFields: [
+      {
+        id: `data-password-deploy-${Date.now()}`,
+        key: deployPasswordFieldKey,
+        value: '',
+        sensitive: true,
+      },
+    ],
     env: [
       { key: 'SUPABASE_URL', value: '', scope: 'Supabase', sensitive: false },
       { key: 'SUPABASE_ANON_KEY', value: '', scope: 'Supabase', sensitive: true },
       { key: 'SUPABASE_SERVICE_ROLE_KEY', value: '', scope: 'Supabase', sensitive: true },
-      { key: 'SUPABASE_DB_URL', value: '', scope: 'Supabase', sensitive: true },
+      { key: 'DATABASE_URL', value: '', scope: 'Supabase', sensitive: true },
       { key: 'GITHUB_TOKEN', value: '', scope: 'GitHub', sensitive: true },
-      { key: 'RENDER_SERVICE_ID', value: '', scope: 'Deploy', sensitive: false },
     ],
   }
 }
@@ -2079,6 +2215,7 @@ function formatFileSize(sizeBytes: number) {
 
 function ProjectAgentPanel({ project }: { project: Project }) {
   const agentConfig = formatAgentConfig(project)
+  const syncPrompt = resolveSyncPrompt(project.agent.syncPrompt)
 
   return (
     <div className="agent-sync-panel">
@@ -2089,9 +2226,9 @@ function ProjectAgentPanel({ project }: { project: Project }) {
           </div>
           <div className="agent-sync-box">
             <div className="agent-sync-readonly" aria-label="Prompt sincronizzazione">
-              {project.agent.syncPrompt}
+              {syncPrompt}
             </div>
-            <CopyButton value={project.agent.syncPrompt} className="copy-button--inside-panel" />
+            <CopyButton value={syncPrompt} className="copy-button--inside-panel" />
           </div>
         </div>
 
@@ -2121,6 +2258,15 @@ function formatAgentConfig(project: Project) {
 }
 
 function buildSheetFields(project: Project): ProjectVariable[] {
+  const deployPasswordField =
+    project.dataFields?.find((field) => isDeployPasswordField(field.key)) ?? {
+      id: 'sheet-password-deploy',
+      key: deployPasswordFieldKey,
+      value: '',
+      sensitive: true,
+    }
+  const customDataFields = (project.dataFields ?? []).filter((field) => !isDeployPasswordField(field.key))
+
   return [
     {
       id: 'sheet-nome-progetto',
@@ -2153,7 +2299,8 @@ function buildSheetFields(project: Project): ProjectVariable[] {
       value: normalizeSelectableFieldValue('deploy con', project.deploy.provider),
       sensitive: false,
     },
-    ...(project.dataFields ?? []),
+    deployPasswordField,
+    ...customDataFields,
   ]
 }
 
@@ -2167,6 +2314,10 @@ function isGithubPasswordField(key: string) {
 
 function isDeployField(key: string) {
   return key.trim().toLowerCase() === 'deploy con'
+}
+
+function isDeployPasswordField(key: string) {
+  return key.trim().toLowerCase() === deployPasswordFieldKey.toLowerCase()
 }
 
 function getProjectPreviewMeta(project: Project) {
@@ -2218,14 +2369,29 @@ function getDeployLink(fields: ProjectVariable[], project: Project) {
   return project.deploy.url
 }
 
+function getDeployAdminLink(variables: ProjectVariable[], deployLink: string) {
+  const storedAdminLink = getFieldValue(variables, deployAdminLinkKey.toLowerCase())
+  if (storedAdminLink) return storedAdminLink
+  return buildDefaultDeployAdminLink(deployLink)
+}
+
 function buildProjectVariables(project: Project): ProjectVariable[] {
   const variableMap = new Map(project.env.map((variable) => [variable.key, variable]))
+  const deployLink = project.deploy.url
+  const deployAdminLink =
+    variableMap.get(deployAdminLinkKey)?.value ?? buildDefaultDeployAdminLink(deployLink)
 
   return [
     {
       id: 'link-deploy',
       key: 'LINK_DEPLOY',
-      value: project.deploy.url,
+      value: deployLink,
+      sensitive: false,
+    },
+    {
+      id: 'link-deploy-admin',
+      key: deployAdminLinkKey,
+      value: deployAdminLink,
       sensitive: false,
     },
     {
@@ -2237,7 +2403,8 @@ function buildProjectVariables(project: Project): ProjectVariable[] {
     ...orderedProjectKeys
       .filter((key) => key !== 'LINK_DEPLOY' && key !== 'GITHUB_URL')
       .map((key) => {
-        const sourceVariable = variableMap.get(key)
+        const sourceVariable =
+          key === 'DATABASE_URL' ? variableMap.get('DATABASE_URL') ?? variableMap.get('SUPABASE_DB_URL') : variableMap.get(key)
         return {
           id: key.toLowerCase().replaceAll('_', '-'),
           key,
@@ -2246,4 +2413,24 @@ function buildProjectVariables(project: Project): ProjectVariable[] {
         }
       }),
   ]
+}
+
+function resolveSyncPrompt(value: string) {
+  const normalizedValue = value.trim()
+  if (!normalizedValue || normalizedValue === legacyDefaultSyncPrompt) return defaultSyncPrompt
+  return normalizedValue
+}
+
+function isLinkDeployField(key: string) {
+  return key.trim().toUpperCase() === 'LINK_DEPLOY'
+}
+
+function isLinkDeployAdminField(key: string) {
+  return key.trim().toUpperCase() === deployAdminLinkKey.toUpperCase()
+}
+
+function buildDefaultDeployAdminLink(value: string) {
+  const normalizedValue = value.trim().replace(/\/+$/, '')
+  if (!normalizedValue) return ''
+  return `${normalizedValue}/admina`
 }

@@ -404,7 +404,10 @@ function mapProjectRow(
       projectUrl: envRows.find((row) => row.key === 'SUPABASE_URL')?.value_text ?? '',
       anonKeyLabel: envRows.find((row) => row.key === 'SUPABASE_ANON_KEY')?.value_ciphertext ?? '',
       serviceRoleLabel: envRows.find((row) => row.key === 'SUPABASE_SERVICE_ROLE_KEY')?.value_ciphertext ?? '',
-      databaseUrlLabel: envRows.find((row) => row.key === 'SUPABASE_DB_URL')?.value_ciphertext ?? '',
+      databaseUrlLabel:
+        envRows.find((row) => row.key === 'DATABASE_URL')?.value_ciphertext ??
+        envRows.find((row) => row.key === 'SUPABASE_DB_URL')?.value_ciphertext ??
+        '',
     },
     deploy: {
       provider: project.deploy_provider,
@@ -506,6 +509,7 @@ function normalizeFieldKey(key: string) {
 
 function getVariableScope(key: string): Project['env'][number]['scope'] {
   if (key.startsWith('SUPABASE_')) return 'Supabase'
+  if (key === 'DATABASE_URL') return 'Supabase'
   if (key.startsWith('GITHUB_')) return 'GitHub'
   if (key.includes('RENDER') || key.includes('CLOUDFLARE') || key === 'LINK_DEPLOY') return 'Deploy'
   return 'Custom'

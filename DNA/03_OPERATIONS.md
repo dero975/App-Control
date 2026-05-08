@@ -50,7 +50,7 @@ Variabili ambiente richieste su Render per questa app:
 Regole operative Render:
 
 - `VITE_SUPABASE_URL` deve essere la base URL del progetto Supabase, senza suffisso `/rest/v1`.
-- Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
+- Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
 - Per questa app Render ospita solo il frontend buildato; il backend applicativo resta Supabase.
 - L'auto-deploy corretto e GitHub `main` -> Render `Static Site`.
 
@@ -86,14 +86,16 @@ Regole:
 Export `.env render`:
 
 - Il pulsante `.env render` nel tab `Variabili` copia un blocco generale per deploy Render di altri progetti gestiti da App Control.
-- Include sempre le chiavi standard, anche se vuote: `SUPABASE_URL`, `VITE_SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `DATABASE_URL`, `GITHUB_URL`, `GITHUB_TOKEN`.
+- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- `LINK_DEPLOY ADMIN` viene derivata automaticamente da `LINK_DEPLOY` con suffisso `/admina`; va compilata manualmente solo se serve un percorso admin diverso.
+- Il blocco `.env render` genera poi anche le chiavi derivate richieste da alcuni stack o provider: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`.
 - `SUPABASE_URL` viene normalizzata senza suffisso `/rest/v1`.
-- Per app frontend Vite usare solo le variabili `VITE_*` nel codice client; le chiavi server (`SERVICE_ROLE`, `DB_URL`, token) sono da usare solo in backend/server/API private.
+- Per app frontend Vite usare solo le variabili `VITE_*` nel codice client; le chiavi server (`SERVICE_ROLE`, `DATABASE_URL`, token) sono da usare solo in backend/server/API private.
 
 Variabili non esposte al frontend:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_DB_URL`
+- `DATABASE_URL`
 - `GITHUB_TOKEN`
 
 Accesso app:
@@ -128,6 +130,7 @@ npm run dev -- --host 127.0.0.1 --port 5001
 - Prima di commit/push verificare almeno `git status --short --branch`, `git remote -v` e `git branch --show-current`.
 - Prima del push eseguire preferibilmente `npm run check:all` se il commit contiene codice o stile; per commit solo documentali bastano controlli mirati e verifica stato Git.
 - Push previsto: `git push origin main`, senza `--force`.
+- Se il commit modifica file sotto `.github/workflows/`, il token GitHub usato per il push deve avere anche lo scope `workflow`, altrimenti GitHub rifiuta l'aggiornamento del workflow.
 
 ## Manutenzione DNA
 
