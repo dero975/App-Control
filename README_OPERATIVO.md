@@ -37,5 +37,6 @@ La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dat
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la home `Progetti` e una vista compatta separata: mostra solo card con nome progetto e, all'apertura, i link `LINK_DEPLOY` e `LINK_DEPLOY ADMIN`; il dettaglio completo progetto resta una logica desktop fino a nuova richiesta.
 - La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: la selezione/apertura di un progetto e gli autosave del dettaglio non devono rimescolare le card.
+- All'apertura della sezione `Progetti`, l'ordinamento predefinito e alfabetico A-Z; solo un'azione esplicita di Admin puo portarlo su altri ordinamenti.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.
 - Dopo modifiche codice, verificare con gli script esistenti in `package.json`.

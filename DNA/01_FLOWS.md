@@ -19,7 +19,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
-- La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; ogni card mostra anche `Ultima modifica` su una sola riga.
+- La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; di default all'apertura parte in ordine alfabetico A-Z. Ogni card mostra anche `Ultima modifica` su una sola riga.
 - Una volta applicati ricerca e ordinamento, la lista mantiene quell'ordine finche Admin non cambia davvero i filtri: selezionare un progetto o aggiornarne i dati non deve rimescolare le card.
 - Su mobile la home `Progetti` non mostra il dettaglio completo del progetto sotto la lista: rende solo card compatte con nome progetto. Toccando una card si apre inline mostrando soltanto `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` come link cliccabili, senza pulsanti copia.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.

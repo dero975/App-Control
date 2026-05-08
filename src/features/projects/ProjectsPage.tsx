@@ -145,7 +145,7 @@ export function ProjectsPage() {
   const [expandedMobileId, setExpandedMobileId] = useState('')
   const [activeTab, setActiveTab] = useState<(typeof projectTabs)[number]>('Dati progetto')
   const [query, setQuery] = useState('')
-  const [sortMode, setSortMode] = useState<ProjectListSortMode>('recent-desc')
+  const [sortMode, setSortMode] = useState<ProjectListSortMode>('name-asc')
   const [deleteCandidate, setDeleteCandidate] = useState<Project | null>(null)
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
@@ -167,7 +167,7 @@ export function ProjectsPage() {
         const projects = await fetchProjects()
         if (!isMounted) return
         setProjectList(projects)
-        setVisibleProjectIds(getVisibleProjectIds(projects, '', 'recent-desc'))
+        setVisibleProjectIds(getVisibleProjectIds(projects, '', 'name-asc'))
         setSelectedId(projects[0]?.id ?? '')
         setExpandedMobileId('')
       } catch (error) {
