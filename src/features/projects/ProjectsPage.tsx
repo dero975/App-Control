@@ -124,6 +124,21 @@ function getSortedProjects(projects: Project[], query: string, sortMode: Project
   })
 }
 
+function getVisibleProjectIds(
+  projects: Project[],
+  query: string,
+  sortMode: ProjectListSortMode,
+  previousIds?: string[],
+) {
+  const nextCandidateIds = getSortedProjects(projects, query, sortMode).map((project) => project.id)
+  if (!previousIds?.length) return nextCandidateIds
+
+  const nextCandidateIdSet = new Set(nextCandidateIds)
+  const preservedIds = previousIds.filter((projectId) => nextCandidateIdSet.has(projectId))
+  const appendedIds = nextCandidateIds.filter((projectId) => !preservedIds.includes(projectId))
+  return [...preservedIds, ...appendedIds]
+}
+
 export function ProjectsPage() {
   const [projectList, setProjectList] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState('')
@@ -149,11 +164,12 @@ export function ProjectsPage() {
       setLoadError('')
 
       try {
-      const projects = await fetchProjects()
-      if (!isMounted) return
-      setProjectList(projects)
-      setSelectedId(projects[0]?.id ?? '')
-      setExpandedMobileId('')
+        const projects = await fetchProjects()
+        if (!isMounted) return
+        setProjectList(projects)
+        setVisibleProjectIds(getVisibleProjectIds(projects, '', 'recent-desc'))
+        setSelectedId(projects[0]?.id ?? '')
+        setExpandedMobileId('')
       } catch (error) {
         if (!isMounted) return
         setLoadError(error instanceof Error ? error.message : 'Errore caricamento progetti')
@@ -169,40 +185,13 @@ export function ProjectsPage() {
     }
   }, [])
 
-  const candidateProjects = useMemo(() => getSortedProjects(projectList, query, sortMode), [projectList, query, sortMode])
-  const previousOrderingKeyRef = useRef('')
-
-  useEffect(() => {
-    const nextOrderingKey = `${sortMode}::${query.trim().toLowerCase()}`
-    const nextCandidateIds = candidateProjects.map((project) => project.id)
-
-    setVisibleProjectIds((currentIds) => {
-      if (previousOrderingKeyRef.current !== nextOrderingKey) {
-        previousOrderingKeyRef.current = nextOrderingKey
-        return nextCandidateIds
-      }
-
-      if (currentIds.length === 0) {
-        return nextCandidateIds
-      }
-
-      if (
-        currentIds.length === nextCandidateIds.length &&
-        currentIds.every((projectId) => nextCandidateIds.includes(projectId))
-      ) {
-        return currentIds
-      }
-
-      return nextCandidateIds
-    })
-  }, [candidateProjects, query, sortMode])
-
   const filteredProjects = useMemo(() => {
+    const candidateProjects = getSortedProjects(projectList, query, sortMode)
     const candidateProjectMap = new Map(candidateProjects.map((project) => [project.id, project]))
     return visibleProjectIds
       .map((projectId) => candidateProjectMap.get(projectId))
       .filter((project): project is Project => Boolean(project))
-  }, [candidateProjects, visibleProjectIds])
+  }, [projectList, query, sortMode, visibleProjectIds])
 
   const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
 
@@ -210,7 +199,9 @@ export function ProjectsPage() {
     const nextProject = createEmptyProject(projectList.length + 1)
     try {
       const project = isSupabaseConfigured ? await createProjectRecord(nextProject) : nextProject
-      setProjectList((currentProjects) => [project, ...currentProjects])
+      const nextProjects = [project, ...projectList]
+      setProjectList(nextProjects)
+      setVisibleProjectIds(getVisibleProjectIds(nextProjects, query, sortMode))
       setSelectedId(project.id)
       setExpandedMobileId('')
       setActiveTab('Dati progetto')
@@ -231,6 +222,7 @@ export function ProjectsPage() {
 
       const remainingProjects = projectList.filter((project) => project.id !== deleteCandidate.id)
       setProjectList(remainingProjects)
+      setVisibleProjectIds(getVisibleProjectIds(remainingProjects, query, sortMode))
       setSelectedId(remainingProjects[0]?.id ?? '')
       setExpandedMobileId((currentExpandedId) => (currentExpandedId === deleteCandidate.id ? '' : currentExpandedId))
       setActiveTab('Dati progetto')
@@ -246,18 +238,28 @@ export function ProjectsPage() {
 
     await saveProjectSnapshot(snapshot)
     const refreshedProject = await fetchProjectById(snapshot.project.id)
-    setProjectList((currentProjects) =>
-      currentProjects.map((project) => (project.id === refreshedProject.id ? refreshedProject : project)),
-    )
+    setProjectList((currentProjects) => {
+      const nextProjects = currentProjects.map((project) => (project.id === refreshedProject.id ? refreshedProject : project))
+      setVisibleProjectIds((currentIds) => getVisibleProjectIds(nextProjects, query, sortMode, currentIds))
+      return nextProjects
+    })
     setSelectedId(refreshedProject.id)
   }
 
   function toggleAlphabeticalSort() {
-    setSortMode((currentSortMode) => (currentSortMode === 'name-asc' ? 'name-desc' : 'name-asc'))
+    setSortMode((currentSortMode) => {
+      const nextSortMode = currentSortMode === 'name-asc' ? 'name-desc' : 'name-asc'
+      setVisibleProjectIds(getVisibleProjectIds(projectList, query, nextSortMode))
+      return nextSortMode
+    })
   }
 
   function toggleRecencySort() {
-    setSortMode((currentSortMode) => (currentSortMode === 'recent-asc' ? 'recent-desc' : 'recent-asc'))
+    setSortMode((currentSortMode) => {
+      const nextSortMode = currentSortMode === 'recent-asc' ? 'recent-desc' : 'recent-asc'
+      setVisibleProjectIds(getVisibleProjectIds(projectList, query, nextSortMode))
+      return nextSortMode
+    })
   }
 
   const isAlphabeticalSortActive = sortMode === 'name-asc' || sortMode === 'name-desc'
@@ -273,7 +275,11 @@ export function ProjectsPage() {
           <div className="toolbar">
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                const nextQuery = event.target.value
+                setQuery(nextQuery)
+                setVisibleProjectIds(getVisibleProjectIds(projectList, nextQuery, sortMode))
+              }}
               placeholder="Cerca.."
               aria-label="Cerca progetto"
             />

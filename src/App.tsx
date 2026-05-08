@@ -5,18 +5,23 @@ import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { PromptsPage } from './features/prompts/PromptsPage'
 import { SettingsPage } from './features/settings/SettingsPage'
-import { appUnlockedStorageKey } from './lib/pinAccess'
+import { appIntroSeenStorageKey, appUnlockedStorageKey } from './lib/pinAccess'
 import type { AppSection } from './types/app'
 
 function App() {
   const [activeSection, setActiveSection] = useState<AppSection>('projects')
   const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem(appUnlockedStorageKey) === '1')
-  const [showIntro, setShowIntro] = useState(true)
+  const [showIntro, setShowIntro] = useState(() => {
+    if (sessionStorage.getItem(appIntroSeenStorageKey) === '1') return false
+    sessionStorage.setItem(appIntroSeenStorageKey, '1')
+    return true
+  })
 
   useEffect(() => {
+    if (!showIntro) return
     const introTimer = window.setTimeout(() => setShowIntro(false), 5000)
     return () => window.clearTimeout(introTimer)
-  }, [])
+  }, [showIntro])
 
   function lockApp() {
     sessionStorage.removeItem(appUnlockedStorageKey)

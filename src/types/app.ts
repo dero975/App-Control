@@ -11,6 +11,7 @@ export type Prompt = {
   title: string
   category: PromptCategory
   fullText: string
+  sortOrder: number
 }
 
 export type EnvVariable = {

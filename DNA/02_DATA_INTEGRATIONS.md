@@ -51,7 +51,7 @@
 
 Supabase e integrato per PIN app, sezione Progetti e libreria Prompt. Le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
 
-La libreria prompt usa la tabella `prompts` e non dipende piu da mock locali. La UI crea, modifica, elimina e ricarica card reali via client Supabase anon coerente con la fase PIN.
+La libreria prompt usa la tabella `prompts` e non dipende piu da mock locali. La UI crea, modifica, elimina, riordina per categoria e ricarica card reali via client Supabase anon coerente con la fase PIN.
 
 Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 

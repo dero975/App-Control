@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { SectionHeader } from '../../components/SectionHeader'
@@ -23,10 +23,29 @@ export function PromptsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const saveTimeoutsRef = useRef<Record<string, number>>({})
+  const dragSourcePromptIdRef = useRef('')
+  const dragStartOrderRef = useRef<string[]>([])
+  const [draggingPromptId, setDraggingPromptId] = useState('')
+  const [dragPreviewOrder, setDragPreviewOrder] = useState<string[] | null>(null)
+  const [dragOverPromptId, setDragOverPromptId] = useState('')
 
   const filteredPrompts = useMemo(() => {
-    return activeCategory === 'Tutte' ? promptList : promptList.filter((prompt) => prompt.category === activeCategory)
-  }, [activeCategory, promptList])
+    const nextPrompts = activeCategory === 'Tutte' ? promptList : promptList.filter((prompt) => prompt.category === activeCategory)
+
+    if (activeCategory === 'Tutte') {
+      return [...nextPrompts].sort((left, right) => left.title.localeCompare(right.title, 'it', { sensitivity: 'base' }))
+    }
+
+    if (dragPreviewOrder?.length) {
+      const promptById = new Map(nextPrompts.map((prompt) => [prompt.id, prompt]))
+      return dragPreviewOrder.map((promptId) => promptById.get(promptId)).filter((prompt): prompt is Prompt => Boolean(prompt))
+    }
+
+    return [...nextPrompts].sort((left, right) => {
+      if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder
+      return left.title.localeCompare(right.title, 'it', { sensitivity: 'base' })
+    })
+  }, [activeCategory, dragPreviewOrder, promptList])
 
   useEffect(() => {
     let active = true
@@ -65,6 +84,15 @@ export function PromptsPage() {
     setErrorMessage('')
   }
 
+  function setActivePromptCategory(nextCategory: 'Tutte' | PromptCategory) {
+    dragSourcePromptIdRef.current = ''
+    dragStartOrderRef.current = []
+    setDraggingPromptId('')
+    setDragPreviewOrder(null)
+    setDragOverPromptId('')
+    setActiveCategory(nextCategory)
+  }
+
   function closePromptModal() {
     setCreateModalOpen(false)
   }
@@ -91,6 +119,7 @@ export function PromptsPage() {
         title,
         category: draft.category,
         fullText,
+        sortOrder: getNextPromptSortOrder(promptList, draft.category),
       })
 
       setPromptList((current) => [...current, newPrompt])
@@ -106,13 +135,30 @@ export function PromptsPage() {
   }
 
   function handlePromptChange(promptId: string, field: keyof PromptDraft, value: string) {
-    const nextValue =
-      field === 'category' ? (value as PromptCategory) : field === 'title' ? normalizePromptTitle(value) : value
+    if (field === 'category') {
+      handlePromptCategoryChange(promptId, value as PromptCategory)
+      return
+    }
+
+    const nextValue = field === 'title' ? normalizePromptTitle(value) : value
 
     setPromptList((current) => {
       const nextPrompts = current.map((prompt) => (prompt.id === promptId ? { ...prompt, [field]: nextValue } : prompt))
       const nextPrompt = nextPrompts.find((prompt) => prompt.id === promptId)
       if (nextPrompt) schedulePromptSave(nextPrompt)
+      return nextPrompts
+    })
+  }
+
+  function handlePromptCategoryChange(promptId: string, nextCategory: PromptCategory) {
+    setPromptList((current) => {
+      const targetPrompt = current.find((prompt) => prompt.id === promptId)
+      if (!targetPrompt || targetPrompt.category === nextCategory) return current
+
+      const nextSortOrder = getNextPromptSortOrder(current.filter((prompt) => prompt.id !== promptId), nextCategory)
+      const nextPrompt = { ...targetPrompt, category: nextCategory, sortOrder: nextSortOrder }
+      const nextPrompts = current.map((prompt) => (prompt.id === promptId ? nextPrompt : prompt))
+      schedulePromptSave(nextPrompt)
       return nextPrompts
     })
   }
@@ -156,10 +202,100 @@ export function PromptsPage() {
         title: normalizePromptTitle(prompt.title),
         category: prompt.category,
         fullText: prompt.fullText,
+        sortOrder: prompt.sortOrder,
       })
       setErrorMessage('')
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Errore aggiornamento prompt')
+    }
+  }
+
+  function handleDragStart(event: DragEvent<HTMLButtonElement>, promptId: string) {
+    if (activeCategory === 'Tutte') return
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', promptId)
+    dragSourcePromptIdRef.current = promptId
+    dragStartOrderRef.current = filteredPrompts.map((prompt) => prompt.id)
+    setDraggingPromptId(promptId)
+    setDragPreviewOrder(filteredPrompts.map((prompt) => prompt.id))
+    setDragOverPromptId(promptId)
+  }
+
+  function handleDragEnter(promptId: string) {
+    if (activeCategory === 'Tutte') return
+    const sourcePromptId = dragSourcePromptIdRef.current
+    if (!sourcePromptId || sourcePromptId === promptId) return
+    setDragOverPromptId(promptId)
+
+    setDragPreviewOrder((current) => {
+      const baseOrder = current?.length ? current : filteredPrompts.map((prompt) => prompt.id)
+      const sourceIndex = baseOrder.indexOf(sourcePromptId)
+      const targetIndex = baseOrder.indexOf(promptId)
+      if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return baseOrder
+
+      const nextOrder = [...baseOrder]
+      nextOrder.splice(sourceIndex, 1)
+      nextOrder.splice(targetIndex, 0, sourcePromptId)
+      return nextOrder
+    })
+  }
+
+  async function handleDragEnd() {
+    if (activeCategory === 'Tutte') return
+
+    const sourcePromptId = dragSourcePromptIdRef.current
+    const previewOrder = dragPreviewOrder
+    const startOrder = dragStartOrderRef.current
+
+    dragSourcePromptIdRef.current = ''
+    dragStartOrderRef.current = []
+    setDraggingPromptId('')
+    setDragOverPromptId('')
+
+    if (!sourcePromptId || !previewOrder?.length || previewOrder.join('|') === startOrder.join('|')) {
+      setDragPreviewOrder(null)
+      return
+    }
+
+    const category = activeCategory
+    const promptById = new Map(promptList.map((prompt) => [prompt.id, prompt]))
+    const nextCategoryPrompts = previewOrder
+      .map((promptId, index) => {
+        const prompt = promptById.get(promptId)
+        return prompt ? { ...prompt, sortOrder: index } : null
+      })
+      .filter((prompt): prompt is Prompt => Boolean(prompt))
+
+    setPromptList((current) =>
+      current.map((prompt) => {
+        if (prompt.category !== category) return prompt
+        const nextPrompt = nextCategoryPrompts.find((item) => item.id === prompt.id)
+        return nextPrompt ?? prompt
+      }),
+    )
+
+    setDragPreviewOrder(null)
+
+    try {
+      await Promise.all(
+        nextCategoryPrompts.map((prompt, index) =>
+          updatePromptRecord(prompt.id, {
+            title: normalizePromptTitle(prompt.title),
+            category: prompt.category,
+            fullText: prompt.fullText,
+            sortOrder: index,
+          }),
+        ),
+      )
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Errore riordino prompt')
+      try {
+        const prompts = await fetchPrompts()
+        setPromptList(prompts)
+      } catch {
+        // keep current local state if reload fails
+      }
     }
   }
 
@@ -174,7 +310,7 @@ export function PromptsPage() {
           <button
             type="button"
             className={activeCategory === 'Tutte' ? 'tab-button tab-button--active' : 'tab-button'}
-            onClick={() => setActiveCategory('Tutte')}
+            onClick={() => setActivePromptCategory('Tutte')}
           >
             Tutte
           </button>
@@ -183,7 +319,7 @@ export function PromptsPage() {
               type="button"
               key={category}
               className={activeCategory === category ? 'tab-button tab-button--active' : 'tab-button'}
-              onClick={() => setActiveCategory(category)}
+              onClick={() => setActivePromptCategory(category)}
             >
               {category}
             </button>
@@ -207,6 +343,13 @@ export function PromptsPage() {
               key={prompt.id}
               prompt={prompt}
               open={prompt.id === openPromptId}
+              draggable={activeCategory !== 'Tutte'}
+              isDragPreviewActive={Boolean(dragPreviewOrder?.length)}
+              isDragging={draggingPromptId === prompt.id}
+              isDragOver={dragOverPromptId === prompt.id && draggingPromptId !== prompt.id}
+              onDragStart={(event) => handleDragStart(event, prompt.id)}
+              onDragEnter={() => handleDragEnter(prompt.id)}
+              onDragEnd={() => void handleDragEnd()}
               onDelete={() => setDeleteCandidate(prompt)}
               onChange={(field, value) => handlePromptChange(prompt.id, field, value)}
               onToggle={() => setOpenPromptId((current) => (current === prompt.id ? '' : prompt.id))}
@@ -243,20 +386,60 @@ export function PromptsPage() {
 function PromptLibraryCard({
   prompt,
   open,
+  draggable,
+  isDragPreviewActive,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
   onDelete,
   onChange,
   onToggle,
 }: {
   prompt: Prompt
   open: boolean
+  draggable: boolean
+  isDragPreviewActive: boolean
+  isDragging: boolean
+  isDragOver: boolean
+  onDragStart: (event: DragEvent<HTMLButtonElement>) => void
+  onDragEnter: () => void
+  onDragEnd: () => void
   onDelete: () => void
   onChange: (field: keyof PromptDraft, value: string) => void
   onToggle: () => void
 }) {
   return (
-    <article className={open ? 'prompt-library-card prompt-library-card--open' : 'prompt-library-card'}>
+    <article
+      className={[
+        'prompt-library-card',
+        open ? 'prompt-library-card--open' : '',
+        draggable ? 'prompt-library-card--sortable' : '',
+        isDragPreviewActive ? 'prompt-library-card--sorting' : '',
+        isDragging ? 'prompt-library-card--dragging' : '',
+        isDragOver ? 'prompt-library-card--drag-over' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onDragEnter={draggable ? onDragEnter : undefined}
+      onDragOver={draggable ? (event) => event.preventDefault() : undefined}
+    >
       <div className="prompt-library-card__header">
         <div className="prompt-library-card__actions">
+          {draggable ? (
+            <button
+              type="button"
+              draggable
+              className="inline-icon-button prompt-drag-handle"
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              title="Trascina per riordinare"
+              aria-label="Trascina per riordinare"
+            >
+              <GripVertical aria-hidden="true" className="button-icon" />
+            </button>
+          ) : null}
           <CopyButton value={buildPromptClipboardValue(prompt)} />
         </div>
 
@@ -437,6 +620,12 @@ function createEmptyPromptDraft(): PromptDraft {
     category: defaultPromptCategory,
     fullText: '',
   }
+}
+
+function getNextPromptSortOrder(prompts: Prompt[], category: PromptCategory) {
+  const categoryPrompts = prompts.filter((prompt) => prompt.category === category)
+  if (!categoryPrompts.length) return 0
+  return Math.max(...categoryPrompts.map((prompt) => prompt.sortOrder)) + 1
 }
 
 function normalizePromptTitle(value: string) {

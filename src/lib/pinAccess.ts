@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export const defaultPin = '140478'
 export const defaultPinHash = '8c75a9caf68bf332df5bf3714dcfd4e9d1b5088b42f0cffec88ee78df3670977'
 export const appUnlockedStorageKey = 'app-control-unlocked'
+export const appIntroSeenStorageKey = 'app-control-intro-seen'
 
 type AppAccessSettingsRow = {
   pin_hash: string

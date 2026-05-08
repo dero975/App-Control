@@ -1,6 +1,6 @@
+import { RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../../components/EmptyState'
-import { FieldGroup } from '../../components/FieldGroup'
 import { SectionHeader } from '../../components/SectionHeader'
 import { fetchProjects } from '../projects/projectRepository'
 import type { PlatformAccess, Project } from '../../types/app'
@@ -23,9 +23,17 @@ export function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [platformFilter, setPlatformFilter] = useState('Tutte')
+  const [githubEmailFilter, setGithubEmailFilter] = useState('Tutte')
   const [emailFilter, setEmailFilter] = useState<EmailFilter>('all')
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+
+  function resetFilters() {
+    setSearchQuery('')
+    setPlatformFilter('Tutte')
+    setGithubEmailFilter('Tutte')
+    setEmailFilter('all')
+  }
 
   useEffect(() => {
     let active = true
@@ -117,6 +125,16 @@ export function DashboardPage() {
     return ['Tutte', ...Array.from(nextOptions).sort((left, right) => left.localeCompare(right, 'it', { sensitivity: 'base' }))]
   }, [rows])
 
+  const githubEmailOptions = useMemo(() => {
+    const nextOptions = new Set<string>()
+
+    for (const row of rows) {
+      if (row.githubEmail) nextOptions.add(row.githubEmail)
+    }
+
+    return ['Tutte', ...Array.from(nextOptions).sort((left, right) => left.localeCompare(right, 'it', { sensitivity: 'base' }))]
+  }, [rows])
+
   const filteredRows = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase()
 
@@ -130,6 +148,8 @@ export function DashboardPage() {
 
         if (!matchesPlatform) return false
       }
+
+      if (githubEmailFilter !== 'Tutte' && row.githubEmail !== githubEmailFilter) return false
 
       if (emailFilter === 'github-duplicates' && row.githubUsageCount <= 1) return false
       if (emailFilter === 'any-duplicates' && !row.hasAnyDuplicateEmail) return false
@@ -148,7 +168,7 @@ export function DashboardPage() {
 
       return haystack.includes(normalizedSearch)
     })
-  }, [emailFilter, platformFilter, rows, searchQuery])
+  }, [emailFilter, githubEmailFilter, platformFilter, rows, searchQuery])
 
   const summary = useMemo(() => {
     const uniqueGithubEmails = githubUsageMap.size
@@ -167,7 +187,6 @@ export function DashboardPage() {
     <div className="page-stack dashboard-page">
       <SectionHeader
         title="Dashboard"
-        description="Riepilogo dei dati progetto per controllare velocemente email, piattaforme e ricorrenze operative."
       />
 
       <div className="info-grid dashboard-summary-grid" aria-label="Riepilogo dashboard">
@@ -189,11 +208,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <FieldGroup
-        title="Riepilogo dati progetto"
-        description="Mostra solo le informazioni utili provenienti da Dati progetto e Accessi piattaforme."
-        className="dashboard-panel"
-      >
+      <section className="dashboard-panel">
         <div className="toolbar toolbar--horizontal dashboard-toolbar">
           <label>
             <span>Cerca</span>
@@ -217,13 +232,34 @@ export function DashboardPage() {
           </label>
 
           <label>
-            <span>Email</span>
+            <span>Email GitHub</span>
+            <select value={githubEmailFilter} onChange={(event) => setGithubEmailFilter(event.target.value)}>
+              {githubEmailOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Ricorrenza email</span>
             <select value={emailFilter} onChange={(event) => setEmailFilter(event.target.value as EmailFilter)}>
               <option value="all">Tutte</option>
               <option value="github-duplicates">GitHub duplicate</option>
               <option value="any-duplicates">Qualsiasi duplicata</option>
             </select>
           </label>
+
+          <button
+            type="button"
+            className="dashboard-reset-button"
+            onClick={resetFilters}
+            title="Reset filtri"
+            aria-label="Reset filtri"
+          >
+            <RotateCcw aria-hidden="true" className="button-icon" />
+          </button>
         </div>
 
         {errorMessage ? <p className="status-message status-message--error">{errorMessage}</p> : null}
@@ -238,8 +274,8 @@ export function DashboardPage() {
                   <th>Progetto</th>
                   <th>GitHub</th>
                   <th>Sviluppo</th>
-                  <th>Deploy</th>
                   <th>Accessi piattaforme</th>
+                  <th>Deploy</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,9 +291,6 @@ export function DashboardPage() {
                       {row.githubEmail ? (
                         <div className="dashboard-email-cell">
                           <strong>{row.githubEmail}</strong>
-                          {row.githubUsageCount > 1 ? (
-                            <span className="dashboard-badge">{row.githubUsageCount} progetti</span>
-                          ) : null}
                         </div>
                       ) : (
                         <span className="dashboard-muted">Nessuna email GitHub</span>
@@ -267,14 +300,10 @@ export function DashboardPage() {
                       <span className="dashboard-value-pill">{row.project.developmentEnvironment || 'Non impostato'}</span>
                     </td>
                     <td>
-                      <span className="dashboard-value-pill">{row.project.deploy.provider || 'Non impostato'}</span>
-                    </td>
-                    <td>
                       {row.platformAccesses.length ? (
                         <div className="dashboard-access-list">
                           {row.platformAccesses.map((access) => (
                             <div key={access.id} className="dashboard-access-item">
-                              <strong>{access.platform || 'Piattaforma'}</strong>
                               <span>{access.email || 'Nessuna email'}</span>
                               {access.email && access.emailUsageCount > 1 ? (
                                 <span className="dashboard-badge">{access.emailUsageCount} progetti</span>
@@ -285,6 +314,9 @@ export function DashboardPage() {
                       ) : (
                         <span className="dashboard-muted">Nessun accesso piattaforma</span>
                       )}
+                    </td>
+                    <td>
+                      <span className="dashboard-value-pill">{row.project.deploy.provider || 'Non impostato'}</span>
                     </td>
                   </tr>
                 ))}
@@ -297,7 +329,7 @@ export function DashboardPage() {
             message="Modifica i filtri oppure verifica che i dati progetto contengano email e piattaforme da consultare."
           />
         )}
-      </FieldGroup>
+      </section>
     </div>
   )
 }

@@ -75,7 +75,7 @@ Mappatura:
 - `project_images.data_url` conserva l'anteprima/file ottimizzato per ripristino dopo refresh; non inserire immagini non ottimizzate o superiori al limite operativo UI.
 - Il nome download immagine si calcola dal titolo card e dall'estensione reale, non va salvato come dato canonico.
 - Gli slot immagine fissi sono sempre renderizzati dalla UI anche quando non esistono record immagine persistiti.
-- Il modello dati reale dei prompt concluso in UI e minimale: `title`, `category`, `full_text`, `created_at`, `updated_at`.
+- Il modello dati reale dei prompt concluso in UI e minimale: `title`, `category`, `full_text`, `sort_order`, `created_at`, `updated_at`.
 - Le categorie canoniche prompt sono solo `Prompt iniziali`, `Prompt manutenzione`, `Prompt vari`.
 - Non usare nello schema prompt campi legacy non presenti nel codice reale: `type`, `usage_notes`, `tags`, `favorite`, `last_modified`.
 - Non usare una relazione `project_prompts`: oggi i prompt non sono collegati a singoli progetti.

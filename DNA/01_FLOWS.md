@@ -91,6 +91,8 @@ Fonte: `src/features/prompts`.
 - I prompt della libreria vengono caricati da Supabase all'apertura della pagina. Nessuna card deve risultare aperta di default al primo caricamento.
 - `Nuovo prompt` crea un record reale in `prompts` tramite modale dedicata.
 - Modifica titolo, sezione e testo avviene direttamente sulla card aperta con autosave debounced verso Supabase.
+- Nelle tre viste categoria (`Prompt iniziali`, `Prompt manutenzione`, `Prompt vari`) Admin puo riordinare manualmente le card; l'ordine viene persistito su Supabase e deve sopravvivere al riavvio dell'app.
+- La vista `Tutte` non usa l'ordinamento manuale categoria: mostra sempre i prompt in ordine alfabetico per titolo.
 - Eliminazione prompt parte direttamente dalla card ma passa da una modale di conferma prima della rimozione reale da Supabase.
 - `Copia prompt` copia sempre `Titolo: ...` seguito da una riga vuota e poi dal testo completo del prompt.
 - Non esistono piu pannello dettaglio laterale, tag, note d'uso, preferiti o data ultima modifica.
