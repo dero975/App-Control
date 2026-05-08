@@ -104,6 +104,7 @@ type ProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-des
 export function ProjectsPage() {
   const [projectList, setProjectList] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState('')
+  const [expandedMobileId, setExpandedMobileId] = useState('')
   const [activeTab, setActiveTab] = useState<(typeof projectTabs)[number]>('Dati progetto')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ProjectListSortMode>('recent-desc')
@@ -124,10 +125,11 @@ export function ProjectsPage() {
       setLoadError('')
 
       try {
-        const projects = await fetchProjects()
-        if (!isMounted) return
-        setProjectList(projects)
-        setSelectedId(projects[0]?.id ?? '')
+      const projects = await fetchProjects()
+      if (!isMounted) return
+      setProjectList(projects)
+      setSelectedId(projects[0]?.id ?? '')
+      setExpandedMobileId('')
       } catch (error) {
         if (!isMounted) return
         setLoadError(error instanceof Error ? error.message : 'Errore caricamento progetti')
@@ -174,6 +176,7 @@ export function ProjectsPage() {
       const project = isSupabaseConfigured ? await createProjectRecord(nextProject) : nextProject
       setProjectList((currentProjects) => [project, ...currentProjects])
       setSelectedId(project.id)
+      setExpandedMobileId('')
       setActiveTab('Dati progetto')
       setQuery('')
       setLoadError('')
@@ -193,6 +196,7 @@ export function ProjectsPage() {
       const remainingProjects = projectList.filter((project) => project.id !== deleteCandidate.id)
       setProjectList(remainingProjects)
       setSelectedId(remainingProjects[0]?.id ?? '')
+      setExpandedMobileId((currentExpandedId) => (currentExpandedId === deleteCandidate.id ? '' : currentExpandedId))
       setActiveTab('Dati progetto')
       setDeleteCandidate(null)
       setLoadError('')
@@ -275,7 +279,7 @@ export function ProjectsPage() {
             </div>
           </div>
 
-          <div className="record-list" aria-label="Progetti">
+          <div className="record-list record-list--desktop" aria-label="Progetti">
             {filteredProjects.map((project) => (
               <button
                 type="button"
@@ -291,6 +295,47 @@ export function ProjectsPage() {
                 <small>{getProjectPreviewMeta(project)}</small>
               </button>
             ))}
+          </div>
+
+          <div className="record-list record-list--mobile" aria-label="Progetti mobile">
+            {filteredProjects.map((project) => {
+              const isExpanded = project.id === expandedMobileId
+              const deployLink = getDeployLink(buildSheetFields(project), project)
+              const deployAdminLink = getDeployAdminLink(buildProjectVariables(project), deployLink)
+
+              return (
+                <article
+                  key={project.id}
+                  className={isExpanded ? 'mobile-project-card mobile-project-card--active' : 'mobile-project-card'}
+                >
+                  <button
+                    type="button"
+                    className="mobile-project-card__trigger"
+                    onClick={() => {
+                      setSelectedId(project.id)
+                      setActiveTab('Dati progetto')
+                      setExpandedMobileId((currentId) => (currentId === project.id ? '' : project.id))
+                    }}
+                  >
+                    <strong>{project.name}</strong>
+                  </button>
+                  {isExpanded ? (
+                    <div className="mobile-project-card__links">
+                      {deployLink ? (
+                        <a className="mobile-project-card__link" href={deployLink} target="_blank" rel="noreferrer">
+                          {deployLink}
+                        </a>
+                      ) : null}
+                      {deployAdminLink ? (
+                        <a className="mobile-project-card__link" href={deployAdminLink} target="_blank" rel="noreferrer">
+                          {deployAdminLink}
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
           </div>
         </aside>
 

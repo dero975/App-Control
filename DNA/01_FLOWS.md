@@ -20,6 +20,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; ogni card mostra anche `Ultima modifica` su una sola riga.
+- Su mobile la home `Progetti` non mostra il dettaglio completo del progetto sotto la lista: rende solo card compatte con nome progetto. Toccando una card si apre inline mostrando soltanto `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` come link cliccabili, senza pulsanti copia.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
 - Le modifiche al dettaglio progetto vengono salvate automaticamente su Supabase con debounce breve; non esiste pulsante manuale `Salva modifiche`.
