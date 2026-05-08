@@ -83,6 +83,42 @@ Regole:
 - non usare `SUPABASE_SERVICE_ROLE_KEY` per il keepalive;
 - il keepalive resta infrastruttura esterna: non reintrodurre polling nel frontend.
 
+## Backup Google Sheets
+
+Configurazione esterna verificata il `8 Maggio 2026`:
+
+- progetto Apps Script: `App Control Backup Sync`
+- sorgente dati: Supabase REST in sola lettura
+- Script Properties richieste:
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+- foglio target con due tab canonici:
+  - `Progetti`
+  - `Prompt`
+
+Funzioni Apps Script attive:
+
+- `syncAppControlBackup`
+- `syncProjectsTab`
+- `syncPromptsTab`
+- `fetchSupabaseRows`
+- `writeSheetData`
+- `onOpen`
+- `createDailySyncTrigger`
+
+Comportamento operativo:
+
+- menu manuale nel foglio: `App Control > Sincronizza backup`
+- trigger automatico giornaliero su `syncAppControlBackup`
+- `SUPABASE_URL` viene normalizzata rimuovendo un eventuale suffisso `/rest/v1`
+- la sync riscrive solo i contenuti dalla riga 2 in poi, lasciando intatti header, filtri e formattazione
+
+Regole:
+
+- il backup Google Sheets non scrive mai in Supabase
+- non usare `SUPABASE_SERVICE_ROLE_KEY` nello script di backup
+- il foglio resta backup leggibile, non fonte primaria o canale di editing
+
 Export `.env render`:
 
 - Il pulsante `.env render` nel tab `Variabili` copia un blocco generale per deploy Render di altri progetti gestiti da App Control.

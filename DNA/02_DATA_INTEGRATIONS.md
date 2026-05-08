@@ -36,6 +36,17 @@
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
 - `operationalNotes` viene letto dalla colonna `projects.operational_notes` e la UI lo include nello snapshot di autosave; verificare sempre il codice repository prima di assumere persistenza completa degli update.
 
+## Google Sheets Backup
+
+- Backup esterno attivo tramite Google Apps Script collegato a un Google Sheet.
+- Il foglio ha solo due tab canonici:
+  - `Progetti`
+  - `Prompt`
+- `Progetti` contiene solo campi backup essenziali: nome progetto, credenziali GitHub, variabili canoniche e note operative.
+- `Prompt` contiene solo: `TITOLO`, `CATEGORIA`, `PROMPT`.
+- Il foglio non sostituisce Supabase: resta una copia leggibile e ripristinabile.
+- La sync usa Supabase REST in sola lettura con `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+
 ## Integrazioni future
 
 Supabase e integrato per PIN app, sezione Progetti e libreria Prompt. Le immagini progetto sono persistite in tabella `project_images` come data URL ottimizzato.
