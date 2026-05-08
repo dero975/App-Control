@@ -2569,6 +2569,11 @@ code {
     padding-right: 0;
   }
 
+  .mobile-project-card__trigger strong {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
   .index-panel,
   .detail-panel,
   .detail-stack,
