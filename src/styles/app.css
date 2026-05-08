@@ -1618,14 +1618,59 @@ code {
   min-height: 34px;
   max-width: 100%;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 999px;
-  background: var(--gray-soft);
+  background: #e6ece4;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
   white-space: normal;
   text-align: center;
+}
+
+.dashboard-value-pill--sage {
+  background: #cfe3d0;
+  color: #224d2d;
+}
+
+.dashboard-value-pill--terracotta {
+  background: #efd2c3;
+  color: #7a3d1d;
+}
+
+.dashboard-value-pill--ocean {
+  background: #cfe0ea;
+  color: #1f4d68;
+}
+
+.dashboard-value-pill--amber {
+  background: #f2dfab;
+  color: #8a5a08;
+}
+
+.dashboard-value-pill--moss {
+  background: #dbe2bf;
+  color: #556122;
+}
+
+.dashboard-value-pill--slate {
+  background: #d8dde5;
+  color: #3e5269;
+}
+
+.dashboard-value-pill--plum {
+  background: #e3d5e6;
+  color: #6a4371;
+}
+
+.dashboard-value-pill--sand {
+  background: #ead8c0;
+  color: #7a5a2c;
+}
+
+.dashboard-value-pill--neutral {
+  background: #e6ece4;
+  color: #405245;
 }
 
 .dashboard-access-list {

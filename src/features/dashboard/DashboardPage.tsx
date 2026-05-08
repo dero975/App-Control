@@ -19,6 +19,16 @@ type DashboardRow = {
   hasAnyDuplicateEmail: boolean
 }
 
+const dashboardProviderToneMap: Record<string, string> = {
+  windsurf: 'sage',
+  replit: 'terracotta',
+  render: 'ocean',
+  cloudflare: 'amber',
+  cloudeflare: 'amber',
+}
+
+const dashboardFallbackProviderTones = ['moss', 'slate', 'plum', 'sand'] as const
+
 export function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -297,7 +307,9 @@ export function DashboardPage() {
                       )}
                     </td>
                     <td>
-                      <span className="dashboard-value-pill">{row.project.developmentEnvironment || 'Non impostato'}</span>
+                      <span className={getDashboardValuePillClassName(row.project.developmentEnvironment)}>
+                        {row.project.developmentEnvironment || 'Non impostato'}
+                      </span>
                     </td>
                     <td>
                       {row.platformAccesses.length ? (
@@ -316,7 +328,9 @@ export function DashboardPage() {
                       )}
                     </td>
                     <td>
-                      <span className="dashboard-value-pill">{row.project.deploy.provider || 'Non impostato'}</span>
+                      <span className={getDashboardValuePillClassName(row.project.deploy.provider)}>
+                        {row.project.deploy.provider || 'Non impostato'}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -336,6 +350,21 @@ export function DashboardPage() {
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
+}
+
+function getDashboardValuePillClassName(value: string) {
+  return `dashboard-value-pill dashboard-value-pill--${resolveDashboardProviderTone(value)}`
+}
+
+function resolveDashboardProviderTone(value: string) {
+  const normalizedValue = value.trim().toLowerCase()
+  if (!normalizedValue) return 'neutral'
+
+  const directMatch = dashboardProviderToneMap[normalizedValue]
+  if (directMatch) return directMatch
+
+  const hash = Array.from(normalizedValue).reduce((total, character) => total + character.charCodeAt(0), 0)
+  return dashboardFallbackProviderTones[hash % dashboardFallbackProviderTones.length]
 }
 
 function formatDashboardDate(value: string) {

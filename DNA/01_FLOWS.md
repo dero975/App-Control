@@ -114,6 +114,7 @@ Fonte: `src/features/dashboard/DashboardPage.tsx`.
 - La tabella espone: nome progetto, email GitHub, `sviluppo in`, `deploy con`, accessi piattaforme con relative email.
 - I filtri attuali sono: testo libero, piattaforma e filtro su email duplicate.
 - I badge mostrano quando la stessa email GitHub o la stessa email piattaforma compaiono in piu progetti.
+- I valori `sviluppo in` e `deploy con` sono resi come pill solide senza contorno, con palette naturale stabile per i provider gia noti (`Windsurf`, `Replit`, `Render`, `CloudFlare`) e fallback deterministico per eventuali nuovi valori, cosi nuovi record ricevono automaticamente un colore coerente senza alterare quelli gia mappati.
 - La Dashboard non modifica i progetti e non introduce nuove tabelle o persistence dedicate.
 
 ## Componenti critici
