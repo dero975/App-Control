@@ -20,6 +20,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; ogni card mostra anche `Ultima modifica` su una sola riga.
+- Una volta applicati ricerca e ordinamento, la lista mantiene quell'ordine finche Admin non cambia davvero i filtri: selezionare un progetto o aggiornarne i dati non deve rimescolare le card.
 - Su mobile la home `Progetti` non mostra il dettaglio completo del progetto sotto la lista: rende solo card compatte con nome progetto. Toccando una card si apre inline mostrando soltanto `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` come link cliccabili, senza pulsanti copia.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
@@ -33,6 +34,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container; `LINK_DEPLOY ADMIN` nasce automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma resta modificabile manualmente dall'admin.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto.
+- Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
 - Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
 - `LINK_DEPLOY ADMIN` non e una variabile canonica da compilare a mano: il flusso `Sync` deve trattarla come derivata di `LINK_DEPLOY`, salvo override manuale gia presente nel progetto.

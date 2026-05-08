@@ -35,5 +35,6 @@ La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dat
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la home `Progetti` e una vista compatta separata: mostra solo card con nome progetto e, all'apertura, i link `LINK_DEPLOY` e `LINK_DEPLOY ADMIN`; il dettaglio completo progetto resta una logica desktop fino a nuova richiesta.
+- La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: la selezione/apertura di un progetto e gli autosave del dettaglio non devono rimescolare le card.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.
 - Dopo modifiche codice, verificare con gli script esistenti in `package.json`.

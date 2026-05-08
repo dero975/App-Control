@@ -101,6 +101,29 @@ const imageIntegrationPromptBySlotId: Record<string, string> = {
 }
 type ProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
 
+function getSortedProjects(projects: Project[], query: string, sortMode: ProjectListSortMode) {
+  const normalizedQuery = query.trim().toLowerCase()
+  const matchingProjects = projects.filter(
+    (project) =>
+      !normalizedQuery ||
+      project.name.toLowerCase().includes(normalizedQuery) ||
+      project.developmentEnvironment.toLowerCase().includes(normalizedQuery) ||
+      project.status.toLowerCase().includes(normalizedQuery),
+  )
+
+  if (sortMode === 'recent-desc' || sortMode === 'recent-asc') {
+    return [...matchingProjects].sort((firstProject, secondProject) => {
+      const timeDiff = Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
+      return sortMode === 'recent-desc' ? timeDiff : -timeDiff
+    })
+  }
+
+  return [...matchingProjects].sort((firstProject, secondProject) => {
+    const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
+    return sortMode === 'name-asc' ? sortResult : -sortResult
+  })
+}
+
 export function ProjectsPage() {
   const [projectList, setProjectList] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState('')
@@ -111,6 +134,7 @@ export function ProjectsPage() {
   const [deleteCandidate, setDeleteCandidate] = useState<Project | null>(null)
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
+  const [visibleProjectIds, setVisibleProjectIds] = useState<string[]>([])
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -145,28 +169,40 @@ export function ProjectsPage() {
     }
   }, [])
 
-  const filteredProjects = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    const matchingProjects = projectList.filter(
-      (project) =>
-        !normalizedQuery ||
-        project.name.toLowerCase().includes(normalizedQuery) ||
-        project.developmentEnvironment.toLowerCase().includes(normalizedQuery) ||
-        project.status.toLowerCase().includes(normalizedQuery),
-    )
+  const candidateProjects = useMemo(() => getSortedProjects(projectList, query, sortMode), [projectList, query, sortMode])
+  const previousOrderingKeyRef = useRef('')
 
-    if (sortMode === 'recent-desc' || sortMode === 'recent-asc') {
-      return [...matchingProjects].sort((firstProject, secondProject) => {
-        const timeDiff = Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
-        return sortMode === 'recent-desc' ? timeDiff : -timeDiff
-      })
-    }
+  useEffect(() => {
+    const nextOrderingKey = `${sortMode}::${query.trim().toLowerCase()}`
+    const nextCandidateIds = candidateProjects.map((project) => project.id)
 
-    return [...matchingProjects].sort((firstProject, secondProject) => {
-      const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
-      return sortMode === 'name-asc' ? sortResult : -sortResult
+    setVisibleProjectIds((currentIds) => {
+      if (previousOrderingKeyRef.current !== nextOrderingKey) {
+        previousOrderingKeyRef.current = nextOrderingKey
+        return nextCandidateIds
+      }
+
+      if (currentIds.length === 0) {
+        return nextCandidateIds
+      }
+
+      if (
+        currentIds.length === nextCandidateIds.length &&
+        currentIds.every((projectId) => nextCandidateIds.includes(projectId))
+      ) {
+        return currentIds
+      }
+
+      return nextCandidateIds
     })
-  }, [projectList, query, sortMode])
+  }, [candidateProjects, query, sortMode])
+
+  const filteredProjects = useMemo(() => {
+    const candidateProjectMap = new Map(candidateProjects.map((project) => [project.id, project]))
+    return visibleProjectIds
+      .map((projectId) => candidateProjectMap.get(projectId))
+      .filter((project): project is Project => Boolean(project))
+  }, [candidateProjects, visibleProjectIds])
 
   const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
 
@@ -428,6 +464,8 @@ function ProjectDetail({
     setImageSlots(nextImageSlots)
   }
 
+  const hasOperationalNotes = operationalNotes.trim().length > 0
+
   return (
     <div className="detail-stack">
       <div className="detail-heading">
@@ -464,7 +502,13 @@ function ProjectDetail({
           <button
             type="button"
             key={tab}
-            className={activeTab === tab ? 'tab-button tab-button--active' : 'tab-button'}
+            className={[
+              'tab-button',
+              activeTab === tab ? 'tab-button--active' : '',
+              tab === 'Note' && hasOperationalNotes ? 'tab-button--has-content' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             onClick={() => onTabChange(tab)}
           >
             {tab}
