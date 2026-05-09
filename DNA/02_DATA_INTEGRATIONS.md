@@ -34,7 +34,8 @@
 - `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
 - `getDeployAdminLink` usa prima la variabile `LINK_DEPLOY ADMIN` se presente; in assenza di override costruisce automaticamente `${LINK_DEPLOY}/admina` rimuovendo eventuali slash finali.
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
-- `operationalNotes` viene letto dalla colonna `projects.operational_notes` e la UI lo include nello snapshot di autosave; verificare sempre il codice repository prima di assumere persistenza completa degli update.
+- `operationalNotes` viene letto e scritto nella colonna `projects.operational_notes` tramite il normale autosave del dettaglio progetto.
+- Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI: i record rimossi dall'admin vengono eliminati anche da Supabase.
 
 ## Google Sheets Backup
 

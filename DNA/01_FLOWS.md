@@ -25,15 +25,18 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
 - Le modifiche al dettaglio progetto vengono salvate automaticamente su Supabase con debounce breve; non esiste pulsante manuale `Salva modifiche`.
+- Durante l'autosave il dettaglio mostra uno stato esplicito `Salvataggio in corso`, `Salvataggio completato` oppure il messaggio di errore restituito dal repository.
 - Selezionando un progetto si torna sempre al tab `Dati progetto`.
 - Tab interni: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
 - L'header dettaglio mostra titolo progetto, link deploy se presente e `Data creazione` formattata sotto al link.
 - Se `LINK_DEPLOY` e presente, l'header dettaglio mostra anche il link admin derivato `.../admina`; il valore puo essere sovrascritto dalla variabile `LINK_DEPLOY ADMIN`.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
+- Il salvataggio dei campi custom riallinea completamente `project_data_fields`: le righe rimosse dalla UI non devono ricomparire al reload.
 - `Variabili` usa `buildProjectVariables(project)` e ordina variabili tecniche con `orderedProjectKeys`; il salvataggio scrive `project_env_variables`.
+- Il salvataggio delle variabili riallinea completamente `project_env_variables`: le chiavi eliminate dalla UI non devono ricomparire al reload.
 - Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container; `LINK_DEPLOY ADMIN` nasce automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma resta modificabile manualmente dall'admin.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
-- `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto.
+- `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
 - Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
 - Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.

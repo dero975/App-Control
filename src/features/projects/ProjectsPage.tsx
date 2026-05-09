@@ -100,6 +100,7 @@ const imageIntegrationPromptBySlotId: Record<string, string> = {
     'Cerca nel progetto il file con nome esatto `icona Tab Browser.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona della tab del browser/favicons dell’app. Se per compatibilita browser servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
 }
 type ProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
+type ProjectSaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 function getSortedProjects(projects: Project[], query: string, sortMode: ProjectListSortMode) {
   const normalizedQuery = query.trim().toLowerCase()
@@ -200,12 +201,13 @@ export function ProjectsPage() {
     try {
       const project = isSupabaseConfigured ? await createProjectRecord(nextProject) : nextProject
       const nextProjects = [project, ...projectList]
+      const nextQuery = ''
       setProjectList(nextProjects)
-      setVisibleProjectIds(getVisibleProjectIds(nextProjects, query, sortMode))
+      setVisibleProjectIds(getVisibleProjectIds(nextProjects, nextQuery, sortMode))
       setSelectedId(project.id)
       setExpandedMobileId('')
       setActiveTab('Dati progetto')
-      setQuery('')
+      setQuery(nextQuery)
       setLoadError('')
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Errore creazione progetto')
@@ -426,6 +428,8 @@ function ProjectDetail({
   const [variables, setVariables] = useState<ProjectVariable[]>(() => buildProjectVariables(project))
   const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots(project.images))
   const [operationalNotes, setOperationalNotes] = useState(project.operationalNotes)
+  const [saveState, setSaveState] = useState<ProjectSaveState>('idle')
+  const [saveMessage, setSaveMessage] = useState('')
   const didMountRef = useRef(false)
   const saveContextRef = useRef({ onSave, project })
   const saveVersionRef = useRef(0)
@@ -437,6 +441,17 @@ function ProjectDetail({
   useEffect(() => {
     saveContextRef.current = { onSave, project }
   }, [onSave, project])
+
+  useEffect(() => {
+    if (saveState !== 'saved') return
+
+    const resetTimer = window.setTimeout(() => {
+      setSaveState((currentState) => (currentState === 'saved' ? 'idle' : currentState))
+      setSaveMessage((currentMessage) => (currentMessage === 'Salvataggio completato' ? '' : currentMessage))
+    }, 1600)
+
+    return () => window.clearTimeout(resetTimer)
+  }, [saveState])
 
   useEffect(() => {
     if (!didMountRef.current) {
@@ -451,7 +466,10 @@ function ProjectDetail({
       const { onSave: saveSnapshot, project: currentProject } = saveContextRef.current
       if (!saveSnapshot) return
 
-      saveSnapshot({
+      setSaveState('saving')
+      setSaveMessage('Salvataggio in corso')
+
+      void saveSnapshot({
         project: {
           ...currentProject,
           operationalNotes,
@@ -460,7 +478,16 @@ function ProjectDetail({
         variables,
         images: imageSlots,
       })
-        .catch(() => {})
+        .then(() => {
+          if (saveVersionRef.current !== currentSaveVersion) return
+          setSaveState('saved')
+          setSaveMessage('Salvataggio completato')
+        })
+        .catch((error) => {
+          if (saveVersionRef.current !== currentSaveVersion) return
+          setSaveState('error')
+          setSaveMessage(error instanceof Error ? error.message : 'Errore salvataggio progetto')
+        })
     }, 650)
 
     return () => window.clearTimeout(saveTimer)
@@ -521,6 +548,21 @@ function ProjectDetail({
           </button>
         ))}
       </div>
+
+      {saveMessage ? (
+        <p
+          className={[
+            'status-message',
+            saveState === 'error' ? 'status-message--error' : '',
+            saveState === 'saving' ? 'status-message--progress' : '',
+            saveState === 'saved' ? 'status-message--success' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {saveMessage}
+        </p>
+      ) : null}
 
       <div className="tab-scroll-area">
         {activeTab === 'Dati progetto' ? (

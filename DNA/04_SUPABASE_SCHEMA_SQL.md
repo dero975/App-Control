@@ -50,7 +50,7 @@ Mappatura:
 - `LINK_DEPLOY ADMIN` e `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` non sono piu input canonici da compilare in App Control: vanno derivate quando richieste dal codice reale o dal provider target.
 - Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva `slot_id`, `name`, `fileName`, `mimeType`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
 - Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.
-- Tab `Note`: target dati `projects.operational_notes`; verificare il repository corrente prima di assumere persistenza completa degli update da UI.
+- Tab `Note`: target dati `projects.operational_notes`; il repository corrente persiste gli update tramite il normale autosave del dettaglio progetto.
 - Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
 - Prompt library: `prompts`; non esiste relazione corrente `project_prompts`.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.

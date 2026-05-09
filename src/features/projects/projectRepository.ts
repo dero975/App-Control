@@ -194,6 +194,7 @@ export async function saveProjectSnapshot({ project, sheetFields, variables, ima
       linked_secret_label_ciphertext: password || null,
       deploy_provider: deployProvider,
       deploy_url: linkDeploy,
+      operational_notes: project.operationalNotes,
     })
     .eq('id', project.id)
   if (projectError) throw projectError
@@ -208,9 +209,11 @@ async function saveDataFields(projectId: string, sheetFields: ProjectVariable[])
   const client = requireSupabase()
   const coreKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con'])
   const customFields = sheetFields.filter((field) => !coreKeys.has(field.key.trim().toLowerCase()))
+  const { error: deleteError } = await client.from('project_data_fields').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
   if (!customFields.length) return
 
-  const { error } = await client.from('project_data_fields').upsert(
+  const { error } = await client.from('project_data_fields').insert(
     customFields.map((field, index) => ({
       project_id: projectId,
       field_key: normalizeFieldKey(field.key),
@@ -222,7 +225,6 @@ async function saveDataFields(projectId: string, sheetFields: ProjectVariable[])
       field_kind: 'text',
       sort_order: index,
     })),
-    { onConflict: 'project_id,field_key' },
   )
   if (error) throw error
 }
@@ -251,7 +253,11 @@ async function savePlatformAccesses(projectId: string, sheetFields: ProjectVaria
 
 async function saveEnvVariables(projectId: string, variables: ProjectVariable[]) {
   const client = requireSupabase()
-  const { error } = await client.from('project_env_variables').upsert(
+  const { error: deleteError } = await client.from('project_env_variables').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!variables.length) return
+
+  const { error } = await client.from('project_env_variables').insert(
     variables.map((variable, index) => ({
       project_id: projectId,
       key: variable.key,
@@ -261,7 +267,6 @@ async function saveEnvVariables(projectId: string, variables: ProjectVariable[])
       is_sensitive: variable.sensitive,
       sort_order: index,
     })),
-    { onConflict: 'project_id,key' },
   )
   if (error) throw error
 }
