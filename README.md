@@ -1,14 +1,16 @@
 # App Control
 
-Web app privata in React, TypeScript e Vite per gestire progetti, prompt, variabili operative, immagini, note e dashboard riepilogativa.
+Web app privata in React, TypeScript e Vite per gestire progetti, prompt, variabili operative, immagini, note, dashboard riepilogativa e un workspace clienti separato.
 
 Prima di lavorare sul progetto, leggere `README_OPERATIVO.md`.
 
 ## Stato reale
 
 - Accesso app con PIN a 6 cifre sincronizzato su Supabase.
-- Sezioni applicative: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`.
-- `Progetti` e `Prompt` leggono/scrivono dati reali su Supabase via client frontend anon.
+- Due ambienti distinti:
+  - `Admin`: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`
+  - `Clienti`: archivio clienti, scheda cliente, progetti cliente e dati progetto cliente
+- `Progetti`, `Prompt` e `Clienti` leggono/scrivono dati reali su Supabase via client frontend anon.
 - Deploy produzione attuale su Render `Static Site`.
 - Workflow GitHub Actions presente solo per keepalive Supabase.
 

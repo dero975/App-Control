@@ -4,8 +4,10 @@
 
 - Le sezioni Progetti e Prompt usano Supabase dopo sblocco PIN app.
 - Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`.
+- Persistenza reale attiva per Clienti: `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`.
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
+- Repository clienti Supabase in `src/features/customers/customerRepository.ts`.
 - Non esistono Supabase Storage o backend custom. E presente solo un workflow GitHub Actions separato per keepalive Supabase.
 
 ## Tipi principali
@@ -15,6 +17,8 @@
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
 - `Prompt`: libreria prompt minima con `id`, `title`, `category` e `fullText`.
 - `VisualAsset`: asset collegato a progetto con path e note.
+- `Customer`: cliente con nome canonico derivato, `firstName`, `lastName`, `company`, `email`, `developmentEmail`, `password`, note e lista di `CustomerProject`.
+- `CustomerProject`: progetto cliente persistito con anagrafica, accessi piattaforme, variabili e note.
 - La `Dashboard` non introduce un nuovo tipo dominio persistito: deriva aggregazioni e filtri direttamente dai `Project` gia caricati.
 
 ## Vincoli dati attuali
@@ -40,6 +44,7 @@
 ## Google Sheets Backup
 
 - Backup esterno attivo tramite Google Apps Script collegato a un Google Sheet.
+- URL canonico foglio backup: `https://docs.google.com/spreadsheets/d/1bmNXfzFZpisko8M6MpN7gOnw8U3ibQGXXbEmXRBvOmA/edit?gid=832828269#gid=832828269`
 - Il foglio ha solo due tab canonici:
   - `Progetti`
   - `Prompt`

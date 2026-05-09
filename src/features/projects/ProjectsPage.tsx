@@ -633,7 +633,7 @@ function ConfirmDeleteProjectModal({
   )
 }
 
-function VariablesPanel({
+export function VariablesPanel({
   addLabel,
   variables,
   onChange,
@@ -2350,7 +2350,7 @@ function formatFileSize(sizeBytes: number) {
   return `${Math.round(sizeBytes / 1024)} KB`
 }
 
-function ProjectAgentPanel({ project }: { project: Project }) {
+export function ProjectAgentPanel({ project }: { project: Project }) {
   const agentConfig = formatAgentConfig(project)
   const syncPrompt = resolveSyncPrompt(project.agent.syncPrompt)
 

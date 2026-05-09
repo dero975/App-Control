@@ -88,6 +88,7 @@ Regole:
 Configurazione esterna verificata il `8 Maggio 2026`:
 
 - progetto Apps Script: `App Control Backup Sync`
+- URL foglio backup: `https://docs.google.com/spreadsheets/d/1bmNXfzFZpisko8M6MpN7gOnw8U3ibQGXXbEmXRBvOmA/edit?gid=832828269#gid=832828269`
 - sorgente dati: Supabase REST in sola lettura
 - Script Properties richieste:
   - `SUPABASE_URL`
@@ -149,6 +150,7 @@ npm run dev -- --host 127.0.0.1 --port 5001
 ## Validazione pratica
 
 - Dopo modifiche codice: preferire `npm run check:all` quando il tempo lo consente; altrimenti almeno `npm run build`, aggiungendo `npm run lint` quando si cambia TypeScript/React.
+- Il workspace `Clienti` salva su Supabase; dopo modifiche a quel dominio verificare almeno creazione, modifica, eliminazione e ripristino al refresh di clienti e progetti cliente, piu persistenza di accessi piattaforme, variabili e campi aggiuntivi.
 - Dopo modifiche solo documentali: non serve build, salvo sospetto di riferimenti rotti in codice.
 - Dopo modifiche UI: controllare layout desktop/mobile se il task riguarda responsive o visual.
 - Dopo modifiche a manifest o icone pubbliche: eseguire almeno `npm run build` e verificare che gli asset risultino copiati in `dist`.

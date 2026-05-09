@@ -2,15 +2,17 @@
 
 Documento canonico per lo schema Supabase target. Deve restare coerente con il codice reale prima di eseguire script in SQL Editor.
 
-Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
+Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
 
 Stato setup Supabase eseguito nella fase corrente:
 
 - create le tabelle `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`;
+- create anche le tabelle `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`;
 - attivati trigger `set_updated_at`;
 - RLS attiva; le policy owner iniziali sono state sostituite dalla fase PIN con policy permissive anon/auth per le tabelle operative;
 - creata tabella `app_control_settings` per PIN sincronizzato;
 - la sezione `Prompt` usa ora la tabella reale `prompts` con persistenza completa create/read/update/delete;
+- il dominio `Clienti` ha anche viste/funzioni operative: `customer_projects_overview`, `customer_projects_diagnostics`, `customer_projects_export_flat`, `customer_project_details_export`, `customer_domain_healthcheck`, `customer_domain_counts()`, `customer_domain_snapshot()`;
 - non creare `project_prompts` o `app_settings`: non esistono piu esigenze runtime coerenti con quelle tabelle nel codice attuale.
 
 ## Regole prima di eseguire SQL
@@ -30,6 +32,7 @@ Fonte codice primaria:
 - Progetti e tab: `src/features/projects/ProjectsPage.tsx`
 - ENV e `.env render`: `src/features/projects/ProjectsPage.tsx`
 - Prompt: `src/features/prompts`
+- Clienti: `src/features/customers`
 
 Mappatura:
 
@@ -53,6 +56,8 @@ Mappatura:
 - Tab `Note`: target dati `projects.operational_notes`; il repository corrente persiste gli update tramite il normale autosave del dettaglio progetto.
 - Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
 - Prompt library: `prompts`; non esiste relazione corrente `project_prompts`.
+- Workspace `Clienti`: `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`.
+- In `customers`, il nome visualizzato UI e derivato da `first_name + last_name`, con fallback su `company`, mentre `name` resta il campo canonico salvato e ricostruito dal frontend per compatibilita operativa e ricerca.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.
 - PIN app: `app_control_settings`.
 
@@ -89,6 +94,12 @@ Mappatura:
 - `project_env_variables`
 - `project_images`
 - `project_agent_keys`
+- `customers`
+- colonne operative attese: `name`, `first_name`, `last_name`, `company`, `email`, `development_email`, `password_ciphertext`, `notes`
+- `customer_projects`
+- `customer_project_platform_accesses`
+- `customer_project_env_variables`
+- `customer_project_data_fields`
 - `app_control_settings`
 - `prompts`
 
@@ -217,7 +228,7 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  new.updated_at = now();
+  new.updated_at = clock_timestamp();
   return new;
 end;
 $$;

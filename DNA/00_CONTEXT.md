@@ -14,8 +14,12 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - Le sezioni Progetti e Prompt leggono/scrivono dati reali su Supabase dopo sblocco PIN app.
 - Tipi dominio in `src/types/app.ts`.
 - Entry point runtime: `src/main.tsx` -> `src/App.tsx` -> `src/app/AppLayout.tsx`.
-- Sezioni navigabili: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`.
+- `App.tsx` carica le sezioni applicative in lazy loading, cosi il bundle iniziale resta piu leggero su device poco potenti.
+- Due ambienti applicativi:
+  - `Admin`: `Progetti`, `Prompt`, `Impostazioni`, `Dashboard`
+  - `Clienti`: archivio clienti, scheda cliente, progetti cliente
 - La sezione `Progetti` contiene anche dati foglio, variabili, immagini, note e sync agent.
+- Il workspace `Clienti` e separato dal dominio admin ma ora persiste su Supabase con tabelle dedicate `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`.
 
 ## Mappa tecnica
 

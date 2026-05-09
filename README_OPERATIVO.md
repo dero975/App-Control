@@ -14,7 +14,14 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
 
-La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni sono `Prompt`, `Impostazioni` e `Dashboard`.
+L'app ora e divisa in due ambienti:
+
+- `Admin`: mantiene la logica storica con `Progetti`, `Prompt`, `Impostazioni` e `Dashboard`.
+- `Clienti`: archivio clienti separato con scheda cliente, progetti cliente e dati progetto cliente.
+
+Anche il workspace `Clienti` usa ora Supabase come fonte canonica. Non mantenere o reintrodurre persistenza locale browser come fallback dati.
+
+Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni sono `Prompt`, `Impostazioni` e `Dashboard`.
 
 ## DNA canonico
 
@@ -36,6 +43,7 @@ La sezione principale e `Progetti`. Dentro `Progetti` sono consolidati anche dat
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la home `Progetti` e una vista compatta separata: mostra solo card con nome progetto e, all'apertura, i link `LINK_DEPLOY` e `LINK_DEPLOY ADMIN`; il dettaglio completo progetto resta una logica desktop fino a nuova richiesta.
+- Il cambio ambiente `Admin` / `Clienti` avviene dal selettore persistente nella shell e deve mantenere separato il contesto visivo e operativo.
 - La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: la selezione/apertura di un progetto e gli autosave del dettaglio non devono rimescolare le card.
 - All'apertura della sezione `Progetti`, l'ordinamento predefinito e alfabetico A-Z; solo un'azione esplicita di Admin puo portarlo su altri ordinamenti.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.

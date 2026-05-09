@@ -4,14 +4,33 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 
 ## Navigazione
 
-- `App` tiene in stato la sezione attiva.
+- `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
 - A ogni avvio/mount dell'app, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app.
 - PIN valido: 6 cifre, default DB `140478`; il PIN viene salvato come hash in Supabase.
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
-- `AppLayout` rende sidebar desktop, select mobile e contenuto principale.
+- `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
 - Su desktop la sidebar e la pagina `Progetti` restano bloccate nel viewport; scorrono solo lista progetti e liste card interne dei tab quando necessario.
-- `navigation.ts` definisce quattro sezioni: `projects`, `prompts`, `settings`, `dashboard`.
+- `navigation.ts` definisce una nav distinta per i due ambienti:
+  - `Admin`: `projects`, `prompts`, `settings`, `dashboard`
+  - `Clienti`: `customers`, con lista clienti reale resa direttamente nella sidebar
+
+## Clienti
+
+Fonte principale: `src/features/customers/CustomersPage.tsx`.
+
+- L'ambiente `Clienti` e separato dal dominio admin e usa una palette chiara bianco/ambra tramite override dei token CSS nella shell.
+- La sidebar dell'ambiente `Clienti` mostra direttamente l'elenco clienti come card selezionabili, piu i controlli `Cerca cliente` e `Nuovo cliente`; il contenuto principale mostra il dettaglio del cliente attivo.
+- Nel dettaglio cliente, il blocco anagrafica resta sempre in alto sotto il nome visualizzato cliente; sotto a quel blocco parte la gestione dei progetti cliente, mantenendo un'impostazione il piu possibile coerente con l'area `Admin`.
+- `Nuovo cliente` crea un record Supabase con nome placeholder, contatti vuoti, note e lista progetti vuota.
+- Il blocco dati cliente parte chiuso di default e, quando aperto, espone `Nome`, `Cognome`, `Azienda`, `Email`, `Email sviluppo`, `Password` e `Note cliente`.
+- Sotto il blocco dati cliente, la sezione progetti mostra solo i progetti del cliente selezionato.
+- `Nuovo progetto cliente` crea un record Supabase collegato al cliente corrente con set ENV canonico iniziale e campo extra `Password deploy`.
+- La colonna progetti cliente usa la stessa toolbar dell'area `Admin`: `Cerca..`, toggle ordinamento alfabetico, pulsante nuovo progetto e toggle ordinamento per ultima modifica.
+- Il dettaglio progetto cliente usa gli stessi cinque tab di `Admin`: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
+- `Dati progetto` e `Variabili` riusano la stessa struttura editor dell'area `Admin`; in `Clienti` cambia solo la palette visiva del workspace.
+- `Immagini` e `Sync` esistono anche nel dettaglio cliente per allineamento di layout e navigazione; oggi non hanno ancora persistenza/integrazione cliente dedicata.
+- Il workspace `Clienti` salva su Supabase con debounce breve per update e mostra stato esplicito di salvataggio.
 
 ## Progetti
 
