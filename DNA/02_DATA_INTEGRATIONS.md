@@ -74,7 +74,7 @@ Guardrail:
 - Cartelle predisposte: `public/images`, `public/icons`, `src/assets`.
 - Intro app: `src/App.tsx` usa `public/icons/splash-logo.png`, variante 256x256 ottimizzata dal file `logo app`.
 - Brand navbar: `src/app/Sidebar.tsx` e `src/app/AppLayout.tsx` usano `public/icons/nav-logo.png` con retina `public/icons/nav-logo@2x.png`.
-- Icone installazione app: `public/manifest.webmanifest` usa `public/icons/app-icon-192.png` e `public/icons/app-icon-512.png`; iOS usa `public/icons/apple-touch-icon.png`.
+- Icone installazione app: `public/manifest.webmanifest` usa `public/icons/app-icon-192.png` e `public/icons/app-icon-512.png`; iOS usa `public/icons/apple-touch-icon.png`. Questi asset sono derivati dal master locale `public/icons/Icona Schermata Home.png` e devono restare PNG nelle dimensioni 192x192, 512x512 e 180x180.
 - Icone tab browser: `index.html` usa `public/icons/favicon-32.png` e `public/icons/favicon-16.png`; non usare WebP come favicon primaria per compatibilita browser.
 - Il tab UI si chiama `Immagini`; il tipo dati resta `VisualAsset`.
 - I nuovi progetti mostrano sempre cinque slot immagine fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
