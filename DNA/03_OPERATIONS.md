@@ -53,6 +53,7 @@ Regole operative Render:
 - Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
 - Per questa app Render ospita solo il frontend buildato; il backend applicativo resta Supabase.
 - L'auto-deploy corretto e GitHub `main` -> Render `Static Site`.
+- `npm run build` valida prima della build la presenza di `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; su Render queste variabili devono esistere prima del deploy, perche Vite le incorpora nel bundle statico in fase di build.
 
 ## Keepalive Supabase
 
