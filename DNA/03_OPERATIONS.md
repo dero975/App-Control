@@ -161,6 +161,8 @@ npm run dev -- --host 127.0.0.1 --port 5001
 - Non usare comandi distruttivi (`reset --hard`, checkout di massa, force push) senza richiesta esplicita.
 - Non committare `node_modules`, `dist`, cache, `Backup_Automatico`, `.env` o export con segreti.
 - I backup locali in `Backup_Automatico` devono usare il formato `Backup_7 Maggio_00.03.tar.gz`, con data e ora correnti.
+- Il backup locale operativo deve includere solo materiale utile a ricostruire il progetto: file tracciati del repository come `src/`, `public/`, `.github/`, `DNA/`, `README*.md`, `.env.example` e configurazioni versionate.
+- Il backup locale operativo deve escludere sempre `.git`, `.env`, altri export locali con segreti, `node_modules`, `dist`, cache, artefatti generati e gli archivi gia presenti dentro `Backup_Automatico/`.
 - Commit e push solo se richiesti.
 - Se la cartella non e ancora un repository Git, inizializzare Git solo su richiesta esplicita di commit/push, collegare il remote GitHub corretto e verificare `.gitignore` prima del primo commit.
 - Remote operativo atteso per questo progetto: `https://github.com/dero975/App-Control.git`.
