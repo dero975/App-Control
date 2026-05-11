@@ -1,5 +1,6 @@
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
 import { supabase } from '../../lib/supabase'
+import { supabaseServiceKeyAliases } from './projectShared'
 
 type ProjectRow = {
   id: string
@@ -71,6 +72,14 @@ export type ProjectSnapshot = {
   sheetFields: ProjectVariable[]
   variables: ProjectVariable[]
   images: ProjectImage[]
+}
+
+type ProjectBackup = {
+  projectRow: ProjectRow
+  envRows: EnvVariableRow[]
+  accessRows: PlatformAccessRow[]
+  fieldRows: DataFieldRow[]
+  imageRows: ImageRow[]
 }
 
 export async function fetchProjects() {
@@ -176,6 +185,7 @@ export async function deleteProjectRecord(projectId: string) {
 
 export async function saveProjectSnapshot({ project, sheetFields, variables, images }: ProjectSnapshot) {
   const client = requireSupabase()
+  const backup = await fetchProjectBackup(project.id)
   const name = getFieldValue(sheetFields, 'nome progetto') || project.name
   const githubEmail = getFieldValue(sheetFields, 'mail github')
   const password = getFieldValue(sheetFields, 'Password')
@@ -184,36 +194,37 @@ export async function saveProjectSnapshot({ project, sheetFields, variables, ima
   const linkDeploy = getFieldValue(variables, 'LINK_DEPLOY')
   const githubUrl = getFieldValue(variables, 'GITHUB_URL')
 
-  const { error: projectError } = await client
-    .from('projects')
-    .update({
-      name,
-      development_environment: developmentEnvironment,
-      github_repo_url: githubUrl,
-      github_account_email: githubEmail,
-      linked_secret_label_ciphertext: password || null,
-      deploy_provider: deployProvider,
-      deploy_url: linkDeploy,
-      operational_notes: project.operationalNotes,
-    })
-    .eq('id', project.id)
-  if (projectError) throw projectError
+  try {
+    const { error: projectError } = await client
+      .from('projects')
+      .update({
+        name,
+        development_environment: developmentEnvironment,
+        github_repo_url: githubUrl,
+        github_account_email: githubEmail,
+        linked_secret_label_ciphertext: password || null,
+        deploy_provider: deployProvider,
+        deploy_url: linkDeploy,
+        operational_notes: project.operationalNotes,
+      })
+      .eq('id', project.id)
+    if (projectError) throw projectError
 
-  await saveDataFields(project.id, sheetFields)
-  await savePlatformAccesses(project.id, sheetFields)
-  await saveEnvVariables(project.id, variables)
-  await saveProjectImages(project.id, images)
+    await saveDataFields(project.id, sheetFields)
+    await savePlatformAccesses(project.id, sheetFields)
+    await saveEnvVariables(project.id, variables)
+    await saveProjectImages(project.id, images)
+  } catch (error) {
+    await restoreProjectBackup(backup)
+    throw error
+  }
 }
 
 async function saveDataFields(projectId: string, sheetFields: ProjectVariable[]) {
-  const client = requireSupabase()
   const coreKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con'])
   const customFields = sheetFields.filter((field) => !coreKeys.has(field.key.trim().toLowerCase()))
-  const { error: deleteError } = await client.from('project_data_fields').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!customFields.length) return
-
-  const { error } = await client.from('project_data_fields').insert(
+  await replaceDataFields(
+    projectId,
     customFields.map((field, index) => ({
       project_id: projectId,
       field_key: normalizeFieldKey(field.key),
@@ -221,43 +232,29 @@ async function saveDataFields(projectId: string, sheetFields: ProjectVariable[])
       value_text: field.sensitive ? '' : field.value,
       value_ciphertext: field.sensitive ? field.value || null : null,
       is_secret: field.sensitive,
-      visible_by_default: true,
-      field_kind: 'text',
       sort_order: index,
     })),
   )
-  if (error) throw error
 }
 
 async function savePlatformAccesses(projectId: string, sheetFields: ProjectVariable[]) {
-  const client = requireSupabase()
   const developmentField = sheetFields.find((field) => field.key.trim().toLowerCase() === 'sviluppo in')
   const accounts = developmentField?.accessAccounts ?? []
-
-  const { error: deleteError } = await client.from('project_platform_accesses').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!accounts.length) return
-
-  const { error: insertError } = await client.from('project_platform_accesses').insert(
+  await replacePlatformAccesses(
+    projectId,
     accounts.map((account, index) => ({
       project_id: projectId,
       platform: account.platform,
       email: account.email,
       password_ciphertext: account.password || null,
-      password_visible_by_default: true,
       sort_order: index,
     })),
   )
-  if (insertError) throw insertError
 }
 
 async function saveEnvVariables(projectId: string, variables: ProjectVariable[]) {
-  const client = requireSupabase()
-  const { error: deleteError } = await client.from('project_env_variables').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!variables.length) return
-
-  const { error } = await client.from('project_env_variables').insert(
+  await replaceEnvVariables(
+    projectId,
     variables.map((variable, index) => ({
       project_id: projectId,
       key: variable.key,
@@ -268,41 +265,155 @@ async function saveEnvVariables(projectId: string, variables: ProjectVariable[])
       sort_order: index,
     })),
   )
-  if (error) throw error
 }
 
 async function saveProjectImages(projectId: string, images: ProjectImage[]) {
+  await replaceProjectImages(
+    projectId,
+    images
+      .filter((image) => image.dataUrl)
+      .map((image, index) => ({
+        project_id: projectId,
+        slot_id: image.id,
+        name: image.name,
+        file_name: image.fileName,
+        mime_type: image.mimeType || getDataUrlMimeType(image.dataUrl),
+        size_bytes: image.sizeBytes,
+        original_size_bytes: image.originalSizeBytes,
+        data_url: image.dataUrl,
+        sort_order: index,
+      })),
+  )
+}
+
+async function replaceDataFields(projectId: string, rows: Array<Omit<DataFieldRow, 'id'>>) {
   const client = requireSupabase()
-  const emptySlotIds = images.filter((image) => !image.dataUrl).map((image) => image.id)
-  const imageRows = images
-    .filter((image) => image.dataUrl)
-    .map((image, index) => ({
-      project_id: projectId,
-      slot_id: image.id,
-      name: image.name,
-      type: image.id.includes('icon') ? 'Icona' : 'Logo',
-      file_name: image.fileName,
-      mime_type: image.mimeType || getDataUrlMimeType(image.dataUrl),
-      size_bytes: image.sizeBytes,
-      original_size_bytes: image.originalSizeBytes,
+  const { error: deleteError } = await client.from('project_data_fields').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('project_data_fields').insert(
+    rows.map((row) => ({
+      ...row,
+      visible_by_default: true,
+      field_kind: 'text',
+    })),
+  )
+  if (error) throw error
+}
+
+async function replacePlatformAccesses(projectId: string, rows: Array<Omit<PlatformAccessRow, 'id'>>) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('project_platform_accesses').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('project_platform_accesses').insert(
+    rows.map((row) => ({
+      ...row,
+      password_visible_by_default: true,
+    })),
+  )
+  if (error) throw error
+}
+
+async function replaceEnvVariables(projectId: string, rows: Array<EnvVariableRow & { sort_order: number }>) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('project_env_variables').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('project_env_variables').insert(rows)
+  if (error) throw error
+}
+
+async function replaceProjectImages(projectId: string, rows: ImageRow[]) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('project_images').insert(
+    rows.map((row) => ({
+      ...row,
+      type: row.slot_id.includes('icon') ? 'Icona' : 'Logo',
       path: '',
-      data_url: image.dataUrl,
+    })),
+  )
+  if (error) throw error
+}
+
+async function fetchProjectBackup(projectId: string): Promise<ProjectBackup> {
+  const projectRow = await fetchProjectRowById(projectId)
+  const relations = await fetchProjectRelations([projectId])
+
+  return {
+    projectRow,
+    envRows: relations.envRows.filter((row) => row.project_id === projectId),
+    accessRows: relations.accessRows.filter((row) => row.project_id === projectId),
+    fieldRows: relations.fieldRows.filter((row) => row.project_id === projectId),
+    imageRows: relations.imageRows.filter((row) => row.project_id === projectId),
+  }
+}
+
+async function restoreProjectBackup(backup: ProjectBackup) {
+  const client = requireSupabase()
+  const { projectRow } = backup
+
+  const { error } = await client
+    .from('projects')
+    .update({
+      agent_project_id: projectRow.agent_project_id,
+      name: projectRow.name,
+      status: projectRow.status,
+      development_environment: projectRow.development_environment,
+      github_repo_url: projectRow.github_repo_url,
+      github_account_email: projectRow.github_account_email,
+      linked_secret_label_ciphertext: projectRow.linked_secret_label_ciphertext,
+      deploy_provider: projectRow.deploy_provider,
+      deploy_url: projectRow.deploy_url,
+      deploy_account_email: projectRow.deploy_account_email,
+      operational_notes: projectRow.operational_notes,
+    })
+    .eq('id', projectRow.id)
+  if (error) throw error
+
+  await replaceDataFields(
+    projectRow.id,
+    backup.fieldRows.map((row, index) => ({
+      project_id: row.project_id,
+      field_key: row.field_key,
+      label: row.label,
+      value_text: row.value_text,
+      value_ciphertext: row.value_ciphertext,
+      is_secret: row.is_secret,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
+  await replacePlatformAccesses(
+    projectRow.id,
+    backup.accessRows.map((row, index) => ({
+      project_id: row.project_id,
+      platform: row.platform,
+      email: row.email,
+      password_ciphertext: row.password_ciphertext,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
+  await replaceEnvVariables(
+    projectRow.id,
+    backup.envRows.map((row, index) => ({
+      ...row,
       sort_order: index,
-    }))
-
-  if (!imageRows.length) {
-    const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId)
-    if (deleteError) throw deleteError
-    return
-  }
-
-  const { error: upsertError } = await client.from('project_images').upsert(imageRows, { onConflict: 'project_id,slot_id' })
-  if (upsertError) throw upsertError
-
-  if (emptySlotIds.length) {
-    const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId).in('slot_id', emptySlotIds)
-    if (deleteError) throw deleteError
-  }
+    })),
+  )
+  await replaceProjectImages(
+    projectRow.id,
+    backup.imageRows.map((row, index) => ({
+      ...row,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
 }
 
 async function mapProjects(projects: ProjectRow[]) {
@@ -371,6 +482,19 @@ async function fetchProjectRelations(projectIds: string[]) {
   }
 }
 
+async function fetchProjectRowById(projectId: string) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('projects')
+    .select(
+      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+    )
+    .eq('id', projectId)
+    .single()
+  if (error) throw error
+  return data as ProjectRow
+}
+
 function groupRowsByProjectId<T extends { project_id: string }>(rows: T[]) {
   const groupedRows = new Map<string, T[]>()
 
@@ -408,7 +532,7 @@ function mapProjectRow(
     supabase: {
       projectUrl: envRows.find((row) => row.key === 'SUPABASE_URL')?.value_text ?? '',
       anonKeyLabel: envRows.find((row) => row.key === 'SUPABASE_ANON_KEY')?.value_ciphertext ?? '',
-      serviceRoleLabel: envRows.find((row) => row.key === 'SUPABASE_SERVICE_ROLE_KEY')?.value_ciphertext ?? '',
+      serviceRoleLabel: supabaseServiceKeyAliases.map((key) => envRows.find((row) => row.key === key)?.value_ciphertext).find(Boolean) ?? '',
       databaseUrlLabel:
         envRows.find((row) => row.key === 'DATABASE_URL')?.value_ciphertext ??
         envRows.find((row) => row.key === 'SUPABASE_DB_URL')?.value_ciphertext ??

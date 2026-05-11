@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Customer, CustomerProject, EnvVariable, PlatformAccess, ProjectStatus, ProjectVariable } from '../../types/app'
+import { supabaseServiceKey } from '../projects/projectShared'
 import { buildCustomerDisplayName, buildCustomerDraftIdentity } from './customerIdentity'
 
 const legacyCustomerStorageKey = 'app-control-customers'
@@ -64,6 +65,13 @@ type CustomerDataFieldRow = {
   value_ciphertext: string | null
   is_secret: boolean
   sort_order: number
+}
+
+type CustomerProjectBackup = {
+  projectRow: CustomerProjectRow
+  envRows: CustomerEnvVariableRow[]
+  dataFieldRows: CustomerDataFieldRow[]
+  platformAccessRows: PlatformAccessRow[]
 }
 
 export async function fetchCustomers() {
@@ -284,39 +292,36 @@ export async function createCustomerProjectRecord(customerId: string, index: num
 
 export async function saveCustomerProjectSnapshot(customerId: string, project: CustomerProject) {
   const client = requireSupabase()
+  const backup = await fetchCustomerProjectBackup(project.id)
 
-  const { data: updatedProject, error: projectError } = await client
-    .from('customer_projects')
-    .update({
-      customer_id: customerId,
-      name: project.name,
-      status: project.status,
-      development_environment: project.developmentEnvironment,
-      github_repo_url: project.githubRepoUrl,
-      github_account_email: project.githubAccountEmail,
-      linked_secret_label_ciphertext: project.linkedSecretLabel || null,
-      deploy_provider: project.deploy.provider,
-      deploy_url: project.deploy.url,
-      deploy_account_email: project.deploy.accountEmail,
-      operational_notes: project.operationalNotes,
-    })
-    .eq('id', project.id)
-    .select(
-      'id, customer_id, created_at, updated_at, name, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
-    )
-    .single()
+  try {
+    const { error: projectError } = await client
+      .from('customer_projects')
+      .update({
+        customer_id: customerId,
+        name: project.name,
+        status: project.status,
+        development_environment: project.developmentEnvironment,
+        github_repo_url: project.githubRepoUrl,
+        github_account_email: project.githubAccountEmail,
+        linked_secret_label_ciphertext: project.linkedSecretLabel || null,
+        deploy_provider: project.deploy.provider,
+        deploy_url: project.deploy.url,
+        deploy_account_email: project.deploy.accountEmail,
+        operational_notes: project.operationalNotes,
+      })
+      .eq('id', project.id)
+    if (projectError) throw projectError
 
-  if (projectError) throw projectError
-
-  await saveProjectEnvVariables(project.id, project.env)
-  await saveProjectDataFields(project.id, project.dataFields)
-  await saveProjectPlatformAccesses(project.id, project.platformAccesses)
-
-  return {
-    ...project,
-    createdAt: (updatedProject as CustomerProjectRow).created_at,
-    updatedAt: (updatedProject as CustomerProjectRow).updated_at,
+    await saveProjectEnvVariables(project.id, project.env)
+    await saveProjectDataFields(project.id, project.dataFields)
+    await saveProjectPlatformAccesses(project.id, project.platformAccesses)
+  } catch (error) {
+    await restoreCustomerProjectBackup(backup)
+    throw error
   }
+
+  return fetchCustomerProjectById(project.id)
 }
 
 export async function deleteCustomerProjectRecord(projectId: string) {
@@ -367,14 +372,9 @@ async function fetchProjectRelations(projectIds: string[]) {
 }
 
 async function saveProjectEnvVariables(projectId: string, envVariables: EnvVariable[]) {
-  const client = requireSupabase()
   const sanitizedVariables = sanitizeEnvVariables(envVariables)
-
-  const { error: deleteError } = await client.from('customer_project_env_variables').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!sanitizedVariables.length) return
-
-  const { error: insertError } = await client.from('customer_project_env_variables').insert(
+  await replaceProjectEnvVariables(
+    projectId,
     sanitizedVariables.map((variable, index) => ({
       customer_project_id: projectId,
       key: variable.key,
@@ -385,19 +385,12 @@ async function saveProjectEnvVariables(projectId: string, envVariables: EnvVaria
       sort_order: index,
     })),
   )
-
-  if (insertError) throw insertError
 }
 
 async function saveProjectDataFields(projectId: string, dataFields: ProjectVariable[]) {
-  const client = requireSupabase()
   const sanitizedFields = sanitizeProjectVariables(dataFields)
-
-  const { error: deleteError } = await client.from('customer_project_data_fields').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!sanitizedFields.length) return
-
-  const { error: insertError } = await client.from('customer_project_data_fields').insert(
+  await replaceProjectDataFields(
+    projectId,
     sanitizedFields.map((field, index) => ({
       customer_project_id: projectId,
       field_key: normalizeFieldKey(field.key),
@@ -405,35 +398,64 @@ async function saveProjectDataFields(projectId: string, dataFields: ProjectVaria
       value_text: field.sensitive ? '' : field.value,
       value_ciphertext: field.sensitive ? field.value || null : null,
       is_secret: field.sensitive,
-      visible_by_default: true,
-      field_kind: 'text',
       sort_order: index,
     })),
   )
-
-  if (insertError) throw insertError
 }
 
 async function saveProjectPlatformAccesses(projectId: string, platformAccesses: PlatformAccess[]) {
-  const client = requireSupabase()
   const sanitizedAccesses = platformAccesses.filter((access) => access.platform.trim() || access.email.trim() || access.password.trim())
-
-  const { error: deleteError } = await client.from('customer_project_platform_accesses').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!sanitizedAccesses.length) return
-
-  const { error: insertError } = await client.from('customer_project_platform_accesses').insert(
+  await replaceProjectPlatformAccesses(
+    projectId,
     sanitizedAccesses.map((access, index) => ({
       customer_project_id: projectId,
       platform: access.platform.trim(),
       email: access.email.trim(),
       password_ciphertext: access.password || null,
-      password_visible_by_default: true,
       sort_order: index,
     })),
   )
+}
 
-  if (insertError) throw insertError
+async function replaceProjectEnvVariables(projectId: string, rows: CustomerEnvVariableRow[]) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('customer_project_env_variables').delete().eq('customer_project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('customer_project_env_variables').insert(rows)
+  if (error) throw error
+}
+
+async function replaceProjectDataFields(projectId: string, rows: Array<Omit<CustomerDataFieldRow, 'id'>>) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('customer_project_data_fields').delete().eq('customer_project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('customer_project_data_fields').insert(
+    rows.map((row) => ({
+      ...row,
+      visible_by_default: true,
+      field_kind: 'text',
+    })),
+  )
+  if (error) throw error
+}
+
+async function replaceProjectPlatformAccesses(projectId: string, rows: Array<Omit<PlatformAccessRow, 'id'>>) {
+  const client = requireSupabase()
+  const { error: deleteError } = await client.from('customer_project_platform_accesses').delete().eq('customer_project_id', projectId)
+  if (deleteError) throw deleteError
+  if (!rows.length) return
+
+  const { error } = await client.from('customer_project_platform_accesses').insert(
+    rows.map((row) => ({
+      ...row,
+      password_visible_by_default: true,
+    })),
+  )
+  if (error) throw error
 }
 
 function emptyProjectRelations() {
@@ -442,6 +464,71 @@ function emptyProjectRelations() {
     dataFieldsByProjectId: new Map<string, CustomerDataFieldRow[]>(),
     platformAccessRowsByProjectId: new Map<string, PlatformAccessRow[]>(),
   }
+}
+
+async function fetchCustomerProjectBackup(projectId: string): Promise<CustomerProjectBackup> {
+  const projectRow = await fetchCustomerProjectRowById(projectId)
+  const relations = await fetchProjectRelations([projectId])
+
+  return {
+    projectRow,
+    envRows: relations.envRowsByProjectId.get(projectId) ?? [],
+    dataFieldRows: relations.dataFieldsByProjectId.get(projectId) ?? [],
+    platformAccessRows: relations.platformAccessRowsByProjectId.get(projectId) ?? [],
+  }
+}
+
+async function restoreCustomerProjectBackup(backup: CustomerProjectBackup) {
+  const client = requireSupabase()
+  const { projectRow } = backup
+
+  const { error } = await client
+    .from('customer_projects')
+    .update({
+      customer_id: projectRow.customer_id,
+      name: projectRow.name,
+      status: projectRow.status,
+      development_environment: projectRow.development_environment,
+      github_repo_url: projectRow.github_repo_url,
+      github_account_email: projectRow.github_account_email,
+      linked_secret_label_ciphertext: projectRow.linked_secret_label_ciphertext,
+      deploy_provider: projectRow.deploy_provider,
+      deploy_url: projectRow.deploy_url,
+      deploy_account_email: projectRow.deploy_account_email,
+      operational_notes: projectRow.operational_notes,
+    })
+    .eq('id', projectRow.id)
+  if (error) throw error
+
+  await replaceProjectEnvVariables(
+    projectRow.id,
+    backup.envRows.map((row, index) => ({
+      ...row,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
+  await replaceProjectDataFields(
+    projectRow.id,
+    backup.dataFieldRows.map((row, index) => ({
+      customer_project_id: row.customer_project_id,
+      field_key: row.field_key,
+      label: row.label,
+      value_text: row.value_text,
+      value_ciphertext: row.value_ciphertext,
+      is_secret: row.is_secret,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
+  await replaceProjectPlatformAccesses(
+    projectRow.id,
+    backup.platformAccessRows.map((row, index) => ({
+      customer_project_id: row.customer_project_id,
+      platform: row.platform,
+      email: row.email,
+      password_ciphertext: row.password_ciphertext,
+      sort_order: row.sort_order ?? index,
+    })),
+  )
 }
 
 function groupRowsByProjectId<T extends { customer_project_id: string }>(rows: T[]) {
@@ -503,6 +590,31 @@ function mapCustomerProjectRow(
   }
 }
 
+async function fetchCustomerProjectById(projectId: string) {
+  const projectRow = await fetchCustomerProjectRowById(projectId)
+  const relations = await fetchProjectRelations([projectId])
+
+  return mapCustomerProjectRow(
+    projectRow,
+    relations.envRowsByProjectId.get(projectId) ?? [],
+    relations.dataFieldsByProjectId.get(projectId) ?? [],
+    relations.platformAccessRowsByProjectId.get(projectId) ?? [],
+  )
+}
+
+async function fetchCustomerProjectRowById(projectId: string) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('customer_projects')
+    .select(
+      'id, customer_id, created_at, updated_at, name, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+    )
+    .eq('id', projectId)
+    .single()
+  if (error) throw error
+  return data as CustomerProjectRow
+}
+
 function buildDefaultProjectEnv(): EnvVariable[] {
   return [
     { key: 'LINK_DEPLOY', value: '', scope: 'Deploy', sensitive: false },
@@ -510,7 +622,7 @@ function buildDefaultProjectEnv(): EnvVariable[] {
     { key: 'GITHUB_TOKEN', value: '', scope: 'GitHub', sensitive: true },
     { key: 'SUPABASE_URL', value: '', scope: 'Supabase', sensitive: false },
     { key: 'SUPABASE_ANON_KEY', value: '', scope: 'Supabase', sensitive: true },
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: '', scope: 'Supabase', sensitive: true },
+    { key: supabaseServiceKey, value: '', scope: 'Supabase', sensitive: true },
     { key: 'DATABASE_URL', value: '', scope: 'Supabase', sensitive: true },
   ]
 }

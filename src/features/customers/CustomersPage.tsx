@@ -3,10 +3,21 @@ import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, ClockArrowDown, Cl
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
+import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
 import {
   ProjectAgentPanel,
   VariablesPanel,
 } from '../projects/ProjectsPage'
+import {
+  buildProjectVariables,
+  buildSheetFields,
+  formatProjectUpdatedAt,
+  getDeployAdminLink,
+  getDeployLink,
+  getProjectPreviewMeta,
+  inferScopeFromEnvKey,
+} from '../projects/projectShared'
 import {
   clearLegacyCustomerStorage,
   createCustomerProjectRecord,
@@ -24,17 +35,6 @@ import type { Customer, CustomerProject, Project, ProjectVariable } from '../../
 const customerProjectTabs = ['Dati progetto', 'Variabili', 'Immagini', 'Note', 'Sync'] as const
 const developmentOptions = ['Windsurf', 'Replit']
 const deployOptions = ['Render', 'CloudeFlare']
-const orderedProjectKeys = [
-  'LINK_DEPLOY',
-  'GITHUB_URL',
-  'GITHUB_TOKEN',
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'DATABASE_URL',
-] as const
-const deployPasswordFieldKey = 'Password deploy'
-const deployAdminLinkKey = 'LINK_DEPLOY ADMIN'
 
 type SaveState = 'idle' | 'loading' | 'saving' | 'saved' | 'error'
 type CustomerProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
@@ -398,11 +398,7 @@ export function CustomersPage({
             ...currentCustomer,
             projects: currentCustomer.projects.map((currentProject) =>
               currentProject.id === savedProject.id
-                ? {
-                    ...currentProject,
-                    createdAt: savedProject.createdAt,
-                    updatedAt: savedProject.updatedAt,
-                  }
+                ? savedProject
                 : currentProject,
             ),
           }
@@ -525,11 +521,14 @@ function CustomerWorkspace({
   const [isCustomerCardOpen, setIsCustomerCardOpen] = useState(false)
   const [projectQuery, setProjectQuery] = useState('')
   const [projectSortMode, setProjectSortMode] = useState<CustomerProjectListSortMode>('recent-desc')
+  const [mobileModalProjectId, setMobileModalProjectId] = useState('')
+  const isMobileViewport = useIsMobileViewport()
 
   const filteredProjects = useMemo(
     () => getSortedCustomerProjects(customer.projects, projectQuery, projectSortMode),
     [customer.projects, projectQuery, projectSortMode],
   )
+  const mobileModalProject = isMobileViewport ? customer.projects.find((project) => project.id === mobileModalProjectId) ?? null : null
 
   const isAlphabeticalSortActive = projectSortMode === 'name-asc' || projectSortMode === 'name-desc'
   const isRecencySortActive = projectSortMode === 'recent-asc' || projectSortMode === 'recent-desc'
@@ -687,7 +686,7 @@ function CustomerWorkspace({
               </div>
             </div>
 
-            <div className="record-list" aria-label="Progetti cliente">
+            <div className="record-list record-list--desktop" aria-label="Progetti cliente">
               {filteredProjects.map((project) => (
                 <button
                   type="button"
@@ -704,23 +703,102 @@ function CustomerWorkspace({
                 </button>
               ))}
             </div>
+
+            <div className="record-list record-list--mobile" aria-label="Progetti cliente mobile">
+              {filteredProjects.map((project) => {
+                const isExpanded = isMobileViewport && project.id === selectedProjectId
+                const adminLikeProject = buildAdminLikeProject(project)
+                const variables = buildProjectVariables(adminLikeProject)
+                const deployLink = getDeployLink(buildSheetFields(adminLikeProject), adminLikeProject)
+                const deployAdminLink = getDeployAdminLink(variables, deployLink)
+
+                return (
+                  <article
+                    key={project.id}
+                    className={isExpanded ? 'mobile-project-card mobile-project-card--active' : 'mobile-project-card'}
+                  >
+                    <button
+                      type="button"
+                      className="mobile-project-card__trigger"
+                      onClick={() => {
+                        onSelectProject(project.id)
+                        onChangeProjectTab('Dati progetto')
+                      }}
+                    >
+                      <strong>{project.name}</strong>
+                      <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
+                      <small>{getProjectPreviewMeta(adminLikeProject)}</small>
+                    </button>
+                    {isExpanded ? (
+                      <div className="mobile-project-card__links">
+                        {deployLink ? (
+                          <a className="mobile-project-card__link" href={deployLink} target="_blank" rel="noreferrer">
+                            {deployLink}
+                          </a>
+                        ) : null}
+                        {deployAdminLink ? (
+                          <a className="mobile-project-card__link" href={deployAdminLink} target="_blank" rel="noreferrer">
+                            {deployAdminLink}
+                          </a>
+                        ) : null}
+                        <div className="mobile-project-card__actions">
+                          <button
+                            type="button"
+                            className="secondary-button mobile-project-card__action"
+                            onClick={() => {
+                              onSelectProject(project.id)
+                              onChangeProjectTab('Dati progetto')
+                              setMobileModalProjectId(project.id)
+                            }}
+                          >
+                            Apri scheda progetto
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                )
+              })}
+            </div>
           </aside>
 
-          <section className="detail-panel detail-panel--customer-project">
-            {selectedProject ? (
-              <CustomerProjectDetail
-                activeTab={activeProjectTab}
-                project={selectedProject}
-                onChangeTab={onChangeProjectTab}
-                onDelete={() => onDeleteProject(selectedProject)}
-                onUpdate={(updater) => onUpdateProject(selectedProject.id, updater)}
-              />
-            ) : (
-              <EmptyState title="Nessun progetto cliente" message="Crea un progetto cliente oppure selezionane uno dall'archivio." />
-            )}
-          </section>
+          {!isMobileViewport ? (
+            <section className="detail-panel detail-panel--customer-project">
+              {selectedProject ? (
+                <CustomerProjectDetail
+                  activeTab={activeProjectTab}
+                  project={selectedProject}
+                  onChangeTab={onChangeProjectTab}
+                  onDelete={() => onDeleteProject(selectedProject)}
+                  onUpdate={(updater) => onUpdateProject(selectedProject.id, updater)}
+                />
+              ) : (
+                <EmptyState title="Nessun progetto cliente" message="Crea un progetto cliente oppure selezionane uno dall'archivio." />
+              )}
+            </section>
+          ) : null}
         </div>
       </div>
+
+      {isMobileViewport && mobileModalProject ? (
+        <MobileWorkspaceModal
+          title={mobileModalProject.name}
+          subtitle="Scheda progetto cliente mobile"
+          onClose={() => setMobileModalProjectId('')}
+        >
+          <CustomerProjectDetail
+            activeTab={activeProjectTab}
+            project={mobileModalProject}
+            onChangeTab={onChangeProjectTab}
+            onDelete={() => {
+              setMobileModalProjectId('')
+              onDeleteProject(mobileModalProject)
+            }}
+            onUpdate={(updater) => onUpdateProject(mobileModalProject.id, updater)}
+            inlineMobile
+          />
+        </MobileWorkspaceModal>
+      ) : null}
     </div>
   )
 }
@@ -728,12 +806,14 @@ function CustomerWorkspace({
 function CustomerProjectDetail({
   activeTab,
   project,
+  inlineMobile = false,
   onChangeTab,
   onDelete,
   onUpdate,
 }: {
   activeTab: (typeof customerProjectTabs)[number]
   project: CustomerProject
+  inlineMobile?: boolean
   onChangeTab: (tab: (typeof customerProjectTabs)[number]) => void
   onDelete: () => void
   onUpdate: (updater: (project: CustomerProject) => CustomerProject) => void
@@ -747,7 +827,7 @@ function CustomerProjectDetail({
   const hasOperationalNotes = project.operationalNotes.trim().length > 0
 
   return (
-    <div className="detail-stack customer-project-detail">
+    <div className={inlineMobile ? 'detail-stack customer-project-detail customer-project-detail--mobile' : 'detail-stack customer-project-detail'}>
       <div className="detail-heading">
         <div>
           <h2>{project.name}</h2>
@@ -900,150 +980,6 @@ function getSortedCustomerProjects(projects: CustomerProject[], query: string, s
   })
 }
 
-function buildSheetFields(project: Project): ProjectVariable[] {
-  const deployPasswordField =
-    project.dataFields?.find((field) => isDeployPasswordField(field.key)) ?? {
-      id: 'sheet-password-deploy',
-      key: deployPasswordFieldKey,
-      value: '',
-      sensitive: true,
-    }
-  const customDataFields = (project.dataFields ?? []).filter((field) => !isDeployPasswordField(field.key))
-
-  return [
-    {
-      id: 'sheet-nome-progetto',
-      key: 'nome progetto',
-      value: project.name,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-mail-github',
-      key: 'mail github',
-      value: project.githubAccountEmail,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-psw',
-      key: 'Password',
-      value: project.linkedSecretLabel,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-sviluppo-in',
-      key: 'sviluppo in',
-      value: project.developmentEnvironment,
-      sensitive: false,
-      accessAccounts: project.platformAccesses ?? [],
-    },
-    {
-      id: 'sheet-deploy-con',
-      key: 'deploy con',
-      value: project.deploy.provider,
-      sensitive: false,
-    },
-    deployPasswordField,
-    ...customDataFields,
-  ]
-}
-
-function buildProjectVariables(project: Project): ProjectVariable[] {
-  const variableMap = new Map(project.env.map((variable) => [variable.key, variable]))
-  const deployLink = project.deploy.url
-  const deployAdminLink = variableMap.get(deployAdminLinkKey)?.value ?? buildDefaultDeployAdminLink(deployLink)
-
-  return [
-    {
-      id: 'link-deploy',
-      key: 'LINK_DEPLOY',
-      value: deployLink,
-      sensitive: false,
-    },
-    {
-      id: 'link-deploy-admin',
-      key: deployAdminLinkKey,
-      value: deployAdminLink,
-      sensitive: false,
-    },
-    {
-      id: 'github-url',
-      key: 'GITHUB_URL',
-      value: project.githubRepoUrl,
-      sensitive: false,
-    },
-    ...orderedProjectKeys
-      .filter((key) => key !== 'LINK_DEPLOY' && key !== 'GITHUB_URL')
-      .map((key) => {
-        const sourceVariable =
-          key === 'DATABASE_URL' ? variableMap.get('DATABASE_URL') : variableMap.get(key)
-        return {
-          id: key.toLowerCase().replaceAll('_', '-'),
-          key,
-          value: sourceVariable?.value ?? '',
-          sensitive: sourceVariable?.sensitive ?? true,
-        }
-      }),
-  ]
-}
-
-function getProjectPreviewMeta(project: Project) {
-  const sheetFields = buildSheetFields(project)
-  return `${getFieldValue(sheetFields, 'sviluppo in')} / ${getFieldValue(sheetFields, 'deploy con')}`
-}
-
-function getFieldValue(fields: ProjectVariable[], key: string) {
-  return fields.find((field) => field.key.trim().toLowerCase() === key)?.value.trim() ?? ''
-}
-
-function getDeployLink(fields: ProjectVariable[], project: Project) {
-  const deployFieldValue = getFieldValue(fields, 'deploy con')
-  if (deployFieldValue.startsWith('http://') || deployFieldValue.startsWith('https://')) {
-    return deployFieldValue
-  }
-
-  return project.deploy.url
-}
-
-function getDeployAdminLink(variables: ProjectVariable[], deployLink: string) {
-  const storedAdminLink = getFieldValue(variables, deployAdminLinkKey.toLowerCase())
-  if (storedAdminLink) return storedAdminLink
-  return buildDefaultDeployAdminLink(deployLink)
-}
-
-function buildDefaultDeployAdminLink(value: string) {
-  const normalizedValue = value.trim().replace(/\/+$/, '')
-  if (!normalizedValue) return ''
-  return `${normalizedValue}/admina`
-}
-
-function formatProjectUpdatedAt(value: string) {
-  const updatedAtDate = new Date(value)
-  if (Number.isNaN(updatedAtDate.getTime())) return 'Data ultima modifica non disponibile'
-
-  const formatter = new Intl.DateTimeFormat('it-IT', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-
-  const formattedParts = formatter.formatToParts(updatedAtDate)
-  const day = formattedParts.find((part) => part.type === 'day')?.value ?? ''
-  const month = formattedParts.find((part) => part.type === 'month')?.value ?? ''
-  const year = formattedParts.find((part) => part.type === 'year')?.value ?? ''
-  const hour = formattedParts.find((part) => part.type === 'hour')?.value ?? ''
-  const minute = formattedParts.find((part) => part.type === 'minute')?.value ?? ''
-  const capitalizedMonth = month ? `${month.charAt(0).toUpperCase()}${month.slice(1)}` : ''
-
-  return `${day} ${capitalizedMonth} ${year} - ${hour}.${minute}`
-}
-
-function isDeployPasswordField(key: string) {
-  return key.trim().toLowerCase() === deployPasswordFieldKey.toLowerCase()
-}
-
 function applySheetFieldsToCustomerProject(project: CustomerProject, sheetFields: ProjectVariable[]): CustomerProject {
   const getField = (key: string) => sheetFields.find((field) => field.key.trim().toLowerCase() === key.toLowerCase())
   const customDataFields = sheetFields.filter((field) => {
@@ -1145,13 +1081,6 @@ function ConfirmDialog({
       </div>
     </div>
   )
-}
-
-function inferScopeFromEnvKey(key: string) {
-  if (key.startsWith('SUPABASE_') || key === 'DATABASE_URL') return 'Supabase' as const
-  if (key.startsWith('GITHUB_')) return 'GitHub' as const
-  if (key === 'LINK_DEPLOY') return 'Deploy' as const
-  return 'Custom' as const
 }
 
 function createLocalId() {

@@ -675,12 +675,27 @@ function normalizePromptTitle(value: string) {
 
 function buildPromptClipboardValue(prompt: Prompt) {
   const title = prompt.title.trim()
-  const fullText = prompt.fullText.trim()
+  const fullText = stripPromptTitlePrefix(prompt.fullText, title)
 
   if (!title) return fullText
-  if (!fullText) return `Titolo: ${title}`
+  if (!fullText) return title
 
-  return `Titolo: ${title}\n\n${fullText}`
+  return `${title}\n\n${fullText}`
+}
+
+function stripPromptTitlePrefix(value: string, title: string) {
+  const fullText = value.trim()
+  if (!fullText) return ''
+
+  const normalizedTitle = title.trim().toLowerCase()
+  const lines = fullText.split(/\r?\n/)
+  const firstLine = lines[0]?.trim().toLowerCase() ?? ''
+
+  if (normalizedTitle && firstLine === `titolo: ${normalizedTitle}`) {
+    return lines.slice(1).join('\n').trim()
+  }
+
+  return fullText
 }
 
 function PromptCategoryTabs({

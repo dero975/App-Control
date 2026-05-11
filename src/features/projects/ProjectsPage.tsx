@@ -16,9 +16,26 @@ import {
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
+import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { copyToClipboard } from '../../lib/clipboard'
 import { isSupabaseConfigured } from '../../lib/supabase'
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
+import {
+  buildDefaultDeployAdminLink,
+  buildProjectVariables,
+  buildSheetFields,
+  deployAdminLinkKey,
+  deployPasswordFieldKey,
+  formatProjectUpdatedAt,
+  getDeployAdminLink,
+  getDeployLink,
+  getFieldValue,
+  getProjectPreviewMeta,
+  isDeployPasswordField,
+  supabaseServiceKey,
+  supabaseServiceKeyAliases,
+} from './projectShared'
 import {
   createProjectRecord,
   deleteProjectRecord,
@@ -39,17 +56,6 @@ type ProjectImageSlot = {
 }
 
 const projectTabs = ['Dati progetto', 'Variabili', 'Immagini', 'Note', 'Sync'] as const
-const orderedProjectKeys = [
-  'LINK_DEPLOY',
-  'GITHUB_URL',
-  'GITHUB_TOKEN',
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'DATABASE_URL',
-] as const
-const deployPasswordFieldKey = 'Password deploy'
-const deployAdminLinkKey = 'LINK_DEPLOY ADMIN'
 type SelectableFieldConfig = {
   options: readonly string[]
   promptLabel: string
@@ -92,7 +98,7 @@ const maxImageEdge = 1200
 const legacyDefaultSyncPrompt =
   'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per caricare da App Control le variabili autorizzate del progetto. Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
 const defaultSyncPrompt =
-  'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per collegare il progetto e leggere da App Control solo i dati canonici disponibili: Dati progetto (`Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`) e Variabili (`LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`). Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Analizza il codice reale del repository per capire quali variabili servono davvero. Se il progetto usa Vite o altre env client-side, deriva quando necessario `VITE_SUPABASE_URL` da `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da `SUPABASE_ANON_KEY`, senza aspettarti che siano salvate come campi separati in App Control. Se uno script, template o provider richiede `SUPABASE_DB_URL`, trattala come alias di `DATABASE_URL` e generala solo quando serve. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
+  'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per collegare il progetto e leggere da App Control solo i dati canonici disponibili: Dati progetto (`Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`) e Variabili (`LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`). Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Analizza il codice reale del repository per capire quali variabili servono davvero. Se il progetto usa Vite o altre env client-side, deriva quando necessario `VITE_SUPABASE_URL` da `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da `SUPABASE_ANON_KEY`, senza aspettarti che siano salvate come campi separati in App Control. Se uno script, template o provider richiede `SUPABASE_DB_URL`, trattala come alias di `DATABASE_URL` e generala solo quando serve. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service key o DB URL nei log o nella chat.'
 const imageIntegrationPromptBySlotId: Record<string, string> = {
   [homeIconSlotId]:
     'Cerca nel progetto il file con nome esatto `icona schermata home.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona schermata Home/PWA dell’app. Se per una corretta integrazione servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
@@ -144,6 +150,7 @@ export function ProjectsPage() {
   const [projectList, setProjectList] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [expandedMobileId, setExpandedMobileId] = useState('')
+  const [mobileModalProjectId, setMobileModalProjectId] = useState('')
   const [activeTab, setActiveTab] = useState<(typeof projectTabs)[number]>('Dati progetto')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ProjectListSortMode>('name-asc')
@@ -151,6 +158,7 @@ export function ProjectsPage() {
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
   const [visibleProjectIds, setVisibleProjectIds] = useState<string[]>([])
+  const isMobileViewport = useIsMobileViewport()
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -195,6 +203,7 @@ export function ProjectsPage() {
   }, [projectList, query, sortMode, visibleProjectIds])
 
   const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
+  const mobileModalProject = isMobileViewport ? projectList.find((project) => project.id === mobileModalProjectId) ?? null : null
 
   async function createProject() {
     const nextProject = createEmptyProject(projectList.length + 1)
@@ -336,7 +345,7 @@ export function ProjectsPage() {
               >
                 <strong>{project.name}</strong>
                 <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
-                <small>{getProjectPreviewMeta(project)}</small>
+                <small>{getProjectPreviewMeta(project, normalizeSelectableFieldValue)}</small>
               </button>
             ))}
           </div>
@@ -344,7 +353,7 @@ export function ProjectsPage() {
           <div className="record-list record-list--mobile" aria-label="Progetti mobile">
             {filteredProjects.map((project) => {
               const isExpanded = project.id === expandedMobileId
-              const deployLink = getDeployLink(buildSheetFields(project), project)
+              const deployLink = getDeployLink(buildNormalizedSheetFields(project), project)
               const deployAdminLink = getDeployAdminLink(buildProjectVariables(project), deployLink)
 
               return (
@@ -375,6 +384,20 @@ export function ProjectsPage() {
                           {deployAdminLink}
                         </a>
                       ) : null}
+                      <div className="mobile-project-card__actions">
+                        <button
+                          type="button"
+                          className="secondary-button mobile-project-card__action"
+                          onClick={() => {
+                            setSelectedId(project.id)
+                            setActiveTab('Dati progetto')
+                            setMobileModalProjectId(project.id)
+                          }}
+                        >
+                          <FileText aria-hidden="true" className="button-icon" />
+                          Apri scheda progetto
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </article>
@@ -407,6 +430,27 @@ export function ProjectsPage() {
       {deleteCandidate ? (
         <ConfirmDeleteProjectModal project={deleteCandidate} onCancel={() => setDeleteCandidate(null)} onConfirm={deleteProject} />
       ) : null}
+
+      {isMobileViewport && mobileModalProject ? (
+        <MobileWorkspaceModal
+          title={mobileModalProject.name}
+          subtitle="Scheda progetto mobile"
+          onClose={() => setMobileModalProjectId('')}
+        >
+          <ProjectDetail
+            key={mobileModalProject.id}
+            activeTab={activeTab}
+            mobileModal
+            onRequestDelete={() => {
+              setMobileModalProjectId('')
+              setDeleteCandidate(mobileModalProject)
+            }}
+            onSave={isSupabaseConfigured ? saveProject : undefined}
+            onTabChange={setActiveTab}
+            project={mobileModalProject}
+          />
+        </MobileWorkspaceModal>
+      ) : null}
     </div>
   )
 }
@@ -414,17 +458,19 @@ export function ProjectsPage() {
 function ProjectDetail({
   project,
   activeTab,
+  mobileModal = false,
   onSave,
   onRequestDelete,
   onTabChange,
 }: {
   project: Project
   activeTab: (typeof projectTabs)[number]
+  mobileModal?: boolean
   onSave?: (snapshot: ProjectSnapshot) => Promise<void>
   onRequestDelete: () => void
   onTabChange: (tab: (typeof projectTabs)[number]) => void
 }) {
-  const [sheetFields, setSheetFields] = useState<ProjectVariable[]>(() => buildSheetFields(project))
+  const [sheetFields, setSheetFields] = useState<ProjectVariable[]>(() => buildNormalizedSheetFields(project))
   const [variables, setVariables] = useState<ProjectVariable[]>(() => buildProjectVariables(project))
   const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots(project.images))
   const [operationalNotes, setOperationalNotes] = useState(project.operationalNotes)
@@ -500,7 +546,7 @@ function ProjectDetail({
   const hasOperationalNotes = operationalNotes.trim().length > 0
 
   return (
-    <div className="detail-stack">
+    <div className={mobileModal ? 'detail-stack detail-stack--mobile-modal' : 'detail-stack'}>
       <div className="detail-heading">
         <div>
           <h2>{projectTitle}</h2>
@@ -742,14 +788,14 @@ export function VariablesPanel({
   }
 
   async function copyEnvBlock() {
-    const envBlock = formatDeployEnvForChat(variables)
+    const envBlock = formatVariablesEnvForCopy(variables)
     if (!envBlock) return
 
     await copyToClipboard(envBlock)
     setEnvBlockCopied(true)
   }
 
-  const envBlock = formatDeployEnvForChat(variables)
+  const envBlock = formatVariablesEnvForCopy(variables)
   const isVariablesPanel = title === 'Variabili'
   const isBarePanel = title === 'Dati progetto' || title === 'Variabili'
   const githubEmailIndex = variables.findIndex((variable) => isGithubEmailField(variable.key))
@@ -783,7 +829,7 @@ export function VariablesPanel({
                 className="secondary-button secondary-button--compact"
                 disabled={!envBlock}
                 onClick={copyEnvBlock}
-                title="Copia .env deploy Render"
+                title="Copia tutte le variabili in formato .env"
               >
                 <FileText aria-hidden="true" className="button-icon" />
                 {envBlockCopied ? 'Copiato' : '.env render'}
@@ -962,52 +1008,34 @@ function DeployCredentialsCard({
   )
 }
 
-function formatDeployEnvForChat(variables: ProjectVariable[]) {
-  const variableMap = new Map(variables.map((variable) => [normalizeEnvKey(variable.key), variable.value.trim()]))
-  const supabaseUrl = normalizeSupabaseProjectUrl(variableMap.get('SUPABASE_URL') || variableMap.get('VITE_SUPABASE_URL') || '')
-  const supabaseAnonKey = variableMap.get('SUPABASE_ANON_KEY') || variableMap.get('VITE_SUPABASE_ANON_KEY') || ''
-  const deployEnv = [
-    {
-      key: 'SUPABASE_URL',
-      value: supabaseUrl,
-    },
-    {
-      key: 'VITE_SUPABASE_URL',
-      value: supabaseUrl,
-    },
-    {
-      key: 'SUPABASE_ANON_KEY',
-      value: supabaseAnonKey,
-    },
-    {
-      key: 'VITE_SUPABASE_ANON_KEY',
-      value: supabaseAnonKey,
-    },
-    {
-      key: 'SUPABASE_SERVICE_ROLE_KEY',
-      value: variableMap.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-    },
-    {
-      key: 'SUPABASE_DB_URL',
-      value: variableMap.get('SUPABASE_DB_URL') || variableMap.get('DATABASE_URL') || '',
-    },
-    {
-      key: 'DATABASE_URL',
-      value: variableMap.get('DATABASE_URL') || variableMap.get('SUPABASE_DB_URL') || '',
-    },
-    {
-      key: 'GITHUB_URL',
-      value: variableMap.get('GITHUB_URL') || '',
-    },
-    {
-      key: 'GITHUB_TOKEN',
-      value: variableMap.get('GITHUB_TOKEN') || '',
-    },
-  ]
+function formatVariablesEnvForCopy(variables: ProjectVariable[]) {
+  const exportableVariables = variables
+    .map((variable) => {
+      const originalKey = variable.key.trim()
+      const exportKey = normalizeEnvKey(originalKey)
+      if (!originalKey || !exportKey) return null
 
-  return deployEnv
-    .map((variable) => `${variable.key}=${formatEnvValue(variable.value)}`)
+      return {
+        exportKey,
+        value: variable.value.trim(),
+      }
+    })
+    .filter((variable): variable is NonNullable<typeof variable> => Boolean(variable))
+
+  if (!exportableVariables.length) return ''
+
+  return exportableVariables
+    .map((variable) => `${variable.exportKey}=${formatEnvValue(normalizeEnvExportValue(variable.exportKey, variable.value))}`)
     .join('\n')
+}
+
+function SupabaseFieldTitle({ title }: { title: string }) {
+  return (
+    <span className="fixed-field-name fixed-field-name--with-inline-copy">
+      <span>{title}</span>
+      <CopyButton value={title} iconOnly className="copy-button--field-title" label="Copia titolo" />
+    </span>
+  )
 }
 
 function DeployLinksCard({
@@ -1087,6 +1115,15 @@ function normalizeSupabaseProjectUrl(value: string) {
   return value.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '')
 }
 
+function normalizeEnvExportValue(key: string, value: string) {
+  if (key === 'SUPABASE_URL' || key === 'VITE_SUPABASE_URL') {
+    return normalizeSupabaseProjectUrl(value)
+  }
+
+  return value
+}
+
+
 function VariableEditorCard({
   variable,
   onAddAccess,
@@ -1107,7 +1144,7 @@ function VariableEditorCard({
   const selectFieldConfig = getSelectableFieldConfig(variable.key)
   const isDevelopmentField = variable.key.trim().toLowerCase() === 'sviluppo in'
   const isGitHubVariable = ['GITHUB_URL', 'GITHUB_TOKEN'].includes(variable.key.trim().toUpperCase())
-  const isSupabaseVariable = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL'].includes(
+  const isSupabaseVariable = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', ...supabaseServiceKeyAliases, 'DATABASE_URL'].includes(
     variable.key.trim().toUpperCase(),
   )
   const selectValue = selectFieldConfig ? getSelectValue(variable.value, selectFieldConfig) : variable.value
@@ -1138,7 +1175,7 @@ function VariableEditorCard({
     >
       <div className="variable-field-stack">
         <label className="variable-value-input" aria-label={valueAriaLabel}>
-          <span className="fixed-field-name">{variable.key}</span>
+          {isSupabaseVariable ? <SupabaseFieldTitle title={variable.key} /> : <span className="fixed-field-name">{variable.key}</span>}
           {selectFieldConfig ? (
             <div className="variable-select-row">
               <select value={selectValue} onChange={(event) => handleSelectChange(event.target.value)}>
@@ -1370,7 +1407,7 @@ function createEmptyProject(index: number): Project {
     env: [
       { key: 'SUPABASE_URL', value: '', scope: 'Supabase', sensitive: false },
       { key: 'SUPABASE_ANON_KEY', value: '', scope: 'Supabase', sensitive: true },
-      { key: 'SUPABASE_SERVICE_ROLE_KEY', value: '', scope: 'Supabase', sensitive: true },
+      { key: supabaseServiceKey, value: '', scope: 'Supabase', sensitive: true },
       { key: 'DATABASE_URL', value: '', scope: 'Supabase', sensitive: true },
       { key: 'GITHUB_TOKEN', value: '', scope: 'GitHub', sensitive: true },
     ],
@@ -2394,51 +2431,8 @@ function formatAgentConfig(project: Project) {
   )
 }
 
-function buildSheetFields(project: Project): ProjectVariable[] {
-  const deployPasswordField =
-    project.dataFields?.find((field) => isDeployPasswordField(field.key)) ?? {
-      id: 'sheet-password-deploy',
-      key: deployPasswordFieldKey,
-      value: '',
-      sensitive: true,
-    }
-  const customDataFields = (project.dataFields ?? []).filter((field) => !isDeployPasswordField(field.key))
-
-  return [
-    {
-      id: 'sheet-nome-progetto',
-      key: 'nome progetto',
-      value: project.name,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-mail-github',
-      key: 'mail github',
-      value: project.githubAccountEmail,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-psw',
-      key: 'Password',
-      value: project.linkedSecretLabel,
-      sensitive: false,
-    },
-    {
-      id: 'sheet-sviluppo-in',
-      key: 'sviluppo in',
-      value: normalizeSelectableFieldValue('sviluppo in', project.developmentEnvironment),
-      sensitive: false,
-      accessAccounts: project.platformAccesses ?? [],
-    },
-    {
-      id: 'sheet-deploy-con',
-      key: 'deploy con',
-      value: normalizeSelectableFieldValue('deploy con', project.deploy.provider),
-      sensitive: false,
-    },
-    deployPasswordField,
-    ...customDataFields,
-  ]
+function buildNormalizedSheetFields(project: Project) {
+  return buildSheetFields(project, normalizeSelectableFieldValue)
 }
 
 function isGithubEmailField(key: string) {
@@ -2453,103 +2447,11 @@ function isDeployField(key: string) {
   return key.trim().toLowerCase() === 'deploy con'
 }
 
-function isDeployPasswordField(key: string) {
-  return key.trim().toLowerCase() === deployPasswordFieldKey.toLowerCase()
-}
-
-function getProjectPreviewMeta(project: Project) {
-  const sheetFields = buildSheetFields(project)
-  return `${getFieldValue(sheetFields, 'sviluppo in')} / ${getFieldValue(sheetFields, 'deploy con')}`
-}
-
-function formatProjectUpdatedAt(value: string) {
-  const updatedAtDate = new Date(value)
-  if (Number.isNaN(updatedAtDate.getTime())) return 'Data ultima modifica non disponibile'
-
-  const formatter = new Intl.DateTimeFormat('it-IT', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-
-  const formattedParts = formatter.formatToParts(updatedAtDate)
-  const day = formattedParts.find((part) => part.type === 'day')?.value ?? ''
-  const month = formattedParts.find((part) => part.type === 'month')?.value ?? ''
-  const year = formattedParts.find((part) => part.type === 'year')?.value ?? ''
-  const hour = formattedParts.find((part) => part.type === 'hour')?.value ?? ''
-  const minute = formattedParts.find((part) => part.type === 'minute')?.value ?? ''
-  const capitalizedMonth = month ? `${month.charAt(0).toUpperCase()}${month.slice(1)}` : ''
-
-  return `${day} ${capitalizedMonth} ${year} - ${hour}.${minute}`
-}
-
 function normalizeSelectableFieldValue(key: string, value: string) {
   const fieldConfig = getSelectableFieldConfig(key)
   if (!fieldConfig) return value
 
   return fieldConfig.options.includes(value) ? value : fieldConfig.fallback
-}
-
-function getFieldValue(fields: ProjectVariable[], key: string) {
-  return fields.find((field) => field.key.trim().toLowerCase() === key)?.value.trim()
-}
-
-function getDeployLink(fields: ProjectVariable[], project: Project) {
-  const deployFieldValue = getFieldValue(fields, 'deploy con')
-  if (deployFieldValue?.startsWith('http://') || deployFieldValue?.startsWith('https://')) {
-    return deployFieldValue
-  }
-
-  return project.deploy.url
-}
-
-function getDeployAdminLink(variables: ProjectVariable[], deployLink: string) {
-  const storedAdminLink = getFieldValue(variables, deployAdminLinkKey.toLowerCase())
-  if (storedAdminLink) return storedAdminLink
-  return buildDefaultDeployAdminLink(deployLink)
-}
-
-function buildProjectVariables(project: Project): ProjectVariable[] {
-  const variableMap = new Map(project.env.map((variable) => [variable.key, variable]))
-  const deployLink = project.deploy.url
-  const deployAdminLink =
-    variableMap.get(deployAdminLinkKey)?.value ?? buildDefaultDeployAdminLink(deployLink)
-
-  return [
-    {
-      id: 'link-deploy',
-      key: 'LINK_DEPLOY',
-      value: deployLink,
-      sensitive: false,
-    },
-    {
-      id: 'link-deploy-admin',
-      key: deployAdminLinkKey,
-      value: deployAdminLink,
-      sensitive: false,
-    },
-    {
-      id: 'github-url',
-      key: 'GITHUB_URL',
-      value: project.githubRepoUrl,
-      sensitive: false,
-    },
-    ...orderedProjectKeys
-      .filter((key) => key !== 'LINK_DEPLOY' && key !== 'GITHUB_URL')
-      .map((key) => {
-        const sourceVariable =
-          key === 'DATABASE_URL' ? variableMap.get('DATABASE_URL') ?? variableMap.get('SUPABASE_DB_URL') : variableMap.get(key)
-        return {
-          id: key.toLowerCase().replaceAll('_', '-'),
-          key,
-          value: sourceVariable?.value ?? '',
-          sensitive: sourceVariable?.sensitive ?? true,
-        }
-      }),
-  ]
 }
 
 function resolveSyncPrompt(value: string) {
@@ -2564,10 +2466,4 @@ function isLinkDeployField(key: string) {
 
 function isLinkDeployAdminField(key: string) {
   return key.trim().toUpperCase() === deployAdminLinkKey.toUpperCase()
-}
-
-function buildDefaultDeployAdminLink(value: string) {
-  const normalizedValue = value.trim().replace(/\/+$/, '')
-  if (!normalizedValue) return ''
-  return `${normalizedValue}/admina`
 }
