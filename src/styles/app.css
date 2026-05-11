@@ -570,6 +570,11 @@
   width: 132px;
 }
 
+.mobile-nav__brand {
+  display: flex;
+  justify-content: center;
+}
+
 .mobile-nav__controls {
   display: grid;
   gap: 10px;
@@ -1085,6 +1090,14 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+.mobile-project-card__trigger small {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-soft);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .mobile-project-card__links {
   display: grid;
   gap: 10px;
@@ -1104,6 +1117,16 @@ textarea {
   text-decoration: underline;
 }
 
+.mobile-project-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mobile-project-card__action {
+  width: 100%;
+}
+
 .detail-stack {
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr);
@@ -1111,6 +1134,11 @@ textarea {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+.detail-stack--mobile-modal,
+.customer-project-detail--mobile {
+  height: 100%;
 }
 
 .detail-heading {
@@ -1416,6 +1444,31 @@ code {
   border-color: transparent;
 }
 
+.copy-button--field-title {
+  min-height: 16px;
+  width: 16px;
+  min-width: 16px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: currentColor;
+  opacity: 0.88;
+  vertical-align: middle;
+}
+
+.copy-button--field-title .copy-button__icon {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.2;
+}
+
+.copy-button--field-title:hover {
+  background: transparent;
+  border-color: transparent;
+  color: currentColor;
+  opacity: 1;
+}
+
 .danger-button {
   color: #9a3d35;
 }
@@ -1475,6 +1528,57 @@ code {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.mobile-workspace-modal-backdrop {
+  padding: 0;
+  background: rgba(10, 18, 13, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-workspace-modal {
+  width: min(100%, 980px);
+  height: min(100svh, 100%);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, rgba(249, 251, 247, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.mobile-workspace-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.mobile-workspace-modal__header-copy {
+  min-width: 0;
+}
+
+.mobile-workspace-modal__header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.08;
+}
+
+.mobile-workspace-modal__header p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.mobile-workspace-modal__body {
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
 }
 
 .auth-form {
@@ -2727,6 +2831,14 @@ code {
   text-align: left;
 }
 
+.fixed-field-name--with-inline-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  padding-left: 16px;
+}
+
 .fixed-field-name::first-letter {
   text-transform: uppercase;
 }
@@ -3171,6 +3283,10 @@ code {
     backdrop-filter: blur(18px);
   }
 
+  .mobile-nav__brand {
+    justify-content: center;
+  }
+
   .mobile-nav select {
     max-width: none;
     border-color: var(--nav-border);
@@ -3217,6 +3333,29 @@ code {
     display: grid;
     gap: 12px;
     padding-right: 0;
+  }
+
+  .customers-page .detail-panel--customer-project {
+    display: none;
+  }
+
+  .mobile-workspace-modal {
+    width: 100%;
+    height: 100svh;
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  .mobile-workspace-modal__header {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+
+  .mobile-workspace-modal__header h2 {
+    font-size: 22px;
+  }
+
+  .mobile-workspace-modal__body {
+    padding: 14px;
   }
 
   .mobile-project-card__trigger strong {

@@ -38,7 +38,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 
 - Non reintrodurre login email/password o Auth UI senza richiesta esplicita.
 - Non ampliare Supabase, SQL o storage senza richiesta esplicita.
-- `SUPABASE_SERVICE_ROLE_KEY`, DB URL e token GitHub devono restare solo in `.env` locale o sistemi sicuri: mai frontend, log, markdown o chat.
+- `SUPABASE_SERVICE_KEY`, DB URL e token GitHub devono restare solo in `.env` locale o sistemi sicuri: mai frontend, log, markdown o chat.
 - Non hardcodare segreti reali in mock, codice o documentazione.
 - Non creare dashboard: la UI resta sezione -> lista/indice -> dettaglio -> tab/sottosezioni.
 - Non separare `Dati progetto`, `Variabili`, `Immagini` o `Sync` come voci sidebar: restano tab dentro `Progetti`.

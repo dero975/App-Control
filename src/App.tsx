@@ -25,10 +25,7 @@ function App() {
     const storedSection = window.sessionStorage.getItem(activeAdminSectionStorageKey)
     return storedSection === 'prompts' || storedSection === 'settings' || storedSection === 'dashboard' ? storedSection : 'projects'
   })
-  const [activeCustomerSection, setActiveCustomerSection] = useState<CustomerSection>(() => {
-    const storedSection = window.sessionStorage.getItem(activeCustomerSectionStorageKey)
-    return storedSection === 'customers' ? storedSection : 'customers'
-  })
+  const [activeCustomerSection, setActiveCustomerSection] = useState<CustomerSection>('customers')
   const [customerDirectory, setCustomerDirectory] = useState<Customer[]>([])
   const [activeCustomerId, setActiveCustomerId] = useState(() => window.sessionStorage.getItem(activeCustomerIdStorageKey) ?? '')
   const [customerSearchQuery, setCustomerSearchQuery] = useState(() => window.sessionStorage.getItem(customerSearchQueryStorageKey) ?? '')
@@ -87,7 +84,7 @@ function App() {
 
   function navigateSection(nextSection: AdminSection | CustomerSection) {
     if (activeEnvironment === 'customers') {
-      setActiveCustomerSection(nextSection === 'customers' ? 'customers' : 'customers')
+      setActiveCustomerSection('customers')
       return
     }
 

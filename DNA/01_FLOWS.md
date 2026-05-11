@@ -5,14 +5,15 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 ## Navigazione
 
 - `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
-- A ogni avvio/mount dell'app, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
+- Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app.
 - PIN valido: 6 cifre, default DB `140478`; il PIN viene salvato come hash in Supabase.
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
 - `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
+- Nella nav mobile il logo `App Control` resta centrato nella fascia superiore; sotto al logo la barra mantiene switch ambiente e select del contesto attivo.
 - Su desktop la sidebar e la pagina `Progetti` restano bloccate nel viewport; scorrono solo lista progetti e liste card interne dei tab quando necessario.
 - `navigation.ts` definisce una nav distinta per i due ambienti:
-  - `Admin`: `projects`, `prompts`, `settings`, `dashboard`
+  - `Admin`: `projects`, `prompts`, `dashboard`, `settings`
   - `Clienti`: `customers`, con lista clienti reale resa direttamente nella sidebar
 
 ## Clienti
@@ -31,6 +32,7 @@ Fonte principale: `src/features/customers/CustomersPage.tsx`.
 - `Dati progetto` e `Variabili` riusano la stessa struttura editor dell'area `Admin`; in `Clienti` cambia solo la palette visiva del workspace.
 - `Immagini` e `Sync` esistono anche nel dettaglio cliente per allineamento di layout e navigazione; oggi non hanno ancora persistenza/integrazione cliente dedicata.
 - Il workspace `Clienti` salva su Supabase con debounce breve per update e mostra stato esplicito di salvataggio.
+- Su mobile la lista progetti cliente non mostra piu il dettaglio completo inline sotto la card. Toccando una card si espandono i link deploy disponibili e il pulsante `Apri scheda progetto`, che apre una scheda fullscreen dedicata al progetto cliente con gli stessi tab reali del dettaglio desktop.
 
 ## Progetti
 
@@ -40,7 +42,9 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento recente/meno recente; di default all'apertura parte in ordine alfabetico A-Z. Ogni card mostra anche `Ultima modifica` su una sola riga.
 - Una volta applicati ricerca e ordinamento, la lista mantiene quell'ordine finche Admin non cambia davvero i filtri: selezionare un progetto o aggiornarne i dati non deve rimescolare le card.
-- Su mobile la home `Progetti` non mostra il dettaglio completo del progetto sotto la lista: rende solo card compatte con nome progetto. Toccando una card si apre inline mostrando soltanto `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` come link cliccabili, senza pulsanti copia.
+- Su mobile la home `Progetti` mostra card compatte. Toccando una card si espandono `LINK_DEPLOY`, `LINK_DEPLOY ADMIN` e il pulsante `Apri scheda progetto`.
+- `Apri scheda progetto` apre una scheda fullscreen mobile dedicata, che riusa lo stesso dettaglio reale del desktop con i tab `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
+- La scheda fullscreen mobile e usata sia in `Admin` sia in `Clienti`, con header dedicato e chiusura esplicita; il dettaglio laterale resta limitato al desktop.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
 - Le modifiche al dettaglio progetto vengono salvate automaticamente su Supabase con debounce breve; non esiste pulsante manuale `Salva modifiche`.
@@ -58,7 +62,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
 - Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
-- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
 - `LINK_DEPLOY ADMIN` non e una variabile canonica da compilare a mano: il flusso `Sync` deve trattarla come derivata di `LINK_DEPLOY`, salvo override manuale gia presente nel progetto.
 - Se il progetto sincronizzato usa Vite o altre env client-side, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vanno derivate rispettivamente da `SUPABASE_URL` e `SUPABASE_ANON_KEY`; non devono essere attese come campi separati dentro App Control.
 - Se uno script o un provider richiede `SUPABASE_DB_URL`, va trattata come alias di `DATABASE_URL` e generata solo quando necessaria.
@@ -96,7 +100,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 Fonte: `src/features/projects/ProjectsPage.tsx`.
 
 - Il pulsante `.env render` nel tab `Variabili` copia un preset generale per deploy Render di altri progetti.
-- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
 - `LINK_DEPLOY ADMIN` viene derivata automaticamente da `LINK_DEPLOY` con suffisso `/admina`; se l'admin modifica quel valore, la derivazione automatica non deve sovrascrivere il custom value.
 - Il pulsante `.env render` genera automaticamente anche le variabili derivate richieste da alcuni stack o provider: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`.
 - `SUPABASE_URL` e l'eventuale `VITE_SUPABASE_URL` derivata vengono normalizzate senza suffisso `/rest/v1`.
@@ -116,7 +120,7 @@ Fonte: `src/features/prompts`.
 - Nelle tre viste categoria (`Prompt iniziali`, `Prompt manutenzione`, `Prompt vari`) Admin puo riordinare manualmente le card; l'ordine viene persistito su Supabase e deve sopravvivere al riavvio dell'app.
 - La vista `Tutte` non usa l'ordinamento manuale categoria: mostra sempre i prompt in ordine alfabetico per titolo.
 - Eliminazione prompt parte direttamente dalla card ma passa da una modale di conferma prima della rimozione reale da Supabase.
-- `Copia prompt` copia sempre `Titolo: ...` seguito da una riga vuota e poi dal testo completo del prompt.
+- `Copia prompt` copia sempre il nome del prompt su una sola riga, seguito da una riga vuota e poi dal testo completo del prompt; se il testo salvato contiene gia una prima riga `Titolo: ...` identica al nome, quella riga viene rimossa per evitare duplicazioni.
 - Non esistono piu pannello dettaglio laterale, tag, note d'uso, preferiti o data ultima modifica.
 
 ## Impostazioni

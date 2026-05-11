@@ -21,7 +21,7 @@ Stato setup Supabase eseguito nella fase corrente:
 - Dopo ogni script, verificare l'esito prima di procedere.
 - Non inserire dati reali o segreti nel SQL Editor.
 - Password, token, chiavi Supabase, DB URL e blocchi ENV devono essere salvati come ciphertext o placeholder fino a quando non esiste cifratura applicativa.
-- Non usare mai `SUPABASE_SERVICE_ROLE_KEY` nel frontend.
+- Non usare mai `SUPABASE_SERVICE_KEY` nel frontend.
 - Se il codice cambia modello dati o flussi, aggiornare questo file prima di creare o modificare tabelle.
 
 ## Mappatura codice -> database
@@ -49,7 +49,7 @@ Mappatura:
   - `deploy con`: `projects.deploy_provider`
   - campi aggiunti manualmente: `project_data_fields`
 - Tab `Variabili`: `project_env_variables`.
-- Set canonico variabili progetto atteso in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- Set canonico variabili progetto atteso in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
 - `LINK_DEPLOY ADMIN` e `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` non sono piu input canonici da compilare in App Control: vanno derivate quando richieste dal codice reale o dal provider target.
 - Tab `Immagini`: `project_images`; la UI mostra sempre cinque slot fissi e salva `slot_id`, `name`, `fileName`, `mimeType`, `dataUrl`, `sizeBytes`, `originalSizeBytes`.
 - Persistenza immagini attuale: salvare il data URL ottimizzato nella colonna `data_url`; `path` resta disponibile per un futuro passaggio a Supabase Storage.

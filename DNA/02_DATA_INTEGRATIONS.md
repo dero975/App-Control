@@ -27,7 +27,7 @@
 - `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Windsurf` e `Replit`; la UI mantiene fallback per eventuali valori esterni non previsti.
 - `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
 - `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
-- Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`.
+- Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
 - `LINK_DEPLOY ADMIN` non e input canonico obbligatorio: la UI lo deriva automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma puo essere salvato come override manuale dentro `project_env_variables`.
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non vengono piu salvate come input canonici: vanno derivate quando il codice reale del progetto sincronizzato usa env client-side Vite.
 - `SUPABASE_DB_URL` non e piu una variabile canonica da compilare: resta solo alias derivabile di `DATABASE_URL` per script o provider che la richiedono.
@@ -63,7 +63,7 @@ Schema e script SQL canonici sono in `DNA/04_SUPABASE_SCHEMA_SQL.md`.
 
 Guardrail:
 
-- Non usare mai `SUPABASE_SERVICE_ROLE_KEY` nel frontend.
+- Non usare mai `SUPABASE_SERVICE_KEY` nel frontend.
 - Il PIN app e una barriera operativa leggera, non sicurezza forte enterprise.
 - Non generare script SQL in blocco.
 - Se richiesti script SQL, produrne uno alla volta e attendere esito prima del successivo.
