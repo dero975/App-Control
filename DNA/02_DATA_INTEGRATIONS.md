@@ -52,6 +52,7 @@
 - `Prompt` contiene solo: `TITOLO`, `CATEGORIA`, `PROMPT`.
 - Il foglio non sostituisce Supabase: resta una copia leggibile e ripristinabile.
 - La sync usa Supabase REST in sola lettura con `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+- Finche lo script Apps Script non supporta un header di accesso o un canale server-side, la RLS transitoria mantiene lettura anonima solo per le tabelle necessarie al backup: `projects`, `project_env_variables` e `prompts`.
 
 ## Integrazioni future
 
