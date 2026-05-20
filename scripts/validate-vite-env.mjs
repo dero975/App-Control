@@ -35,6 +35,41 @@ if (missingKeys.length) {
   process.exit(1)
 }
 
+const forbiddenClientKeyPattern = /^VITE_.*(SERVICE|SERVICE_ROLE|SECRET|PASSWORD|TOKEN|DATABASE|DB_URL|PRIVATE)/i
+const forbiddenClientKeys = [...envValues.keys()].filter((key) => forbiddenClientKeyPattern.test(key))
+
+if (forbiddenClientKeys.length) {
+  console.error(`Forbidden client-side environment variables: ${forbiddenClientKeys.join(', ')}`)
+  console.error('VITE_* variables are bundled into the static frontend. Keep service keys, tokens and database URLs server-side only.')
+  process.exit(1)
+}
+
+const serverOnlyKeys = [
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_SERVICE_KEY',
+  'SUPABASE_DB_URL',
+  'DATABASE_URL',
+  'GITHUB_TOKEN',
+  'RENDER_API_KEY',
+]
+const serverOnlyValues = serverOnlyKeys
+  .map((key) => [key, envValues.get(key)?.trim()])
+  .filter((entry) => Boolean(entry[1]))
+
+const leakedClientValues = [...envValues.entries()]
+  .filter(([key]) => key.startsWith('VITE_'))
+  .flatMap(([clientKey, clientValue]) =>
+    serverOnlyValues
+      .filter(([serverKey, serverValue]) => clientValue.trim() === serverValue && clientKey !== serverKey)
+      .map(([serverKey]) => `${clientKey} matches ${serverKey}`),
+  )
+
+if (leakedClientValues.length) {
+  console.error(`Server-only secret exposed to Vite build: ${leakedClientValues.join(', ')}`)
+  console.error('Move server-only secrets out of VITE_* variables before building.')
+  process.exit(1)
+}
+
 const supabaseUrl = envValues.get('VITE_SUPABASE_URL')?.trim() ?? ''
 if (/\/rest\/v1\/?$/.test(supabaseUrl)) {
   console.error('VITE_SUPABASE_URL must be the Supabase project base URL, without /rest/v1.')

@@ -2,7 +2,7 @@
 
 Documento canonico per lo schema Supabase target. Deve restare coerente con il codice reale prima di eseguire script in SQL Editor.
 
-Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
+Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon. Dopo verifica PIN il client invia anche l'header tecnico `x-app-control-pin-hash`, usato dal target RLS hardenizzato. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
 
 Stato setup Supabase eseguito nella fase corrente:
 
@@ -11,6 +11,7 @@ Stato setup Supabase eseguito nella fase corrente:
 - attivati trigger `set_updated_at`;
 - RLS attiva; le policy owner iniziali sono state sostituite dalla fase PIN con policy permissive anon/auth per le tabelle operative;
 - creata tabella `app_control_settings` per PIN sincronizzato;
+- create le funzioni `app_control_verify_pin`, `app_control_request_pin_hash`, `app_control_request_is_authorized` come prerequisito per chiudere le policy anon permissive senza toccare record;
 - la sezione `Prompt` usa ora la tabella reale `prompts` con persistenza completa create/read/update/delete;
 - il dominio `Clienti` ha anche viste/funzioni operative: `customer_projects_overview`, `customer_projects_diagnostics`, `customer_projects_export_flat`, `customer_project_details_export`, `customer_domain_healthcheck`, `customer_domain_counts()`, `customer_domain_snapshot()`;
 - non creare `project_prompts` o `app_settings`: non esistono piu esigenze runtime coerenti con quelle tabelle nel codice attuale.
@@ -66,7 +67,7 @@ Mappatura:
 - `text` al posto di enum per piattaforme e provider, per supportare `+ Aggiungi`.
 - `status`, `scope`, `type` e `category` hanno check constraint per i valori attuali del codice.
 - RLS attiva su tutte le tabelle dati.
-- Dopo la fase PIN, l'app usa client anon e policy permissive `*_app_all`; `projects.user_id` resta nullable per non dipendere da Supabase Auth.
+- Target sicurezza: l'app usa client anon solo come transport pubblico, ma le policy operative devono richiedere `public.app_control_request_is_authorized()`. Le vecchie policy permissive `*_app_all using (true)` non sono piu target sicuro.
 - La futura tabella `prompts` deve seguire lo stesso modello operativo della fase PIN: nessuna dipendenza da `auth.users`, nessun `user_id` obbligatorio e policy permissive `anon/auth` coerenti con il resto dell'app privata.
 - Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
 - Il PIN app e salvato come hash in `app_control_settings`; non sostituisce cifratura dei segreti.

@@ -33,7 +33,7 @@ jobs:
 
           base_url="${SUPABASE_URL%/}"
           base_url="${base_url%/rest/v1}"
-          endpoint="${base_url}/rest/v1/prompts?select=id&limit=1"
+          endpoint="${base_url}/rest/v1/prompts?select=id&limit=0"
           response_file="$(mktemp)"
 
           http_code="$(
@@ -56,7 +56,6 @@ jobs:
 
           if [ "$http_code" != "200" ]; then
             echo "Supabase keepalive failed with HTTP ${http_code}"
-            cat "$response_file"
             exit 1
           fi
 

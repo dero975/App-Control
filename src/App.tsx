@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { AppLayout } from './app/AppLayout'
 import { appIntroSeenStorageKey, appUnlockedStorageKey } from './lib/pinAccess'
+import { clearSupabaseAppAccessPinHash, hasSupabaseAppAccessPinHash } from './lib/supabase'
 import type { AdminSection, AppEnvironment, Customer, CustomerSection } from './types/app'
 
 const PinLockPage = lazy(() => import('./features/access/PinLockPage').then((module) => ({ default: module.PinLockPage })))
@@ -29,7 +30,9 @@ function App() {
   const [customerDirectory, setCustomerDirectory] = useState<Customer[]>([])
   const [activeCustomerId, setActiveCustomerId] = useState(() => window.sessionStorage.getItem(activeCustomerIdStorageKey) ?? '')
   const [customerSearchQuery, setCustomerSearchQuery] = useState(() => window.sessionStorage.getItem(customerSearchQueryStorageKey) ?? '')
-  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem(appUnlockedStorageKey) === '1')
+  const [isUnlocked, setIsUnlocked] = useState(
+    () => sessionStorage.getItem(appUnlockedStorageKey) === '1' && hasSupabaseAppAccessPinHash(),
+  )
   const [showIntro, setShowIntro] = useState(() => {
     if (sessionStorage.getItem(appIntroSeenStorageKey) === '1') return false
     sessionStorage.setItem(appIntroSeenStorageKey, '1')
@@ -74,6 +77,7 @@ function App() {
 
   function lockApp() {
     sessionStorage.removeItem(appUnlockedStorageKey)
+    clearSupabaseAppAccessPinHash()
     setIsUnlocked(false)
     setActiveEnvironment('admin')
     setActiveAdminSection('projects')

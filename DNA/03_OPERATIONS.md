@@ -14,6 +14,7 @@ npm run check:all
 ```
 
 - `build` esegue `tsc -b` e `vite build`.
+- Prima di TypeScript/Vite, `build` esegue anche `scripts/validate-vite-env.mjs`: oltre alle variabili Supabase richieste, blocca variabili `VITE_*` con nomi o valori compatibili con segreti server-only.
 - `typecheck` esegue `tsc -b --noEmit`.
 - `check:all` esegue `typecheck`, `lint` e `build` in sequenza.
 - Non dichiarare test passati se non sono stati eseguiti.
@@ -72,7 +73,7 @@ Comportamento:
 - trigger schedulato giornaliero piu `workflow_dispatch` manuale;
 - usa `curl` con retry, timeout connessione e timeout totale;
 - normalizza `SUPABASE_URL` rimuovendo un eventuale suffisso `/rest/v1`;
-- esegue una sola lettura REST su `prompts?select=id&limit=1`.
+- esegue una sola richiesta REST su `prompts?select=id&limit=0`, verificando l'API senza leggere righe applicative.
 
 Secrets GitHub Actions richiesti:
 

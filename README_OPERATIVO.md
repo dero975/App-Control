@@ -12,7 +12,7 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 ## Stato sintetico
 
-App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
+App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Il client prepara anche un header tecnico derivato dal PIN verificato, da usare nelle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
 
 L'app ora e divisa in due ambienti:
 
@@ -37,6 +37,7 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - Non creare documentazione parallela o doppia.
 - Non introdurre backend, Supabase, SQL, auth o storage senza richiesta esplicita.
 - Supabase e gia integrato per `Progetti`, `Prompt` e PIN app: non usare `SUPABASE_SERVICE_KEY` nel frontend e non loggare mai segreti.
+- Non ripristinare policy Supabase permissive `anon/auth using (true)` sulle tabelle operative. Le policy target devono passare da `public.app_control_request_is_authorized()` oppure da un modello Auth piu forte.
 - Non inserire segreti reali in codice, mock o documentazione.
 - In `Agent sync`, mantenere solo prompt generico stabile non modificabile e JSON di collegamento per progetto; non duplicare chiavi o credenziali in viste parallele. Le variabili canoniche archiviate in App Control sono `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`; `LINK_DEPLOY ADMIN`, eventuali `VITE_SUPABASE_*` e `SUPABASE_DB_URL` vanno derivate solo quando il codice o il provider le richiedono.
 - Il backup Google Sheets usa solo due tab canonici: `Progetti` e `Prompt`. Serve come copia leggibile e ripristinabile, non come fonte primaria o canale di editing.
