@@ -69,9 +69,10 @@ Mappatura:
 - RLS attiva su tutte le tabelle dati.
 - Target sicurezza: l'app usa client anon solo come transport pubblico, ma le policy operative devono richiedere `public.app_control_request_is_authorized()`. Le vecchie policy permissive `*_app_all using (true)` non sono piu target sicuro.
 - Stato RLS finale: nessuna lettura anonima libera sulle tabelle operative. L'app passa da `public.app_control_request_is_authorized()` dopo PIN; il backup Google Sheets legge solo tramite `public.app_control_request_is_backup_authorized()`.
+- La tabella `app_control_settings` non deve avere letture o scritture dirette da client anon/authenticated; verifica e rotazione PIN passano da RPC dedicate.
 - La futura tabella `prompts` deve seguire lo stesso modello operativo della fase PIN: nessuna dipendenza da `auth.users`, nessun `user_id` obbligatorio e policy permissive `anon/auth` coerenti con il resto dell'app privata.
 - Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
-- Il PIN app e salvato come hash in `app_control_settings`; non sostituisce cifratura dei segreti.
+- Il PIN app e salvato come hash in `app_control_settings`; non deve avere fallback hardcoded nel codice e non sostituisce cifratura dei segreti.
 - Le colonne `*_ciphertext` non cifrano da sole: indicano dati da cifrare lato applicazione prima della persistenza.
 - Le password piattaforma sono visibili in UI per richiesta funzionale, ma devono essere cifrate at-rest.
 - Le Agent Key devono essere generate da App Control nel formato `XXXXX-XXXXX-XXXXX-XXXXX`.
@@ -122,8 +123,10 @@ create table if not exists public.app_control_settings (
   updated_at timestamptz not null default now()
 );
 
+-- Sostituire il placeholder con un hash SHA-256 generato localmente.
+-- Non salvare PIN o hash reali nel repository.
 insert into public.app_control_settings (id, pin_hash)
-values (true, '8c75a9caf68bf332df5bf3714dcfd4e9d1b5088b42f0cffec88ee78df3670977')
+values (true, '<PIN_HASH_INIZIALE>')
 on conflict (id) do nothing;
 
 drop trigger if exists app_control_settings_set_updated_at on public.app_control_settings;

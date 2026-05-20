@@ -16,3 +16,4 @@ Report security problems privately to the repository owner. Include:
 - Keep `.env` files local and out of Git.
 - Never expose Supabase service role keys, database URLs, GitHub tokens or Render API keys in frontend code.
 - Use only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the static Render frontend.
+- Do not hardcode real PINs, password defaults, or backup tokens in tracked source files. Store verifier hashes only when they are high-entropy and required by database policy/RPC code.

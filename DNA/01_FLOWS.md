@@ -7,7 +7,7 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 - `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
 - Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app.
-- PIN valido: 6 cifre, default DB `140478`; il PIN viene salvato come hash in Supabase.
+- PIN valido: 6 cifre; il PIN viene salvato come hash in Supabase e non deve avere fallback hardcoded nel codice.
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
 - `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
 - Nella nav mobile il logo `App Control` resta centrato nella fascia superiore; sotto al logo la barra mantiene switch ambiente e select del contesto attivo.

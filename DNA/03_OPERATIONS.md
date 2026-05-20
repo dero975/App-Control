@@ -140,8 +140,9 @@ Variabili non esposte al frontend:
 
 Accesso app:
 
-- PIN default iniziale: `140478`.
-- Il PIN va cambiato da `Impostazioni` dopo setup.
+- Il PIN iniziale va configurato solo nel database durante il setup e non va documentato in chiaro nel repository.
+- Il PIN va cambiato da `Impostazioni` dopo setup o rotazione.
+- Il cambio PIN deve passare da RPC dedicata; non riaprire update diretti anon/authenticated su `app_control_settings`.
 - Lo sblocco rimane in `sessionStorage`, quindi chiudere il browser o premere `Esci` richiede nuovo PIN.
 
 Per porta specifica:
