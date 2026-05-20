@@ -121,7 +121,7 @@ Regole:
 - il backup Google Sheets non scrive mai in Supabase
 - non usare `SUPABASE_SERVICE_KEY` nello script di backup
 - il foglio resta backup leggibile, non fonte primaria o canale di editing
-- nella fase RLS transitoria il backup resta compatibile tramite sola lettura anonima limitata a `projects`, `project_env_variables` e `prompts`; quando Apps Script potra inviare `x-app-control-pin-hash` o usare un canale server-side, chiudere anche quelle letture anonime.
+- il backup legge Supabase tramite header dedicato `x-app-control-backup-token`; non riaprire letture anonime libere sulle tabelle operative.
 
 Export `.env render`:
 

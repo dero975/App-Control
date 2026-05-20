@@ -41,7 +41,7 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - Non inserire segreti reali in codice, mock o documentazione.
 - In `Agent sync`, mantenere solo prompt generico stabile non modificabile e JSON di collegamento per progetto; non duplicare chiavi o credenziali in viste parallele. Le variabili canoniche archiviate in App Control sono `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`; `LINK_DEPLOY ADMIN`, eventuali `VITE_SUPABASE_*` e `SUPABASE_DB_URL` vanno derivate solo quando il codice o il provider le richiedono.
 - Il backup Google Sheets usa solo due tab canonici: `Progetti` e `Prompt`. Serve come copia leggibile e ripristinabile, non come fonte primaria o canale di editing.
-- Fase RLS transitoria: per non rompere il backup esterno, Supabase lascia ancora lettura anonima solo su `projects`, `project_env_variables` e `prompts`; le scritture e le altre letture devono passare da `public.app_control_request_is_authorized()`.
+- RLS finale: le tabelle operative non hanno letture anonime libere. L'app passa da `public.app_control_request_is_authorized()` dopo PIN; il backup Google Sheets puo leggere solo con header dedicato `x-app-control-backup-token`.
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la shell mostra il logo centrato nella top bar superiore.

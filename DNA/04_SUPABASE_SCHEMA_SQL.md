@@ -68,7 +68,7 @@ Mappatura:
 - `status`, `scope`, `type` e `category` hanno check constraint per i valori attuali del codice.
 - RLS attiva su tutte le tabelle dati.
 - Target sicurezza: l'app usa client anon solo come transport pubblico, ma le policy operative devono richiedere `public.app_control_request_is_authorized()`. Le vecchie policy permissive `*_app_all using (true)` non sono piu target sicuro.
-- Stato transitorio compatibile con backup Google Sheets: lettura anonima ancora aperta solo su `projects`, `project_env_variables` e `prompts`; scritture e altre letture passano da `public.app_control_request_is_authorized()`.
+- Stato RLS finale: nessuna lettura anonima libera sulle tabelle operative. L'app passa da `public.app_control_request_is_authorized()` dopo PIN; il backup Google Sheets legge solo tramite `public.app_control_request_is_backup_authorized()`.
 - La futura tabella `prompts` deve seguire lo stesso modello operativo della fase PIN: nessuna dipendenza da `auth.users`, nessun `user_id` obbligatorio e policy permissive `anon/auth` coerenti con il resto dell'app privata.
 - Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
 - Il PIN app e salvato come hash in `app_control_settings`; non sostituisce cifratura dei segreti.

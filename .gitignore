@@ -16,6 +16,7 @@ dist-ssr
 !.env.example
 coverage
 Backup_Automatico
+apps-script-google-sheet
 
 # Editor directories and files
 .vscode/*
