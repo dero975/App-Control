@@ -72,7 +72,9 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Se `LINK_DEPLOY` e presente, l'header dettaglio mostra anche il link admin derivato `.../admina`; il valore puo essere sovrascritto dalla variabile `LINK_DEPLOY ADMIN`.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
 - I box gia consolidati di `Dati progetto` e `Variabili` sono in sola lettura finche Admin non clicca la matita del box. I campi appena aggiunti restano subito editabili per il primo inserimento e permettono anche di compilare il titolo del campo; quando Admin esce dal nuovo box dopo avere inserito titolo o valore, il box viene consolidato e rientra nella logica matita.
-- I titoli dei campi custom possono essere modificati in modalita matita. I titoli canonici che alimentano logiche o sincronizzazioni restano protetti per non rompere mapping Supabase, deploy, GitHub e sync.
+- La modifica con matita e esclusiva: se Admin attiva una matita mentre un'altra card e gia in modifica, la card precedente torna automaticamente in sola lettura. Cliccare la matita gia attiva chiude la modifica.
+- I campi custom editabili espongono una palette colore compatta da 10 colori contrastanti (`verde`, `giallo`, `blu`, `rosso`, `arancione`, `viola`, `turchese`, `rosa`, `indaco`, `marrone`). La scelta e una preferenza UI locale per progetto/campo e non deve scrivere su Supabase o aggiornare `Ultima modifica`.
+- I titoli dei box/campi diventano modificabili quando la matita del relativo box e attiva; fuori dalla modalita matita restano in sola lettura. La palette colore resta limitata ai campi custom.
 - Il salvataggio dei campi custom riallinea completamente `project_data_fields`: le righe rimosse dalla UI non devono ricomparire al reload.
 - `Variabili` usa `buildProjectVariables(project)` e ordina variabili tecniche con `orderedProjectKeys`; il salvataggio scrive `project_env_variables`.
 - Il salvataggio delle variabili riallinea completamente `project_env_variables`: le chiavi eliminate dalla UI non devono ricomparire al reload.
@@ -81,7 +83,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
 - Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
-- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
+- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
 - `LINK_DEPLOY ADMIN` non e una variabile canonica da compilare a mano: il flusso `Sync` deve trattarla come derivata di `LINK_DEPLOY`, salvo override manuale gia presente nel progetto.
 - Se il progetto sincronizzato usa Vite o altre env client-side, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vanno derivate rispettivamente da `SUPABASE_URL` e `SUPABASE_ANON_KEY`; non devono essere attese come campi separati dentro App Control.
 - Se uno script o un provider richiede `SUPABASE_DB_URL`, va trattata come alias di `DATABASE_URL` e generata solo quando necessaria.
@@ -120,7 +122,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 Fonte: `src/features/projects/VariablesPanel.tsx`.
 
 - Il pulsante `.env render` nel tab `Variabili` copia un preset generale per deploy Render di altri progetti.
-- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
+- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
 - `LINK_DEPLOY ADMIN` viene derivata automaticamente da `LINK_DEPLOY` con suffisso `/admina`; se l'admin modifica quel valore, la derivazione automatica non deve sovrascrivere il custom value.
 - Il pulsante `.env render` genera automaticamente anche le variabili derivate richieste da alcuni stack o provider: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`.
 - `SUPABASE_URL` e l'eventuale `VITE_SUPABASE_URL` derivata vengono normalizzate senza suffisso `/rest/v1`.

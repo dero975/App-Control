@@ -1,7 +1,7 @@
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
 import { assertUniqueIdentifiers, normalizeFieldKey } from '../../lib/repositoryUtils'
 import { requireSupabaseClient } from '../../lib/supabase'
-import { normalizeProjectName, supabaseServiceKeyAliases } from './projectShared'
+import { inferScopeFromEnvKey, normalizeProjectName, supabaseServiceKeyAliases } from './projectShared'
 
 type ProjectRow = {
   id: string
@@ -294,7 +294,7 @@ async function saveEnvVariables(projectId: string, variables: ProjectVariable[])
       key: variable.key,
       value_text: variable.sensitive ? '' : variable.value,
       value_ciphertext: variable.sensitive ? variable.value || null : null,
-      scope: getVariableScope(variable.key),
+      scope: inferScopeFromEnvKey(variable.key),
       is_sensitive: variable.sensitive,
       sort_order: index,
     })),
@@ -821,14 +821,6 @@ function getFieldValue(fields: ProjectVariable[], key: string) {
 
 function getDataUrlMimeType(dataUrl: string) {
   return dataUrl.match(/^data:([^;]+);/)?.[1] ?? ''
-}
-
-function getVariableScope(key: string): Project['env'][number]['scope'] {
-  if (key.startsWith('SUPABASE_')) return 'Supabase'
-  if (key === 'DATABASE_URL') return 'Supabase'
-  if (key.startsWith('GITHUB_')) return 'GitHub'
-  if (key.includes('RENDER') || key.includes('CLOUDFLARE') || key === 'LINK_DEPLOY') return 'Deploy'
-  return 'Custom'
 }
 
 async function hashSecret(value: string) {

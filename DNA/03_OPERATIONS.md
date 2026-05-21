@@ -51,7 +51,7 @@ Variabili ambiente richieste su Render per questa app:
 Regole operative Render:
 
 - `VITE_SUPABASE_URL` deve essere la base URL del progetto Supabase, senza suffisso `/rest/v1`.
-- Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_KEY`, `DATABASE_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
+- Non inserire nel servizio statico variabili server-only come `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `GITHUB_TOKEN` o altri segreti non destinati al client.
 - Per questa app Render ospita solo il frontend buildato; il backend applicativo resta Supabase.
 - L'auto-deploy corretto e GitHub `main` -> Render `Static Site`.
 - `npm run build` valida prima della build la presenza di `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; su Render queste variabili devono esistere prima del deploy, perche Vite le incorpora nel bundle statico in fase di build.
@@ -82,7 +82,7 @@ Secrets GitHub Actions richiesti:
 
 Regole:
 
-- non usare `SUPABASE_SERVICE_KEY` per il keepalive;
+- non usare `SUPABASE_SERVICE_ROLE_KEY` per il keepalive;
 - il keepalive resta infrastruttura esterna: non reintrodurre polling nel frontend.
 
 ## Backup Google Sheets
@@ -119,14 +119,14 @@ Comportamento operativo:
 Regole:
 
 - il backup Google Sheets non scrive mai in Supabase
-- non usare `SUPABASE_SERVICE_KEY` nello script di backup
+- non usare `SUPABASE_SERVICE_ROLE_KEY` nello script di backup
 - il foglio resta backup leggibile, non fonte primaria o canale di editing
 - il backup legge Supabase tramite header dedicato `x-app-control-backup-token`; non riaprire letture anonime libere sulle tabelle operative.
 
 Export `.env render`:
 
 - Il pulsante `.env render` nel tab `Variabili` copia un blocco generale per deploy Render di altri progetti gestiti da App Control.
-- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.
+- In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
 - `LINK_DEPLOY ADMIN` viene derivata automaticamente da `LINK_DEPLOY` con suffisso `/admina`; va compilata manualmente solo se serve un percorso admin diverso.
 - Il blocco `.env render` genera poi anche le chiavi derivate richieste da alcuni stack o provider: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`.
 - `SUPABASE_URL` viene normalizzata senza suffisso `/rest/v1`.
@@ -134,9 +134,10 @@ Export `.env render`:
 
 Variabili non esposte al frontend:
 
-- `SUPABASE_SERVICE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
 - `GITHUB_TOKEN`
+- `RENDER_API_KEY`
 
 Accesso app:
 

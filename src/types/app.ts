@@ -34,11 +34,24 @@ export type PlatformAccess = {
   password: string
 }
 
+export type ProjectVariableTone =
+  | 'green'
+  | 'yellow'
+  | 'blue'
+  | 'red'
+  | 'orange'
+  | 'purple'
+  | 'teal'
+  | 'pink'
+  | 'indigo'
+  | 'brown'
+
 export type ProjectVariable = {
   id: string
   key: string
   value: string
   sensitive: boolean
+  tone?: ProjectVariableTone
   accessAccounts?: PlatformAccess[]
 }
 

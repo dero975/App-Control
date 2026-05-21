@@ -3,27 +3,43 @@ import { FileText, Pencil, Plus, Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { FieldGroup } from '../../components/FieldGroup'
 import { copyToClipboard } from '../../lib/clipboard'
-import type { PlatformAccess, ProjectVariable } from '../../types/app'
+import type { PlatformAccess, ProjectVariable, ProjectVariableTone } from '../../types/app'
 import {
   buildDefaultDeployAdminLink,
   deployAdminLinkKey,
   isDeployPasswordField,
   isProjectNameField,
   normalizeProjectName,
+  renderApiKey,
   supabaseServiceKeyAliases,
 } from './projectShared'
 import { addSelectOptionValue, getSelectableFieldConfig, getSelectOptions, getSelectValue, selectableFieldConfigs } from './projectFieldOptions'
 
-type VariableUpdateField = 'key' | 'value' | 'sensitive'
+type VariableUpdateField = 'key' | 'value' | 'sensitive' | 'tone'
+
+const variableTones: Array<{ value: ProjectVariableTone; label: string }> = [
+  { value: 'green', label: 'Verde' },
+  { value: 'yellow', label: 'Giallo' },
+  { value: 'blue', label: 'Blu' },
+  { value: 'red', label: 'Rosso' },
+  { value: 'orange', label: 'Arancione' },
+  { value: 'purple', label: 'Viola' },
+  { value: 'teal', label: 'Turchese' },
+  { value: 'pink', label: 'Rosa' },
+  { value: 'indigo', label: 'Indaco' },
+  { value: 'brown', label: 'Marrone' },
+]
 
 export function VariablesPanel({
   addLabel,
+  toneStorageKey,
   variables,
   onChange,
   title,
   valueAriaLabel,
 }: {
   addLabel: string
+  toneStorageKey?: string
   variables: ProjectVariable[]
   onChange: (variables: ProjectVariable[]) => void
   title: string
@@ -32,6 +48,7 @@ export function VariablesPanel({
   const [envBlockCopied, setEnvBlockCopied] = useState(false)
   const [editingVariableIds, setEditingVariableIds] = useState<Set<string>>(() => new Set())
   const [draftVariableIds, setDraftVariableIds] = useState<Set<string>>(() => new Set())
+  const [toneOverrides, setToneOverrides] = useState<Record<string, ProjectVariableTone>>({})
 
   useEffect(() => {
     if (!envBlockCopied) return
@@ -54,25 +71,21 @@ export function VariablesPanel({
 
   function toggleVariableEditing(ids: string[]) {
     setEditingVariableIds((currentIds) => {
-      const nextIds = new Set(currentIds)
-      const isEditing = ids.some((id) => nextIds.has(id))
-
-      ids.forEach((id) => {
-        if (isEditing) {
-          nextIds.delete(id)
-          return
-        }
-
-        nextIds.add(id)
-      })
-
-      return nextIds
+      const isEditing = ids.some((id) => currentIds.has(id))
+      return isEditing ? new Set() : new Set(ids)
     })
   }
 
   function updateVariable(id: string, field: VariableUpdateField, value: string | boolean) {
     const currentVariables = variables
     const targetVariable = currentVariables.find((variable) => variable.id === id)
+
+    if (targetVariable && field === 'tone') {
+      const tone = normalizeVariableTone(String(value))
+      writeStoredVariableTone(toneStorageKey, targetVariable, tone)
+      setToneOverrides((currentTones) => ({ ...currentTones, [id]: tone }))
+      return
+    }
 
     if (targetVariable && field === 'value' && isLinkDeployField(targetVariable.key)) {
       const currentAdminVariable = currentVariables.find((variable) => isLinkDeployAdminField(variable.key))
@@ -92,6 +105,11 @@ export function VariablesPanel({
     }
 
     const nextValue = field === 'value' && targetVariable && isProjectNameField(targetVariable.key) ? normalizeProjectName(String(value)) : value
+    if (targetVariable && field === 'key') {
+      removeStoredVariableTone(toneStorageKey, targetVariable)
+      writeStoredVariableTone(toneStorageKey, { ...targetVariable, key: String(nextValue) }, getEffectiveVariableTone(targetVariable, toneStorageKey, toneOverrides[id]))
+    }
+
     onChange(currentVariables.map((variable) => (variable.id === id ? { ...variable, [field]: nextValue } : variable)))
   }
 
@@ -142,6 +160,14 @@ export function VariablesPanel({
   }
 
   function deleteVariable(id: string) {
+    const deletedVariable = variables.find((variable) => variable.id === id)
+    if (deletedVariable) removeStoredVariableTone(toneStorageKey, deletedVariable)
+    setToneOverrides((currentTones) => {
+      const nextTones = { ...currentTones }
+      delete nextTones[id]
+      return nextTones
+    })
+
     setEditingVariableIds((currentIds) => {
       const nextIds = new Set(currentIds)
       nextIds.delete(id)
@@ -175,6 +201,7 @@ export function VariablesPanel({
         key: '',
         value: '',
         sensitive: true,
+        tone: 'green',
       },
     ])
   }
@@ -304,6 +331,8 @@ export function VariablesPanel({
                 onDeleteAccess={deletePlatformAccess}
                 onDraftCommit={finalizeDraftVariable}
                 onEdit={() => toggleVariableEditing([variable.id])}
+                toneOverride={toneOverrides[variable.id]}
+                toneStorageKey={toneStorageKey}
                 onUpdateAccess={updatePlatformAccess}
                 onUpdate={updateVariable}
                 valueAriaLabel={valueAriaLabel}
@@ -500,6 +529,36 @@ function VariableFieldTitle({
   )
 }
 
+function VariableTonePalette({
+  selectedTone,
+  onChange,
+}: {
+  selectedTone: ProjectVariableTone
+  onChange: (tone: ProjectVariableTone) => void
+}) {
+  return (
+    <div className="variable-tone-palette" aria-label="Palette colore campo">
+      {variableTones.map((tone) => (
+        <button
+          type="button"
+          key={tone.value}
+          className={[
+            'variable-tone-swatch',
+            `variable-tone-swatch--${tone.value}`,
+            selectedTone === tone.value ? 'variable-tone-swatch--active' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          aria-label={`Palette ${tone.label}`}
+          aria-pressed={selectedTone === tone.value}
+          title={tone.label}
+          onClick={() => onChange(tone.value)}
+        />
+      ))}
+    </div>
+  )
+}
+
 function VariableEditButton({ active, onClick }: { active: boolean; onClick: () => void }) {
   return (
     <button
@@ -615,6 +674,8 @@ function normalizeEnvExportValue(key: string, value: string) {
 function VariableEditorCard({
   editable,
   isDraft,
+  toneOverride,
+  toneStorageKey,
   variable,
   onAddAccess,
   onDelete,
@@ -627,6 +688,8 @@ function VariableEditorCard({
 }: {
   editable: boolean
   isDraft: boolean
+  toneOverride?: ProjectVariableTone
+  toneStorageKey?: string
   variable: ProjectVariable
   onAddAccess: (variableId: string) => void
   onDelete: (id: string) => void
@@ -640,12 +703,16 @@ function VariableEditorCard({
   const selectFieldConfig = getSelectableFieldConfig(variable.key)
   const isDevelopmentField = variable.key.trim().toLowerCase() === 'sviluppo in'
   const isGitHubVariable = ['GITHUB_URL', 'GITHUB_TOKEN'].includes(variable.key.trim().toUpperCase())
+  const isRenderVariable = variable.key.trim().toUpperCase() === renderApiKey
   const isSupabaseVariable = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', ...supabaseServiceKeyAliases, 'DATABASE_URL'].includes(
     variable.key.trim().toUpperCase(),
   )
   const selectValue = selectFieldConfig ? getSelectValue(variable.value, selectFieldConfig) : variable.value
   const selectOptions = selectFieldConfig ? getSelectOptions(selectValue, selectFieldConfig.options) : []
-  const canEditTitle = isDraft || !isProtectedVariableTitle(variable)
+  const canEditTitle = true
+  const canChooseTone = isDraft || !isProtectedVariableTitle(variable)
+  const effectiveTone = getEffectiveVariableTone(variable, toneStorageKey, toneOverride)
+  const cardTone = isRenderVariable ? 'red' : canChooseTone ? effectiveTone : ''
 
   function addSelectOption() {
     if (!selectFieldConfig) return
@@ -680,6 +747,7 @@ function VariableEditorCard({
         'editable-variable-card',
         isGitHubVariable ? 'editable-variable-card--github' : '',
         isSupabaseVariable ? 'editable-variable-card--deploy' : '',
+        cardTone ? `editable-variable-card--tone-${cardTone}` : '',
         editable ? 'editable-variable-card--editing' : '',
       ]
         .filter(Boolean)
@@ -716,6 +784,12 @@ function VariableEditorCard({
               <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" />
             </>
           )}
+          {editable && canChooseTone ? (
+            <VariableTonePalette
+              selectedTone={effectiveTone}
+              onChange={(tone) => onUpdate(variable.id, 'tone', tone)}
+            />
+          ) : null}
         </label>
         {isDevelopmentField ? (
           <PlatformAccessList
@@ -909,9 +983,48 @@ function isProtectedVariableTitle(variable: ProjectVariable) {
   const normalizedKey = variable.key.trim().toLowerCase()
   const normalizedEnvKey = variable.key.trim().toUpperCase()
   const protectedDataKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con', 'password deploy'])
-  const protectedEnvKeys = new Set(['LINK_DEPLOY', deployAdminLinkKey, 'GITHUB_URL', 'GITHUB_TOKEN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', ...supabaseServiceKeyAliases, 'DATABASE_URL'])
+  const protectedEnvKeys = new Set(['LINK_DEPLOY', deployAdminLinkKey, 'GITHUB_URL', 'GITHUB_TOKEN', renderApiKey, 'SUPABASE_URL', 'SUPABASE_ANON_KEY', ...supabaseServiceKeyAliases, 'DATABASE_URL'])
 
   return protectedDataKeys.has(normalizedKey) || protectedEnvKeys.has(normalizedEnvKey)
+}
+
+function getEffectiveVariableTone(variable: ProjectVariable, toneStorageKey?: string, toneOverride?: ProjectVariableTone): ProjectVariableTone {
+  if (toneOverride) return toneOverride
+  if (variable.tone) return variable.tone
+  return readStoredVariableTone(toneStorageKey, variable) ?? 'green'
+}
+
+function normalizeVariableTone(value: string): ProjectVariableTone {
+  return variableTones.some((tone) => tone.value === value) ? value as ProjectVariableTone : 'green'
+}
+
+function readStoredVariableTone(toneStorageKey: string | undefined, variable: ProjectVariable): ProjectVariableTone | null {
+  const storageKey = getVariableToneStorageKey(toneStorageKey, variable)
+  if (!storageKey) return null
+
+  const value = window.localStorage.getItem(storageKey)
+  return value ? normalizeVariableTone(value) : null
+}
+
+function writeStoredVariableTone(toneStorageKey: string | undefined, variable: ProjectVariable, tone: ProjectVariableTone) {
+  const storageKey = getVariableToneStorageKey(toneStorageKey, variable)
+  if (!storageKey) return
+
+  window.localStorage.setItem(storageKey, tone)
+}
+
+function removeStoredVariableTone(toneStorageKey: string | undefined, variable: ProjectVariable) {
+  const storageKey = getVariableToneStorageKey(toneStorageKey, variable)
+  if (!storageKey) return
+
+  window.localStorage.removeItem(storageKey)
+}
+
+function getVariableToneStorageKey(toneStorageKey: string | undefined, variable: ProjectVariable) {
+  if (!toneStorageKey) return ''
+  const normalizedKey = variable.key.trim().toLowerCase()
+  const variableKey = normalizedKey || variable.id
+  return `${toneStorageKey}:${variableKey}`
 }
 
 function isDeployField(key: string) {

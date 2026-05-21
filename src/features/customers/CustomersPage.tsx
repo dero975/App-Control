@@ -974,6 +974,7 @@ function CustomerProjectDetail({
             addLabel="Aggiungi campo"
             onChange={(nextSheetFields) => onUpdate((current) => applySheetFieldsToCustomerProject(current, nextSheetFields))}
             title="Dati progetto"
+            toneStorageKey={`app-control-variable-tones:customer-project:${project.id}:data`}
             valueAriaLabel="Valore campo foglio"
             variables={sheetFields}
           />
@@ -983,6 +984,7 @@ function CustomerProjectDetail({
             addLabel="Aggiungi variabile"
             onChange={(nextVariables) => onUpdate((current) => applyVariablesToCustomerProject(current, nextVariables))}
             title="Variabili"
+            toneStorageKey={`app-control-variable-tones:customer-project:${project.id}:env`}
             valueAriaLabel="Valore variabile"
             variables={variables}
           />

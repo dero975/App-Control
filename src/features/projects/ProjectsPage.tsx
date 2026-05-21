@@ -46,7 +46,7 @@ const pinnedProjectIdsStorageKey = 'app-control-pinned-project-ids'
 const legacyDefaultSyncPrompt =
   'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per caricare da App Control le variabili autorizzate del progetto. Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service role key o DB URL nei log o nella chat.'
 const defaultSyncPrompt =
-  'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per collegare il progetto e leggere da App Control solo i dati canonici disponibili: Dati progetto (`Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`) e Variabili (`LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`). Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Analizza il codice reale del repository per capire quali variabili servono davvero. Se il progetto usa Vite o altre env client-side, deriva quando necessario `VITE_SUPABASE_URL` da `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da `SUPABASE_ANON_KEY`, senza aspettarti che siano salvate come campi separati in App Control. Se uno script, template o provider richiede `SUPABASE_DB_URL`, trattala come alias di `DATABASE_URL` e generala solo quando serve. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service key o DB URL nei log o nella chat.'
+  'Sincronizza questo progetto con App Control. Controlla se esiste `.agent/app-control.json`. Se esiste, usa `projectId` e `agentKey` per collegare il progetto e leggere da App Control solo i dati canonici disponibili: Dati progetto (`Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`) e Variabili (`LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`). Se non esiste, chiedimi la Agent Key e guidami nel collegamento del progetto. Analizza il codice reale del repository per capire quali variabili servono davvero. Se il progetto usa Vite o altre env client-side, deriva quando necessario `VITE_SUPABASE_URL` da `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da `SUPABASE_ANON_KEY`, senza aspettarti che siano salvate come campi separati in App Control. Se uno script, template o provider richiede `SUPABASE_DB_URL`, trattala come alias di `DATABASE_URL` e generala solo quando serve. Poi genera o aggiorna `.env`, verifica che `.env` sia in `.gitignore`, integra nel codice solo le variabili necessarie, verifica la connessione Supabase senza esporre segreti, usa GitHub solo tramite `gh` o credenziali autorizzate, prima di commit o push chiedi conferma esplicita, e non stampare token, password, service key, Render API key o DB URL nei log o nella chat.'
 type ProjectListSortMode = 'recent-desc' | 'name-asc' | 'name-desc'
 type ProjectSaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -688,6 +688,7 @@ function ProjectDetail({
             addLabel="Aggiungi campo"
             onChange={setSheetFields}
             title="Dati progetto"
+            toneStorageKey={`app-control-variable-tones:project:${project.id}:data`}
             valueAriaLabel="Valore campo foglio"
             variables={sheetFields}
           />
@@ -697,6 +698,7 @@ function ProjectDetail({
             addLabel="Aggiungi variabile"
             onChange={setVariables}
             title="Variabili"
+            toneStorageKey={`app-control-variable-tones:project:${project.id}:env`}
             valueAriaLabel="Valore variabile"
             variables={variables}
           />

@@ -1,7 +1,8 @@
 import type { Project, ProjectVariable } from '../../types/app'
 
-export const supabaseServiceKey = 'SUPABASE_SERVICE_KEY'
-export const supabaseServiceKeyAliases = [supabaseServiceKey, 'SUPABASE_SERVICE_ROLE_KEY'] as const
+export const supabaseServiceKey = 'SUPABASE_SERVICE_ROLE_KEY'
+export const supabaseServiceKeyAliases = [supabaseServiceKey, 'SUPABASE_SERVICE_KEY'] as const
+export const renderApiKey = 'RENDER_API_KEY'
 
 export const orderedProjectKeys = [
   'LINK_DEPLOY',
@@ -11,6 +12,7 @@ export const orderedProjectKeys = [
   'SUPABASE_ANON_KEY',
   supabaseServiceKey,
   'DATABASE_URL',
+  renderApiKey,
 ] as const
 
 export const deployPasswordFieldKey = 'Password deploy'
@@ -181,6 +183,6 @@ export function isDeployPasswordField(key: string) {
 export function inferScopeFromEnvKey(key: string) {
   if (key.startsWith('SUPABASE_') || key === 'DATABASE_URL') return 'Supabase' as const
   if (key.startsWith('GITHUB_')) return 'GitHub' as const
-  if (key === 'LINK_DEPLOY') return 'Deploy' as const
+  if (key.includes('RENDER') || key.includes('CLOUDFLARE') || key === 'LINK_DEPLOY') return 'Deploy' as const
   return 'Custom' as const
 }
