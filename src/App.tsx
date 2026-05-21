@@ -1,15 +1,16 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { AppLayout } from './app/AppLayout'
+import { PinLockPage } from './features/access/PinLockPage'
 import {
   appIntroSeenStorageKey,
   appUnlockedStorageKey,
+  hasSupabaseTrustedDeviceToken,
   restoreTrustedDeviceAccess,
   trustedDeviceUnlockSuppressedStorageKey,
 } from './lib/pinAccess'
 import { clearSupabaseAppAccessPinHash, hasSupabaseAppAccessCredential } from './lib/supabase'
 import type { AdminSection, AppEnvironment, Customer, CustomerSection } from './types/app'
 
-const PinLockPage = lazy(() => import('./features/access/PinLockPage').then((module) => ({ default: module.PinLockPage })))
 const CustomersPage = lazy(() => import('./features/customers/CustomersPage').then((module) => ({ default: module.CustomersPage })))
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 const ProjectsPage = lazy(() => import('./features/projects/ProjectsPage').then((module) => ({ default: module.ProjectsPage })))
@@ -38,6 +39,13 @@ function App() {
   const [isUnlocked, setIsUnlocked] = useState(
     () => sessionStorage.getItem(appUnlockedStorageKey) === '1' && hasSupabaseAppAccessCredential(),
   )
+  const [isRestoringTrustedDevice, setIsRestoringTrustedDevice] = useState(() => {
+    return (
+      sessionStorage.getItem(appUnlockedStorageKey) !== '1' &&
+      sessionStorage.getItem(trustedDeviceUnlockSuppressedStorageKey) !== '1' &&
+      hasSupabaseTrustedDeviceToken()
+    )
+  })
   const [showIntro, setShowIntro] = useState(() => {
     if (sessionStorage.getItem(appIntroSeenStorageKey) === '1') return false
     sessionStorage.setItem(appIntroSeenStorageKey, '1')
@@ -52,16 +60,25 @@ function App() {
 
   useEffect(() => {
     if (isUnlocked || sessionStorage.getItem(trustedDeviceUnlockSuppressedStorageKey) === '1') return
+    if (!hasSupabaseTrustedDeviceToken()) return
 
     let cancelled = false
     restoreTrustedDeviceAccess()
       .then((restored) => {
-        if (!restored || cancelled) return
+        if (cancelled) return
+        if (!restored) {
+          setIsRestoringTrustedDevice(false)
+          return
+        }
         sessionStorage.setItem(appUnlockedStorageKey, '1')
         setIsUnlocked(true)
+        setIsRestoringTrustedDevice(false)
       })
       .catch(() => {
-        if (!cancelled) setIsUnlocked(false)
+        if (!cancelled) {
+          setIsUnlocked(false)
+          setIsRestoringTrustedDevice(false)
+        }
       })
 
     return () => {
@@ -104,6 +121,7 @@ function App() {
     sessionStorage.setItem(trustedDeviceUnlockSuppressedStorageKey, '1')
     clearSupabaseAppAccessPinHash()
     setIsUnlocked(false)
+    setIsRestoringTrustedDevice(false)
     setActiveEnvironment('admin')
     setActiveAdminSection('projects')
     setActiveCustomerSection('customers')
@@ -123,12 +141,10 @@ function App() {
   }
 
   if (!isUnlocked) {
-    return showIntro ? (
+    return showIntro || isRestoringTrustedDevice ? (
       <IntroSplash />
     ) : (
-      <Suspense fallback={<IntroSplash />}>
-        <PinLockPage onUnlock={() => setIsUnlocked(true)} />
-      </Suspense>
+      <PinLockPage onUnlock={() => setIsUnlocked(true)} />
     )
   }
 

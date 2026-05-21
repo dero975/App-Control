@@ -6,11 +6,13 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 
 - `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
 - Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
-- Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app.
+- `PinLockPage` non deve essere caricata lazy: e parte del percorso critico di avvio, cosi il passaggio intro -> PIN non riusa lo splash come fallback e non crea un secondo flash.
+- Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app e non esiste un token dispositivo attendibile valido.
 - PIN valido: 6 cifre; il PIN viene salvato come hash in Supabase e non deve avere fallback hardcoded nel codice.
 - La schermata PIN deve essere responsive anche su iPhone stretti: pannello e input usano `box-sizing` locale e larghezza mobile limitata per evitare overflow orizzontale.
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
-- Se l'utente seleziona `Ricorda questo dispositivo`, il browser salva un token casuale locale ad alta entropia; Supabase conserva solo l'hash del token e autorizza le richieste tramite `x-app-control-device-token`.
+- `Ricorda questo dispositivo` e attivo di default nella schermata PIN. Se resta selezionato, il browser salva un token casuale locale ad alta entropia; Supabase conserva solo l'hash del token e autorizza le richieste tramite `x-app-control-device-token`.
+- A ogni nuova sessione, se esiste un token locale e il comando `Esci` non ha sospeso lo sblocco nella sessione corrente, `App` verifica il token prima di mostrare la schermata PIN. Durante questa verifica resta visibile lo splash, cosi un dispositivo valido non vede il PIN lampeggiare.
 - Il comando `Esci` blocca la sessione corrente e sospende lo sblocco automatico finche non viene reinserito il PIN nella stessa sessione browser.
 - `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
 - La sidebar desktop `Admin` espone in basso i link esterni operativi: `Token Github` apre la creazione token GitHub in nuova finestra; `Auth Github 8` copia negli appunti il comando `gh auth login -h github.com -p https -w` e mostra un popup temporaneo chiaro per aprire Terminale e incollare; `Foglio Google` apre il backup Google Sheets.

@@ -12,7 +12,7 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 ## Stato sintetico
 
-App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Se l'utente abilita `Ricorda questo dispositivo`, il browser salva solo un token casuale locale e Supabase conserva solo l'hash. Il client invia header tecnici autorizzativi usati dalle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
+App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Il primo accesso propone `Ricorda questo dispositivo` gia attivo: il browser salva solo un token casuale locale e Supabase conserva solo l'hash, cosi alle aperture successive l'app verifica il dispositivo attendibile prima di mostrare il PIN. Il client invia header tecnici autorizzativi usati dalle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
 
 L'app ora e divisa in due ambienti:
 
@@ -46,6 +46,7 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la shell mostra il logo centrato nella top bar superiore.
 - La schermata PIN deve restare entro il viewport mobile anche su iPhone stretti: il pannello usa dimensioni responsive e non deve generare scroll orizzontale.
+- La pagina PIN e percorso critico e non va resa lazy: il passaggio dallo splash al PIN deve avvenire senza secondo flash dello splash.
 - Su mobile le liste progetto di `Admin` e `Clienti` restano compatte, ma ogni card espansa puo aprire una scheda progetto fullscreen dedicata. La scheda mobile riusa i tab reali del dettaglio (`Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`) con UX app-friendly; il pannello laterale dettaglio resta una logica desktop.
 - Le liste progetto di `Admin` e `Clienti` mostrano card separate direttamente sul fondo pagina, senza container/pannello esterno dell'elenco. Ogni card mostra nome progetto sempre in maiuscolo e `Ultima modifica`; la preview `sviluppo in / deploy con` non e piu mostrata nella card lista. La selezione usa sfondo bianco e accento verde scuro.
 - La puntina sulle card progetto fissa il progetto in alto come preferenza locale browser tramite `localStorage`; non scrive su Supabase e non cambia il dato operativo del progetto.

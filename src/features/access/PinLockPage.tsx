@@ -12,7 +12,7 @@ type PinLockPageProps = {
 
 export function PinLockPage({ onUnlock }: PinLockPageProps) {
   const [pin, setPin] = useState('')
-  const [rememberDevice, setRememberDevice] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(true)
   const [status, setStatus] = useState('')
 
   async function submitPin(event: FormEvent<HTMLFormElement>) {
