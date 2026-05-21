@@ -1,0 +1,163 @@
+import { sortPinnedRecordsFirst } from '../../lib/pinnedRecords'
+import type { Project, ProjectVariable } from '../../types/app'
+import { normalizeSelectableFieldValue } from './projectFieldOptions'
+import {
+  buildSheetFields,
+  deployPasswordFieldKey,
+  normalizeProjectName,
+  supabaseServiceKey,
+} from './projectShared'
+import { defaultSyncPrompt, legacyDefaultSyncPrompt, type ProjectListSortMode } from './projectPageConstants'
+
+export function getProjectDetailSignature({
+  imageSlotsSignature,
+  operationalNotes,
+  sheetFields,
+  variables,
+}: {
+  imageSlotsSignature: string
+  operationalNotes: string
+  sheetFields: ProjectVariable[]
+  variables: ProjectVariable[]
+}) {
+  return JSON.stringify({
+    imageSlotsSignature,
+    operationalNotes,
+    sheetFields: sheetFields.map(normalizeProjectVariableForSignature),
+    variables: variables.map(normalizeProjectVariableForSignature),
+  })
+}
+
+export function getSortedProjects(projects: Project[], query: string, sortMode: ProjectListSortMode, pinnedProjectIds: string[] = []) {
+  const normalizedQuery = query.trim().toLowerCase()
+  const matchingProjects = projects.filter(
+    (project) =>
+      !normalizedQuery ||
+      project.name.toLowerCase().includes(normalizedQuery) ||
+      project.developmentEnvironment.toLowerCase().includes(normalizedQuery) ||
+      project.status.toLowerCase().includes(normalizedQuery),
+  )
+
+  if (sortMode === 'recent-desc') {
+    const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => (
+      Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
+    ))
+    return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
+  }
+
+  const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => {
+    const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
+    return sortMode === 'name-asc' ? sortResult : -sortResult
+  })
+  return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
+}
+
+export function getVisibleProjectIds(
+  projects: Project[],
+  query: string,
+  sortMode: ProjectListSortMode,
+  pinnedProjectIds: string[] = [],
+  previousIds?: string[],
+) {
+  const nextCandidateIds = getSortedProjects(projects, query, sortMode, pinnedProjectIds).map((project) => project.id)
+  if (!previousIds?.length) return nextCandidateIds
+
+  const nextCandidateIdSet = new Set(nextCandidateIds)
+  const preservedIds = previousIds.filter((projectId) => nextCandidateIdSet.has(projectId))
+  const appendedIds = nextCandidateIds.filter((projectId) => !preservedIds.includes(projectId))
+  return sortPinnedRecordsFirst([...preservedIds, ...appendedIds].map((id) => ({ id })), pinnedProjectIds).map((project) => project.id)
+}
+
+export function createEmptyProject(index: number): Project {
+  const name = normalizeProjectName(`Nuovo progetto ${index}`)
+  const projectId = createProjectSlug(name)
+
+  return {
+    id: `project-${Date.now()}`,
+    name,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: 'Attivo',
+    developmentEnvironment: 'Windsurf',
+    githubRepoUrl: '',
+    githubAccountEmail: '',
+    linkedSecretLabel: '',
+    supabase: {
+      projectUrl: '',
+      anonKeyLabel: '',
+      serviceRoleLabel: '',
+      databaseUrlLabel: '',
+    },
+    deploy: {
+      provider: 'Render',
+      url: '',
+      accountEmail: '',
+    },
+    operationalNotes: '',
+    agent: {
+      projectId,
+      agentKey: generateAgentKey(),
+      syncPrompt: defaultSyncPrompt,
+    },
+    promptIds: [],
+    assetIds: [],
+    images: [],
+    dataFields: [{ id: `data-password-deploy-${Date.now()}`, key: deployPasswordFieldKey, value: '', sensitive: true }],
+    env: [
+      { key: 'SUPABASE_URL', value: '', scope: 'Supabase', sensitive: false },
+      { key: 'SUPABASE_ANON_KEY', value: '', scope: 'Supabase', sensitive: true },
+      { key: supabaseServiceKey, value: '', scope: 'Supabase', sensitive: true },
+      { key: 'DATABASE_URL', value: '', scope: 'Supabase', sensitive: true },
+      { key: 'GITHUB_TOKEN', value: '', scope: 'GitHub', sensitive: true },
+    ],
+  }
+}
+
+export function buildNormalizedSheetFields(project: Project) {
+  return buildSheetFields(project, normalizeSelectableFieldValue)
+}
+
+export function resolveSyncPrompt(value: string) {
+  const normalizedValue = value.trim()
+  if (!normalizedValue || normalizedValue === legacyDefaultSyncPrompt) return defaultSyncPrompt
+  return normalizedValue
+}
+
+function normalizeProjectVariableForSignature(variable: ProjectVariable) {
+  return {
+    id: variable.id,
+    key: variable.key,
+    value: variable.value,
+    sensitive: variable.sensitive,
+    accessAccounts: (variable.accessAccounts ?? []).map((access) => ({
+      id: access.id,
+      platform: access.platform,
+      email: access.email,
+      password: access.password,
+    })),
+  }
+}
+
+function createProjectSlug(name: string) {
+  const normalizedName = name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalizedName || `progetto-${Date.now()}`
+}
+
+function generateAgentKey() {
+  return Array.from({ length: 4 }, () => generateAgentKeyGroup()).join('-')
+}
+
+function generateAgentKeyGroup() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const values = new Uint32Array(5)
+  crypto.getRandomValues(values)
+
+  return Array.from(values, (value) => chars[value % chars.length]).join('')
+}

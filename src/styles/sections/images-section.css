@@ -1,0 +1,17 @@
+.images-section {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.images-section .asset-list {
+  min-height: 0;
+}
+
+.images-section h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 760;
+}

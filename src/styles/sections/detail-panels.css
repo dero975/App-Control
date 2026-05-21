@@ -1,0 +1,159 @@
+.detail-stack {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detail-stack--mobile-modal,
+.customer-project-detail--mobile {
+  height: 100%;
+}
+
+.detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-heading__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.project-deploy-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.project-deploy-link a {
+  color: var(--green-strong);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.project-deploy-link a:hover {
+  text-decoration: underline;
+}
+
+.project-deploy-link .copy-button--icon-only {
+  min-height: 28px;
+  width: 28px;
+  min-width: 28px;
+  padding: 5px;
+}
+
+.project-created-at {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field-group {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  box-shadow: none;
+}
+
+.field-group--bare {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.field-group--bare .field-group__body {
+  overflow: visible;
+  padding-right: 0;
+}
+
+.field-group__header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.field-group__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.field-group__header p,
+.body-copy {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.field-group__action {
+  flex: 0 0 auto;
+}
+
+.field-group-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.field-group__body {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-scroll-area {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-scroll-area > .detail-stack,
+.tab-scroll-area > .tab-panel-stack,
+.tab-scroll-area > .field-group,
+.tab-scroll-area > .images-section {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-panel-stack {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-panel-stack > .field-group {
+  height: 100%;
+  min-height: 0;
+}
+
+.tab-panel-stack .editable-variable-list {
+  min-height: 0;
+}
+
+.tab-scroll-area .field-group__body,
+.tab-scroll-area .images-section .asset-list {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}

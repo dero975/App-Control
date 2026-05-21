@@ -25,16 +25,18 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 
 - `src/app`: shell, sidebar desktop, navigazione mobile.
 - `src/components`: componenti condivisi (`CopyButton`, `FieldGroup`, `SectionHeader`, `EmptyState`).
-- `src/features/projects`: gestione principale dei progetti, tab interni, editor variabili condiviso e pannello immagini caricato solo quando serve.
-- `src/features/prompts`: libreria prompt con filtri categoria, CRUD reale Supabase, copia e modale creazione.
+- `src/features/projects`: gestione principale dei progetti, tab interni, editor variabili condiviso, pannello immagini caricato solo quando serve e repository Supabase modulare.
+- `src/features/prompts`: libreria prompt con filtri categoria, CRUD reale Supabase, copia, modale creazione e componenti separati per card/controller.
+- `src/features/customers`: workspace Clienti con controller, dettaglio, indice progetti e repository Supabase modulare.
+- `src/features/dashboard`: riepilogo email/piattaforme con modello, toolbar, summary e tabella separati.
 - `src/features/settings`: gestione PIN app e sicurezza locale.
 - `src/lib/clipboard.ts`: helper condiviso per copia clipboard.
 - `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*` e helper obbligatorio `requireSupabaseClient()`.
 - `src/lib/pinAccess.ts`: verifica e modifica PIN app via Supabase.
-- `src/features/projects/projectRepository.ts`: accesso dati Supabase per Progetti.
-- `src/features/customers/customerRepository.ts`: accesso dati Supabase per Clienti.
+- `src/features/projects/projectRepository.ts`: facade pubblico dell'accesso dati Supabase per Progetti; letture, scritture e tipi sono separati in moduli dedicati nella stessa cartella.
+- `src/features/customers/customerRepository.ts`: facade pubblico dell'accesso dati Supabase per Clienti; letture, scritture, relazioni, mapping e tipi sono separati in moduli dedicati nella stessa cartella.
 - `src/lib/repositoryUtils.ts`: helper puri condivisi dai repository per chiavi campo e validazione duplicati.
-- `src/styles/app.css` e `src/index.css`: stile globale e layout applicativo.
+- `src/styles/app.css`: entry CSS che importa sezioni tematiche da `src/styles/sections/`; `src/index.css` resta lo stile base globale.
 
 ## Regole non negoziabili
 

@@ -1,0 +1,156 @@
+.prompt-modal-backdrop {
+  background: rgba(10, 18, 13, 0.66);
+  backdrop-filter: blur(10px);
+}
+
+.prompt-modal {
+  width: min(860px, 96vw);
+  max-height: 92svh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--nav-border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.38);
+}
+
+.prompt-modal__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--nav-border);
+  background: var(--nav-bg);
+}
+
+.prompt-modal__brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.prompt-modal__logo {
+  width: 132px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.prompt-modal__header h2 {
+  margin: 0;
+  color: var(--nav-text);
+  font-size: 22px;
+}
+
+.prompt-modal__header p {
+  margin: 8px 0 0;
+  color: var(--nav-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.prompt-modal__body {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.prompt-modal__body select,
+.prompt-modal__body input,
+.prompt-modal__textarea {
+  background: var(--gray-soft);
+}
+
+.prompt-modal__textarea {
+  min-height: 280px;
+  border-radius: 12px;
+  line-height: 1.55;
+}
+
+.prompt-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 16px 18px 18px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #f7faf5 100%);
+}
+
+.prompt-modal__save {
+  min-height: 38px;
+}
+
+.prompt-confirm-modal {
+  width: min(660px, 96vw);
+  overflow: hidden;
+  border: 1px solid var(--nav-border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.38);
+}
+
+.prompt-confirm-modal__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--nav-border);
+  background: var(--nav-bg);
+}
+
+.prompt-confirm-modal__brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.prompt-confirm-modal__logo {
+  width: 132px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.prompt-confirm-modal__header h2 {
+  margin: 0;
+  color: var(--nav-text);
+  font-size: 22px;
+}
+
+.prompt-confirm-modal__body {
+  display: grid;
+  gap: 10px;
+  padding: 22px 24px 6px;
+}
+
+.prompt-confirm-modal__body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.prompt-confirm-modal .confirm-modal__actions {
+  padding: 0 24px 24px;
+}
+
+.tab-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tab-button {
+  color: var(--text-muted);
+}
+
+.tab-button--active {
+  color: var(--green-strong);
+}
