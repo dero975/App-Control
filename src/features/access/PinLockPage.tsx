@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { appUnlockedStorageKey, isValidPin, verifyAppPin } from '../../lib/pinAccess'
+import {
+  appUnlockedStorageKey,
+  isValidPin,
+  trustedDeviceUnlockSuppressedStorageKey,
+  verifyAppPin,
+} from '../../lib/pinAccess'
 
 type PinLockPageProps = {
   onUnlock: () => void
@@ -7,6 +12,7 @@ type PinLockPageProps = {
 
 export function PinLockPage({ onUnlock }: PinLockPageProps) {
   const [pin, setPin] = useState('')
+  const [rememberDevice, setRememberDevice] = useState(false)
   const [status, setStatus] = useState('')
 
   async function submitPin(event: FormEvent<HTMLFormElement>) {
@@ -19,13 +25,14 @@ export function PinLockPage({ onUnlock }: PinLockPageProps) {
 
     setStatus('Verifica PIN')
     try {
-      const isValid = await verifyAppPin(pin)
+      const isValid = await verifyAppPin(pin, { rememberDevice })
       if (!isValid) {
         setStatus('PIN non corretto')
         return
       }
 
       sessionStorage.setItem(appUnlockedStorageKey, '1')
+      sessionStorage.removeItem(trustedDeviceUnlockSuppressedStorageKey)
       onUnlock()
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Errore accesso')
@@ -54,6 +61,15 @@ export function PinLockPage({ onUnlock }: PinLockPageProps) {
               autoFocus
               onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
             />
+          </label>
+
+          <label className="lock-screen__remember">
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={(event) => setRememberDevice(event.target.checked)}
+            />
+            <span>Ricorda questo dispositivo</span>
           </label>
 
           <button type="submit" className="secondary-button lock-screen__submit">

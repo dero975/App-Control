@@ -249,6 +249,22 @@
   letter-spacing: 0.22em;
 }
 
+.lock-screen__remember {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lock-screen__remember input {
+  width: auto;
+  accent-color: var(--green-soft);
+}
+
 .lock-screen__submit.secondary-button {
   min-height: 43px;
   border: 1px solid rgba(223, 238, 216, 0.16);

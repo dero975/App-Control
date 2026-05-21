@@ -2,13 +2,15 @@ import { KeyRound } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { FieldGroup } from '../../components/FieldGroup'
 import { SectionHeader } from '../../components/SectionHeader'
-import { isValidPin, updateAppPin } from '../../lib/pinAccess'
+import { hasSupabaseTrustedDeviceToken, isValidPin, revokeTrustedDevice, updateAppPin } from '../../lib/pinAccess'
 
 export function SettingsPage() {
   const [currentPin, setCurrentPin] = useState('')
   const [nextPin, setNextPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [status, setStatus] = useState('')
+  const [trustedDeviceActive, setTrustedDeviceActive] = useState(() => hasSupabaseTrustedDeviceToken())
+  const [trustedDeviceStatus, setTrustedDeviceStatus] = useState('')
   const pinReady = currentPin.length === 6 && nextPin.length === 6 && confirmPin.length === 6
   const statusClassName = useMemo(() => {
     if (!status) return ''
@@ -39,6 +41,17 @@ export function SettingsPage() {
       setStatus('PIN aggiornato')
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Errore modifica PIN')
+    }
+  }
+
+  async function forgetTrustedDevice() {
+    setTrustedDeviceStatus('Rimozione dispositivo')
+    try {
+      await revokeTrustedDevice()
+      setTrustedDeviceActive(false)
+      setTrustedDeviceStatus('Dispositivo rimosso')
+    } catch (error) {
+      setTrustedDeviceStatus(error instanceof Error ? error.message : 'Errore rimozione dispositivo')
     }
   }
 
@@ -101,6 +114,31 @@ export function SettingsPage() {
           </form>
         </FieldGroup>
 
+        <FieldGroup
+          className="settings-panel"
+          title="Dispositivo attendibile"
+          description="Gestisci lo sblocco automatico su questo browser senza salvare il PIN."
+        >
+          <div className="settings-session-card">
+            <div className="settings-session-card__copy">
+              <strong>{trustedDeviceActive ? 'Questo dispositivo e ricordato' : 'Questo dispositivo non e ricordato'}</strong>
+              <span>
+                {trustedDeviceActive
+                  ? 'Alla prossima apertura l’app puo sbloccarsi senza richiedere il PIN.'
+                  : 'Puoi abilitarlo dalla schermata PIN selezionando Ricorda questo dispositivo.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="secondary-button settings-logout-button"
+              disabled={!trustedDeviceActive}
+              onClick={forgetTrustedDevice}
+            >
+              Dimentica questo dispositivo
+            </button>
+            {trustedDeviceStatus ? <p className="status-message">{trustedDeviceStatus}</p> : null}
+          </div>
+        </FieldGroup>
       </div>
     </div>
   )

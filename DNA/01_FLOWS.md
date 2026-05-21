@@ -9,6 +9,8 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app.
 - PIN valido: 6 cifre; il PIN viene salvato come hash in Supabase e non deve avere fallback hardcoded nel codice.
 - Dopo PIN corretto, lo sblocco resta valido fino a chiusura browser o comando `Esci`.
+- Se l'utente seleziona `Ricorda questo dispositivo`, il browser salva un token casuale locale ad alta entropia; Supabase conserva solo l'hash del token e autorizza le richieste tramite `x-app-control-device-token`.
+- Il comando `Esci` blocca la sessione corrente e sospende lo sblocco automatico finche non viene reinserito il PIN nella stessa sessione browser.
 - `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
 - Nella nav mobile il logo `App Control` resta centrato nella fascia superiore; sotto al logo la barra mantiene switch ambiente e select del contesto attivo.
 - Su desktop la sidebar e la pagina `Progetti` restano bloccate nel viewport; scorrono solo lista progetti e liste card interne dei tab quando necessario.
@@ -70,6 +72,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - In `Agent sync`, le icone copia stanno dentro al box relativo e non hanno testo o contorno.
 - Nella lista progetti la preview mostra solo `sviluppo in / deploy con`; non mostra stato o conteggio immagini.
 - Le icone cestino delle card editabili devono restare allineate alla riga del controllo bianco, anche quando la card contiene contenuti extra sotto.
+- La pagina `Impostazioni` include la rimozione del dispositivo attendibile del browser corrente.
 
 ## Campi speciali in Dati progetto
 

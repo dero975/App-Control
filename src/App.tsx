@@ -1,7 +1,12 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { AppLayout } from './app/AppLayout'
-import { appIntroSeenStorageKey, appUnlockedStorageKey } from './lib/pinAccess'
-import { clearSupabaseAppAccessPinHash, hasSupabaseAppAccessPinHash } from './lib/supabase'
+import {
+  appIntroSeenStorageKey,
+  appUnlockedStorageKey,
+  restoreTrustedDeviceAccess,
+  trustedDeviceUnlockSuppressedStorageKey,
+} from './lib/pinAccess'
+import { clearSupabaseAppAccessPinHash, hasSupabaseAppAccessCredential } from './lib/supabase'
 import type { AdminSection, AppEnvironment, Customer, CustomerSection } from './types/app'
 
 const PinLockPage = lazy(() => import('./features/access/PinLockPage').then((module) => ({ default: module.PinLockPage })))
@@ -31,7 +36,7 @@ function App() {
   const [activeCustomerId, setActiveCustomerId] = useState(() => window.sessionStorage.getItem(activeCustomerIdStorageKey) ?? '')
   const [customerSearchQuery, setCustomerSearchQuery] = useState(() => window.sessionStorage.getItem(customerSearchQueryStorageKey) ?? '')
   const [isUnlocked, setIsUnlocked] = useState(
-    () => sessionStorage.getItem(appUnlockedStorageKey) === '1' && hasSupabaseAppAccessPinHash(),
+    () => sessionStorage.getItem(appUnlockedStorageKey) === '1' && hasSupabaseAppAccessCredential(),
   )
   const [showIntro, setShowIntro] = useState(() => {
     if (sessionStorage.getItem(appIntroSeenStorageKey) === '1') return false
@@ -44,6 +49,25 @@ function App() {
     const introTimer = window.setTimeout(() => setShowIntro(false), 5000)
     return () => window.clearTimeout(introTimer)
   }, [showIntro])
+
+  useEffect(() => {
+    if (isUnlocked || sessionStorage.getItem(trustedDeviceUnlockSuppressedStorageKey) === '1') return
+
+    let cancelled = false
+    restoreTrustedDeviceAccess()
+      .then((restored) => {
+        if (!restored || cancelled) return
+        sessionStorage.setItem(appUnlockedStorageKey, '1')
+        setIsUnlocked(true)
+      })
+      .catch(() => {
+        if (!cancelled) setIsUnlocked(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isUnlocked])
 
   useEffect(() => {
     window.sessionStorage.setItem(activeEnvironmentStorageKey, activeEnvironment)
@@ -77,6 +101,7 @@ function App() {
 
   function lockApp() {
     sessionStorage.removeItem(appUnlockedStorageKey)
+    sessionStorage.setItem(trustedDeviceUnlockSuppressedStorageKey, '1')
     clearSupabaseAppAccessPinHash()
     setIsUnlocked(false)
     setActiveEnvironment('admin')

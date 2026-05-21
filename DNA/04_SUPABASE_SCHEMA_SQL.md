@@ -61,6 +61,7 @@ Mappatura:
 - In `customers`, il nome visualizzato UI e derivato da `first_name + last_name`, con fallback su `company`, mentre `name` resta il campo canonico salvato e ricostruito dal frontend per compatibilita operativa e ricerca.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.
 - PIN app: `app_control_settings`.
+- Dispositivi attendibili: `app_control_trusted_devices`.
 
 ## Decisioni schema
 
@@ -70,6 +71,7 @@ Mappatura:
 - Target sicurezza: l'app usa client anon solo come transport pubblico, ma le policy operative devono richiedere `public.app_control_request_is_authorized()`. Le vecchie policy permissive `*_app_all using (true)` non sono piu target sicuro.
 - Stato RLS finale: nessuna lettura anonima libera sulle tabelle operative. L'app passa da `public.app_control_request_is_authorized()` dopo PIN; il backup Google Sheets legge solo tramite `public.app_control_request_is_backup_authorized()`.
 - La tabella `app_control_settings` non deve avere letture o scritture dirette da client anon/authenticated; verifica e rotazione PIN passano da RPC dedicate.
+- I dispositivi attendibili non salvano il PIN: `app_control_trusted_devices` conserva solo hash del token locale, label tecnica, scadenza e revoca. Non concedere grant diretti anon/authenticated sulla tabella.
 - La futura tabella `prompts` deve seguire lo stesso modello operativo della fase PIN: nessuna dipendenza da `auth.users`, nessun `user_id` obbligatorio e policy permissive `anon/auth` coerenti con il resto dell'app privata.
 - Nel database reale verificato, `projects.agent_project_id` non e unique globale: il vincolo e `unique (user_id, agent_project_id)`. Con `user_id` nullable, gli script demo non devono usare `on conflict (agent_project_id)`.
 - Il PIN app e salvato come hash in `app_control_settings`; non deve avere fallback hardcoded nel codice e non sostituisce cifratura dei segreti.
@@ -104,6 +106,7 @@ Mappatura:
 - `customer_project_env_variables`
 - `customer_project_data_fields`
 - `app_control_settings`
+- `app_control_trusted_devices`
 - `prompts`
 
 Tabelle future non attive nella fase corrente:

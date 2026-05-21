@@ -143,6 +143,9 @@ Accesso app:
 - Il PIN iniziale va configurato solo nel database durante il setup e non va documentato in chiaro nel repository.
 - Il PIN va cambiato da `Impostazioni` dopo setup o rotazione.
 - Il cambio PIN deve passare da RPC dedicata; non riaprire update diretti anon/authenticated su `app_control_settings`.
+- Il dispositivo attendibile usa un token casuale locale: il DB salva solo hash, scadenza e revoca.
+- Il token dispositivo passa come header `x-app-control-device-token`; non salvare PIN o hash PIN in `localStorage`.
+- Alla rotazione del PIN, revocare i dispositivi attendibili esistenti.
 - Lo sblocco rimane in `sessionStorage`, quindi chiudere il browser o premere `Esci` richiede nuovo PIN.
 
 Per porta specifica:
