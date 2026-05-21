@@ -20,6 +20,11 @@ export const supabase = isSupabaseConfigured
     })
   : null
 
+export function requireSupabaseClient() {
+  if (!supabase) throw new Error('Supabase non configurato')
+  return supabase
+}
+
 export function setSupabaseAppAccessPinHash(pinHash: string) {
   appAccessPinHash = pinHash
   if (typeof window !== 'undefined') {

@@ -1,5 +1,6 @@
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
-import { supabase } from '../../lib/supabase'
+import { assertUniqueIdentifiers, normalizeFieldKey } from '../../lib/repositoryUtils'
+import { requireSupabaseClient } from '../../lib/supabase'
 import { normalizeProjectName, supabaseServiceKeyAliases } from './projectShared'
 
 type ProjectRow = {
@@ -87,7 +88,7 @@ type ProjectBackup = {
 type PlatformAccessWriteRow = Omit<PlatformAccessRow, 'id'> & { id?: string }
 
 export async function fetchProjects() {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
 
   const { data: projects, error: projectsError } = await client
     .from('projects')
@@ -101,7 +102,7 @@ export async function fetchProjects() {
 }
 
 export async function fetchProjectById(projectId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
 
   const { data, error } = await client
     .from('projects')
@@ -118,7 +119,7 @@ export async function fetchProjectById(projectId: string) {
 }
 
 export async function createProjectRecord(project: Project) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const agentKeyHash = await hashSecret(project.agent.agentKey)
 
   const { data: createdProject, error: projectError } = await client
@@ -182,13 +183,13 @@ export async function createProjectRecord(project: Project) {
 }
 
 export async function deleteProjectRecord(projectId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { error } = await client.from('projects').delete().eq('id', projectId)
   if (error) throw error
 }
 
 export async function saveProjectSnapshot({ project, sheetFields, variables, images }: ProjectSnapshot) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const backup = await fetchProjectBackup(project.id)
   const name = normalizeProjectName(getFieldValue(sheetFields, 'nome progetto') || project.name)
   const githubEmail = getFieldValue(sheetFields, 'mail github')
@@ -292,7 +293,7 @@ async function saveProjectImages(projectId: string, images: ProjectImage[]) {
 }
 
 async function replaceDataFields(projectId: string, rows: Array<Omit<DataFieldRow, 'id'>>) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   assertUniqueIdentifiers(rows, (row) => row.field_key, 'Campi progetto duplicati')
 
   const { data: existingRows, error: existingError } = await client
@@ -328,7 +329,7 @@ async function replaceDataFields(projectId: string, rows: Array<Omit<DataFieldRo
 }
 
 async function replacePlatformAccesses(projectId: string, rows: PlatformAccessWriteRow[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { data: existingRows, error: existingError } = await client
     .from('project_platform_accesses')
     .select('id')
@@ -361,7 +362,7 @@ async function replacePlatformAccesses(projectId: string, rows: PlatformAccessWr
 }
 
 async function replaceEnvVariables(projectId: string, rows: Array<EnvVariableRow & { sort_order: number }>) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   assertUniqueIdentifiers(rows, (row) => row.key, 'Variabili progetto duplicate')
 
   const { data: existingRows, error: existingError } = await client
@@ -401,7 +402,7 @@ async function replaceEnvVariables(projectId: string, rows: Array<EnvVariableRow
 }
 
 async function replaceProjectImages(projectId: string, rows: ImageRow[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   assertUniqueIdentifiers(rows, (row) => row.slot_id, 'Slot immagine duplicati')
 
   const { data: existingRows, error: existingError } = await client
@@ -451,22 +452,9 @@ async function deleteObsoleteRows(tableName: string, existingRows: Array<{ id: s
 
   if (!obsoleteIds.length) return
 
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { error } = await client.from(tableName).delete().in('id', obsoleteIds)
   if (error) throw error
-}
-
-function assertUniqueIdentifiers<T>(rows: T[], getIdentifier: (row: T) => string, errorLabel: string) {
-  const seenIdentifiers = new Set<string>()
-
-  for (const row of rows) {
-    const identifier = getIdentifier(row).trim()
-    if (seenIdentifiers.has(identifier)) {
-      throw new Error(`${errorLabel}: ${identifier || 'campo vuoto'}`)
-    }
-
-    seenIdentifiers.add(identifier)
-  }
 }
 
 async function fetchProjectBackup(projectId: string): Promise<ProjectBackup> {
@@ -483,7 +471,7 @@ async function fetchProjectBackup(projectId: string): Promise<ProjectBackup> {
 }
 
 async function restoreProjectBackup(backup: ProjectBackup) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { projectRow } = backup
 
   const { error } = await client
@@ -567,7 +555,7 @@ async function mapProjects(projects: ProjectRow[]) {
 }
 
 async function fetchProjectRelations(projectIds: string[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
 
   const [
     { data: envRows, error: envError },
@@ -610,7 +598,7 @@ async function fetchProjectRelations(projectIds: string[]) {
 }
 
 async function fetchProjectRowById(projectId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { data, error } = await client
     .from('projects')
     .select(
@@ -696,7 +684,7 @@ function mapProjectRow(
 }
 
 async function fetchImageRows(projectIds: string[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { data, error } = await client
     .from('project_images')
     .select('id, project_id, slot_id, name, file_name, mime_type, size_bytes, original_size_bytes, data_url, sort_order')
@@ -740,27 +728,12 @@ function envToRow(projectId: string) {
   })
 }
 
-function requireSupabase() {
-  if (!supabase) throw new Error('Supabase non configurato')
-  return supabase
-}
-
 function getFieldValue(fields: ProjectVariable[], key: string) {
   return fields.find((field) => field.key.trim().toLowerCase() === key.toLowerCase())?.value.trim() ?? ''
 }
 
 function getDataUrlMimeType(dataUrl: string) {
   return dataUrl.match(/^data:([^;]+);/)?.[1] ?? ''
-}
-
-function normalizeFieldKey(key: string) {
-  return key
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
 }
 
 function getVariableScope(key: string): Project['env'][number]['scope'] {

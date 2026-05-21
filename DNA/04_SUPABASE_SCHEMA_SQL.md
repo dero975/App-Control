@@ -31,7 +31,8 @@ Fonte codice primaria:
 
 - Tipi: `src/types/app.ts`
 - Progetti e tab: `src/features/projects/ProjectsPage.tsx`
-- ENV e `.env render`: `src/features/projects/ProjectsPage.tsx`
+- Editor `Dati progetto` / `Variabili` ed export `.env render`: `src/features/projects/VariablesPanel.tsx`
+- Immagini progetto: `src/features/projects/ProjectImagesPanel.tsx`
 - Prompt: `src/features/prompts`
 - Clienti: `src/features/customers`
 

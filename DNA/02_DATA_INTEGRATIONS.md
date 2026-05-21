@@ -8,6 +8,7 @@
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
 - Repository clienti Supabase in `src/features/customers/customerRepository.ts`.
+- Utility repository condivise in `src/lib/repositoryUtils.ts`; non duplicare normalizzazione chiavi campo o controlli duplicati nei singoli repository.
 - Non esistono Supabase Storage o backend custom. E presente solo un workflow GitHub Actions separato per keepalive Supabase.
 
 ## Tipi principali
@@ -79,6 +80,7 @@ Guardrail:
 - Icone installazione app: `public/manifest.webmanifest` usa `public/icons/app-icon-192.png` e `public/icons/app-icon-512.png`; iOS usa `public/icons/apple-touch-icon.png`. Questi asset sono derivati dal master locale `public/icons/Icona Schermata Home.png` e devono restare PNG nelle dimensioni 192x192, 512x512 e 180x180.
 - Icone tab browser: `index.html` usa `public/icons/favicon-32.png` e `public/icons/favicon-16.png`; non usare WebP come favicon primaria per compatibilita browser.
 - Il tab UI si chiama `Immagini`; il tipo dati resta `VisualAsset`.
+- La UI immagini e isolata in `src/features/projects/ProjectImagesPanel.tsx` e viene caricata solo quando il tab `Immagini` viene aperto.
 - I nuovi progetti mostrano sempre cinque slot immagine fissi: `Logo app`, `Logo app 2`, `Logo app 3`, `Icona Schermata Home`, `Icona Tab Browser (favicon)`.
 - I file immagine inseriti nello UI tramite pulsante o drag and drop vengono ottimizzati in locale e salvati in `project_images` con `data_url`; al refresh la UI ricostruisce gli slot dai record Supabase.
 - Gli slot `home-icon` e `browser-tab-icon` espongono anche un utility UI non persistita: pulsante `Copia prompt` che copia un prompt universale per chiedere a Codex/Windsurf di cercare il file sorgente con nome esatto, ottimizzarlo, integrarlo correttamente nel progetto e rimuovere il file originario non ottimizzato.

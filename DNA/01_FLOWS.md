@@ -5,7 +5,7 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 ## Navigazione
 
 - `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
-- Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; solo logo e testo `by Dero` fanno fade in/out per 4.5 secondi, poi resta 0.5 secondi prima del passaggio.
+- Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 4.5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; logo e testo `by Dero` fanno fade in/out sullo stesso tempo del passaggio, evitando una fase finale vuota.
 - `PinLockPage` non deve essere caricata lazy: e parte del percorso critico di avvio, cosi il passaggio intro -> PIN non riusa lo splash come fallback e non crea un secondo flash.
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app e non esiste un token dispositivo attendibile valido.
 - PIN valido: 6 cifre; il PIN viene salvato come hash in Supabase e non deve avere fallback hardcoded nel codice.
@@ -44,7 +44,7 @@ Fonte principale: `src/features/customers/CustomersPage.tsx`.
 
 ## Progetti
 
-Fonte principale: `src/features/projects/ProjectsPage.tsx`.
+Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projects/VariablesPanel.tsx`, `src/features/projects/ProjectImagesPanel.tsx`.
 
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
@@ -64,6 +64,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 - Durante l'autosave il dettaglio mostra uno stato esplicito `Salvataggio in corso`, `Salvataggio completato` oppure il messaggio di errore restituito dal repository.
 - Selezionando un progetto si torna sempre al tab `Dati progetto`.
 - Tab interni: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
+- Il tab `Immagini` e caricato in lazy loading: canvas, ottimizzazione immagini e modali restano fuori dal chunk iniziale di `Progetti` finche il tab non viene aperto.
 - L'header dettaglio mostra titolo progetto, link deploy se presente e `Data creazione` formattata sotto al link.
 - Se `LINK_DEPLOY` e presente, l'header dettaglio mostra anche il link admin derivato `.../admina`; il valore puo essere sovrascritto dalla variabile `LINK_DEPLOY ADMIN`.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
@@ -113,7 +114,7 @@ Fonte principale: `src/features/projects/ProjectsPage.tsx`.
 
 ## Variabili ENV e Render
 
-Fonte: `src/features/projects/ProjectsPage.tsx`.
+Fonte: `src/features/projects/VariablesPanel.tsx`.
 
 - Il pulsante `.env render` nel tab `Variabili` copia un preset generale per deploy Render di altri progetti.
 - In App Control le variabili canoniche da compilare sono: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`.

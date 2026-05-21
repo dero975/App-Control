@@ -6,9 +6,7 @@ import { FieldGroup } from '../../components/FieldGroup'
 import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
 import { getNextPinnedRecordIds, readPinnedRecordIds, sortPinnedRecordsFirst, writePinnedRecordIds } from '../../lib/pinnedRecords'
-import {
-  VariablesPanel,
-} from '../projects/ProjectsPage'
+import { VariablesPanel } from '../projects/VariablesPanel'
 import {
   buildProjectVariables,
   buildSheetFields,

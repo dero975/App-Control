@@ -6,7 +6,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 
 - App privata locale per gestire progetti, prompt, variabili, immagini e note operative.
 - Stack: React, TypeScript, Vite, CSS custom, `lucide-react`.
-- Backend custom assente. Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon.
+- Backend custom assente. Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon.
 - Deploy produzione attuale: Render `Static Site` collegato al repository GitHub `dero975/App-Control`; Supabase resta il backend dati.
 - Workflow esterno presente: GitHub Actions `Supabase Keepalive` schedulato, separato dal runtime app.
 - Workflow esterno presente anche per backup leggibile: Google Sheets popolato da Apps Script leggendo Supabase in sola lettura.
@@ -25,13 +25,15 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 
 - `src/app`: shell, sidebar desktop, navigazione mobile.
 - `src/components`: componenti condivisi (`CopyButton`, `FieldGroup`, `SectionHeader`, `EmptyState`).
-- `src/features/projects`: gestione principale dei progetti e dei tab interni.
+- `src/features/projects`: gestione principale dei progetti, tab interni, editor variabili condiviso e pannello immagini caricato solo quando serve.
 - `src/features/prompts`: libreria prompt con filtri categoria, CRUD reale Supabase, copia e modale creazione.
 - `src/features/settings`: gestione PIN app e sicurezza locale.
 - `src/lib/clipboard.ts`: helper condiviso per copia clipboard.
-- `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*`.
+- `src/lib/supabase.ts`: client Supabase frontend con sole variabili `VITE_SUPABASE_*` e helper obbligatorio `requireSupabaseClient()`.
 - `src/lib/pinAccess.ts`: verifica e modifica PIN app via Supabase.
 - `src/features/projects/projectRepository.ts`: accesso dati Supabase per Progetti.
+- `src/features/customers/customerRepository.ts`: accesso dati Supabase per Clienti.
+- `src/lib/repositoryUtils.ts`: helper puri condivisi dai repository per chiavi campo e validazione duplicati.
 - `src/styles/app.css` e `src/index.css`: stile globale e layout applicativo.
 
 ## Regole non negoziabili

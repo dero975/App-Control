@@ -1,4 +1,5 @@
-import { supabase } from '../../lib/supabase'
+import { assertUniqueIdentifiers, normalizeFieldKey } from '../../lib/repositoryUtils'
+import { requireSupabaseClient } from '../../lib/supabase'
 import type { Customer, CustomerProject, EnvVariable, PlatformAccess, ProjectStatus, ProjectVariable } from '../../types/app'
 import { normalizeProjectName, supabaseServiceKey } from '../projects/projectShared'
 import { buildCustomerDisplayName, buildCustomerDraftIdentity } from './customerIdentity'
@@ -77,7 +78,7 @@ type CustomerProjectBackup = {
 type PlatformAccessWriteRow = Omit<PlatformAccessRow, 'id'> & { id?: string }
 
 export async function fetchCustomers() {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
 
   const { data: customerRows, error: customersError } = await client
     .from('customers')
@@ -144,7 +145,7 @@ export async function fetchCustomers() {
 }
 
 export async function createCustomerRecord(index: number) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const draftIdentity = buildCustomerDraftIdentity(index)
 
   const { data, error } = await client
@@ -183,7 +184,7 @@ export async function createCustomerRecord(index: number) {
 }
 
 export async function saveCustomerRecord(customer: Customer) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const canonicalName = buildCustomerDisplayName(customer)
 
   const { data, error } = await client
@@ -215,13 +216,13 @@ export async function saveCustomerRecord(customer: Customer) {
 }
 
 export async function deleteCustomerRecord(customerId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { error } = await client.from('customers').delete().eq('id', customerId)
   if (error) throw error
 }
 
 export async function createCustomerProjectRecord(customerId: string, index: number) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const defaultEnv = buildDefaultProjectEnv()
 
   const { data: projectData, error: projectError } = await client
@@ -293,7 +294,7 @@ export async function createCustomerProjectRecord(customerId: string, index: num
 }
 
 export async function saveCustomerProjectSnapshot(customerId: string, project: CustomerProject) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const backup = await fetchCustomerProjectBackup(project.id)
 
   try {
@@ -327,7 +328,7 @@ export async function saveCustomerProjectSnapshot(customerId: string, project: C
 }
 
 export async function deleteCustomerProjectRecord(projectId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { error } = await client.from('customer_projects').delete().eq('id', projectId)
   if (error) throw error
 }
@@ -338,7 +339,7 @@ export function clearLegacyCustomerStorage() {
 }
 
 async function fetchProjectRelations(projectIds: string[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
 
   const [
     { data: envRows, error: envError },
@@ -421,7 +422,7 @@ async function saveProjectPlatformAccesses(projectId: string, platformAccesses: 
 }
 
 async function replaceProjectEnvVariables(projectId: string, rows: CustomerEnvVariableRow[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   assertUniqueIdentifiers(rows, (row) => row.key, 'Variabili progetto cliente duplicate')
 
   const { data: existingRows, error: existingError } = await client
@@ -461,7 +462,7 @@ async function replaceProjectEnvVariables(projectId: string, rows: CustomerEnvVa
 }
 
 async function replaceProjectDataFields(projectId: string, rows: Array<Omit<CustomerDataFieldRow, 'id'>>) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   assertUniqueIdentifiers(rows, (row) => row.field_key, 'Campi progetto cliente duplicati')
 
   const { data: existingRows, error: existingError } = await client
@@ -497,7 +498,7 @@ async function replaceProjectDataFields(projectId: string, rows: Array<Omit<Cust
 }
 
 async function replaceProjectPlatformAccesses(projectId: string, rows: PlatformAccessWriteRow[]) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { data: existingRows, error: existingError } = await client
     .from('customer_project_platform_accesses')
     .select('id')
@@ -536,22 +537,9 @@ async function deleteObsoleteRows(tableName: string, existingRows: Array<{ id: s
 
   if (!obsoleteIds.length) return
 
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { error } = await client.from(tableName).delete().in('id', obsoleteIds)
   if (error) throw error
-}
-
-function assertUniqueIdentifiers<T>(rows: T[], getIdentifier: (row: T) => string, errorLabel: string) {
-  const seenIdentifiers = new Set<string>()
-
-  for (const row of rows) {
-    const identifier = getIdentifier(row).trim()
-    if (seenIdentifiers.has(identifier)) {
-      throw new Error(`${errorLabel}: ${identifier || 'campo vuoto'}`)
-    }
-
-    seenIdentifiers.add(identifier)
-  }
 }
 
 function emptyProjectRelations() {
@@ -575,7 +563,7 @@ async function fetchCustomerProjectBackup(projectId: string): Promise<CustomerPr
 }
 
 async function restoreCustomerProjectBackup(backup: CustomerProjectBackup) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { projectRow } = backup
 
   const { error } = await client
@@ -700,7 +688,7 @@ async function fetchCustomerProjectById(projectId: string) {
 }
 
 async function fetchCustomerProjectRowById(projectId: string) {
-  const client = requireSupabase()
+  const client = requireSupabaseClient()
   const { data, error } = await client
     .from('customer_projects')
     .select(
@@ -759,19 +747,4 @@ function sanitizeProjectVariables(dataFields: ProjectVariable[]) {
   }
 
   return [...sanitizedFields.values()]
-}
-
-function normalizeFieldKey(key: string) {
-  return key
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-function requireSupabase() {
-  if (!supabase) throw new Error('Supabase non configurato')
-  return supabase
 }

@@ -22,6 +22,7 @@ const activeAdminSectionStorageKey = 'app-control-admin-section'
 const activeCustomerSectionStorageKey = 'app-control-customer-section'
 const activeCustomerIdStorageKey = 'app-control-customer-id'
 const customerSearchQueryStorageKey = 'app-control-customer-search'
+const introSplashDurationMs = 4500
 
 function App() {
   const [activeEnvironment, setActiveEnvironment] = useState<AppEnvironment>(() => {
@@ -54,7 +55,7 @@ function App() {
 
   useEffect(() => {
     if (!showIntro) return
-    const introTimer = window.setTimeout(() => setShowIntro(false), 5000)
+    const introTimer = window.setTimeout(() => setShowIntro(false), introSplashDurationMs)
     return () => window.clearTimeout(introTimer)
   }, [showIntro])
 
