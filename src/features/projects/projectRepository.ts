@@ -1,6 +1,6 @@
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
 import { supabase } from '../../lib/supabase'
-import { supabaseServiceKeyAliases } from './projectShared'
+import { normalizeProjectName, supabaseServiceKeyAliases } from './projectShared'
 
 type ProjectRow = {
   id: string
@@ -125,7 +125,7 @@ export async function createProjectRecord(project: Project) {
     .from('projects')
     .insert({
       agent_project_id: project.agent.projectId,
-      name: project.name,
+      name: normalizeProjectName(project.name),
       status: project.status,
       development_environment: project.developmentEnvironment,
       github_repo_url: project.githubRepoUrl,
@@ -190,7 +190,7 @@ export async function deleteProjectRecord(projectId: string) {
 export async function saveProjectSnapshot({ project, sheetFields, variables, images }: ProjectSnapshot) {
   const client = requireSupabase()
   const backup = await fetchProjectBackup(project.id)
-  const name = getFieldValue(sheetFields, 'nome progetto') || project.name
+  const name = normalizeProjectName(getFieldValue(sheetFields, 'nome progetto') || project.name)
   const githubEmail = getFieldValue(sheetFields, 'mail github')
   const password = getFieldValue(sheetFields, 'Password')
   const developmentEnvironment = getFieldValue(sheetFields, 'sviluppo in') || project.developmentEnvironment
@@ -648,7 +648,7 @@ function mapProjectRow(
 ): Project {
   return {
     id: project.id,
-    name: project.name,
+    name: normalizeProjectName(project.name),
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     status: project.status,

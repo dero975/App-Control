@@ -45,9 +45,15 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la shell mostra il logo centrato nella top bar superiore.
+- La schermata PIN deve restare entro il viewport mobile anche su iPhone stretti: il pannello usa dimensioni responsive e non deve generare scroll orizzontale.
 - Su mobile le liste progetto di `Admin` e `Clienti` restano compatte, ma ogni card espansa puo aprire una scheda progetto fullscreen dedicata. La scheda mobile riusa i tab reali del dettaglio (`Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`) con UX app-friendly; il pannello laterale dettaglio resta una logica desktop.
+- Le liste progetto di `Admin` e `Clienti` mostrano card separate direttamente sul fondo pagina, senza container/pannello esterno dell'elenco. Ogni card mostra nome progetto sempre in maiuscolo e `Ultima modifica`; la preview `sviluppo in / deploy con` non e piu mostrata nella card lista. La selezione usa sfondo bianco e accento verde scuro.
+- La puntina sulle card progetto fissa il progetto in alto come preferenza locale browser tramite `localStorage`; non scrive su Supabase e non cambia il dato operativo del progetto.
+- Nei tab `Dati progetto` e `Variabili`, i box consolidati si modificano solo dopo click sulla matita; i nuovi campi appena aggiunti restano liberi per il primo inserimento di titolo e valore, poi si consolidano quando si esce dal box compilato.
 - Il cambio ambiente `Admin` / `Clienti` avviene dal selettore persistente nella shell e deve mantenere separato il contesto visivo e operativo.
-- La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: la selezione/apertura di un progetto e gli autosave del dettaglio non devono rimescolare le card.
+- La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: selezione/apertura card, cambio tab e pin locale non devono aggiornare `Ultima modifica`; solo modifiche reali ai contenuti del progetto attivano autosave e `updated_at`.
+- L'autosave del dettaglio progetto non deve ricalcolare payload pesanti non collegati alla modifica corrente: le immagini sono tracciate con firma dedicata per evitare rallentamenti durante typing e navigazione.
 - All'apertura della sezione `Progetti`, l'ordinamento predefinito e alfabetico A-Z; solo un'azione esplicita di Admin puo portarlo su altri ordinamenti.
+- Nella libreria `Prompt`, aprire una card e sola lettura: per modificare titolo, sezione o testo bisogna cliccare la matita accanto al cestino.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.
 - Dopo modifiche codice, verificare con gli script esistenti in `package.json`.

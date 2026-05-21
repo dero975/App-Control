@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
 import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
   Check,
   ClockArrowDown,
-  ClockArrowUp,
   Copy,
   Download,
   FileText,
+  Pencil,
   Pipette,
+  Pin,
   Plus,
   Trash2,
   Upload,
@@ -18,6 +19,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
 import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { copyToClipboard } from '../../lib/clipboard'
+import { getNextPinnedRecordIds, readPinnedRecordIds, sortPinnedRecordIdsFirst, sortPinnedRecordsFirst, writePinnedRecordIds } from '../../lib/pinnedRecords'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
 import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
@@ -31,8 +33,9 @@ import {
   getDeployAdminLink,
   getDeployLink,
   getFieldValue,
-  getProjectPreviewMeta,
   isDeployPasswordField,
+  isProjectNameField,
+  normalizeProjectName,
   supabaseServiceKey,
   supabaseServiceKeyAliases,
 } from './projectShared'
@@ -84,6 +87,7 @@ const defaultProjectImageSlots = [
 ] as const
 const homeIconSlotId = 'home-icon'
 const browserTabIconSlotId = 'browser-tab-icon'
+const pinnedProjectIdsStorageKey = 'app-control-pinned-project-ids'
 const homeIconEditorSize = 512
 const homeIconCornerRadius = 110
 const gradientModeOptions = [
@@ -105,10 +109,59 @@ const imageIntegrationPromptBySlotId: Record<string, string> = {
   [browserTabIconSlotId]:
     'Cerca nel progetto il file con nome esatto `icona Tab Browser.webp`. Usalo come sorgente da ottimizzare e integrare correttamente come icona della tab del browser/favicons dell’app. Se per compatibilita browser servono formati o dimensioni diverse, genera gli asset finali appropriati partendo da questo file, aggiorna i riferimenti necessari nel progetto, assicurati che il risultato finale sia leggero, ottimizzato e adatto a mantenere l’app fluida e veloce anche su dispositivi poco potenti, poi elimina il file originario non ottimizzato lasciando nel progetto solo gli asset finali effettivamente usati.',
 }
-type ProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
+type ProjectListSortMode = 'recent-desc' | 'name-asc' | 'name-desc'
 type ProjectSaveState = 'idle' | 'saving' | 'saved' | 'error'
+type VariableUpdateField = 'key' | 'value' | 'sensitive'
 
-function getSortedProjects(projects: Project[], query: string, sortMode: ProjectListSortMode) {
+function getProjectDetailSignature({
+  imageSlotsSignature,
+  operationalNotes,
+  sheetFields,
+  variables,
+}: {
+  imageSlotsSignature: string
+  operationalNotes: string
+  sheetFields: ProjectVariable[]
+  variables: ProjectVariable[]
+}) {
+  return JSON.stringify({
+    imageSlotsSignature,
+    operationalNotes,
+    sheetFields: sheetFields.map(normalizeProjectVariableForSignature),
+    variables: variables.map(normalizeProjectVariableForSignature),
+  })
+}
+
+function getProjectImageSlotsSignature(imageSlots: ProjectImageSlot[]) {
+  return JSON.stringify(
+    imageSlots.map((slot) => ({
+      id: slot.id,
+      name: slot.name,
+      fileName: slot.fileName,
+      mimeType: slot.mimeType,
+      dataUrl: slot.dataUrl,
+      sizeBytes: slot.sizeBytes,
+      originalSizeBytes: slot.originalSizeBytes,
+    })),
+  )
+}
+
+function normalizeProjectVariableForSignature(variable: ProjectVariable) {
+  return {
+    id: variable.id,
+    key: variable.key,
+    value: variable.value,
+    sensitive: variable.sensitive,
+    accessAccounts: (variable.accessAccounts ?? []).map((access) => ({
+      id: access.id,
+      platform: access.platform,
+      email: access.email,
+      password: access.password,
+    })),
+  }
+}
+
+function getSortedProjects(projects: Project[], query: string, sortMode: ProjectListSortMode, pinnedProjectIds: string[] = []) {
   const normalizedQuery = query.trim().toLowerCase()
   const matchingProjects = projects.filter(
     (project) =>
@@ -118,32 +171,35 @@ function getSortedProjects(projects: Project[], query: string, sortMode: Project
       project.status.toLowerCase().includes(normalizedQuery),
   )
 
-  if (sortMode === 'recent-desc' || sortMode === 'recent-asc') {
-    return [...matchingProjects].sort((firstProject, secondProject) => {
+  if (sortMode === 'recent-desc') {
+    const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => {
       const timeDiff = Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
-      return sortMode === 'recent-desc' ? timeDiff : -timeDiff
+      return timeDiff
     })
+    return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
   }
 
-  return [...matchingProjects].sort((firstProject, secondProject) => {
+  const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => {
     const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
     return sortMode === 'name-asc' ? sortResult : -sortResult
   })
+  return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
 }
 
 function getVisibleProjectIds(
   projects: Project[],
   query: string,
   sortMode: ProjectListSortMode,
+  pinnedProjectIds: string[] = [],
   previousIds?: string[],
 ) {
-  const nextCandidateIds = getSortedProjects(projects, query, sortMode).map((project) => project.id)
+  const nextCandidateIds = getSortedProjects(projects, query, sortMode, pinnedProjectIds).map((project) => project.id)
   if (!previousIds?.length) return nextCandidateIds
 
   const nextCandidateIdSet = new Set(nextCandidateIds)
   const preservedIds = previousIds.filter((projectId) => nextCandidateIdSet.has(projectId))
   const appendedIds = nextCandidateIds.filter((projectId) => !preservedIds.includes(projectId))
-  return [...preservedIds, ...appendedIds]
+  return sortPinnedRecordsFirst([...preservedIds, ...appendedIds].map((id) => ({ id })), pinnedProjectIds).map((project) => project.id)
 }
 
 export function ProjectsPage() {
@@ -158,6 +214,7 @@ export function ProjectsPage() {
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
   const [visibleProjectIds, setVisibleProjectIds] = useState<string[]>([])
+  const [pinnedProjectIds, setPinnedProjectIds] = useState(() => readPinnedRecordIds(pinnedProjectIdsStorageKey))
   const isMobileViewport = useIsMobileViewport()
 
   useEffect(() => {
@@ -175,9 +232,12 @@ export function ProjectsPage() {
       try {
         const projects = await fetchProjects()
         if (!isMounted) return
+        const storedPinnedProjectIds = readPinnedRecordIds(pinnedProjectIdsStorageKey)
+        const nextVisibleProjectIds = getVisibleProjectIds(projects, '', 'name-asc', storedPinnedProjectIds)
         setProjectList(projects)
-        setVisibleProjectIds(getVisibleProjectIds(projects, '', 'name-asc'))
-        setSelectedId(projects[0]?.id ?? '')
+        setPinnedProjectIds(storedPinnedProjectIds)
+        setVisibleProjectIds(nextVisibleProjectIds)
+        setSelectedId(nextVisibleProjectIds[0] ?? '')
         setExpandedMobileId('')
       } catch (error) {
         if (!isMounted) return
@@ -195,12 +255,12 @@ export function ProjectsPage() {
   }, [])
 
   const filteredProjects = useMemo(() => {
-    const candidateProjects = getSortedProjects(projectList, query, sortMode)
+    const candidateProjects = getSortedProjects(projectList, query, sortMode, pinnedProjectIds)
     const candidateProjectMap = new Map(candidateProjects.map((project) => [project.id, project]))
     return visibleProjectIds
       .map((projectId) => candidateProjectMap.get(projectId))
       .filter((project): project is Project => Boolean(project))
-  }, [projectList, query, sortMode, visibleProjectIds])
+  }, [pinnedProjectIds, projectList, query, sortMode, visibleProjectIds])
 
   const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
   const mobileModalProject = isMobileViewport ? projectList.find((project) => project.id === mobileModalProjectId) ?? null : null
@@ -212,7 +272,7 @@ export function ProjectsPage() {
       const nextProjects = [project, ...projectList]
       const nextQuery = ''
       setProjectList(nextProjects)
-      setVisibleProjectIds(getVisibleProjectIds(nextProjects, nextQuery, sortMode))
+      setVisibleProjectIds(getVisibleProjectIds(nextProjects, nextQuery, sortMode, pinnedProjectIds))
       setSelectedId(project.id)
       setExpandedMobileId('')
       setActiveTab('Dati progetto')
@@ -232,9 +292,13 @@ export function ProjectsPage() {
       }
 
       const remainingProjects = projectList.filter((project) => project.id !== deleteCandidate.id)
+      const remainingPinnedProjectIds = pinnedProjectIds.filter((projectId) => projectId !== deleteCandidate.id)
+      const nextVisibleProjectIds = getVisibleProjectIds(remainingProjects, query, sortMode, remainingPinnedProjectIds)
       setProjectList(remainingProjects)
-      setVisibleProjectIds(getVisibleProjectIds(remainingProjects, query, sortMode))
-      setSelectedId(remainingProjects[0]?.id ?? '')
+      setPinnedProjectIds(remainingPinnedProjectIds)
+      writePinnedRecordIds(pinnedProjectIdsStorageKey, remainingPinnedProjectIds)
+      setVisibleProjectIds(nextVisibleProjectIds)
+      setSelectedId(nextVisibleProjectIds[0] ?? '')
       setExpandedMobileId((currentExpandedId) => (currentExpandedId === deleteCandidate.id ? '' : currentExpandedId))
       setActiveTab('Dati progetto')
       setDeleteCandidate(null)
@@ -251,33 +315,42 @@ export function ProjectsPage() {
     const refreshedProject = await fetchProjectById(snapshot.project.id)
     setProjectList((currentProjects) => {
       const nextProjects = currentProjects.map((project) => (project.id === refreshedProject.id ? refreshedProject : project))
-      setVisibleProjectIds((currentIds) => getVisibleProjectIds(nextProjects, query, sortMode, currentIds))
+      setVisibleProjectIds((currentIds) => getVisibleProjectIds(nextProjects, query, sortMode, pinnedProjectIds, currentIds))
       return nextProjects
     })
     setSelectedId(refreshedProject.id)
   }
 
+  function togglePinnedProject(projectId: string) {
+    setPinnedProjectIds((currentPinnedProjectIds) => {
+      const nextPinnedProjectIds = getNextPinnedRecordIds(currentPinnedProjectIds, projectId)
+      writePinnedRecordIds(pinnedProjectIdsStorageKey, nextPinnedProjectIds)
+      setVisibleProjectIds((currentVisibleProjectIds) =>
+        currentVisibleProjectIds.length
+          ? sortPinnedRecordIdsFirst(currentVisibleProjectIds, nextPinnedProjectIds)
+          : getVisibleProjectIds(projectList, query, sortMode, nextPinnedProjectIds),
+      )
+      return nextPinnedProjectIds
+    })
+  }
+
   function toggleAlphabeticalSort() {
     setSortMode((currentSortMode) => {
       const nextSortMode = currentSortMode === 'name-asc' ? 'name-desc' : 'name-asc'
-      setVisibleProjectIds(getVisibleProjectIds(projectList, query, nextSortMode))
+      setVisibleProjectIds(getVisibleProjectIds(projectList, query, nextSortMode, pinnedProjectIds))
       return nextSortMode
     })
   }
 
   function toggleRecencySort() {
-    setSortMode((currentSortMode) => {
-      const nextSortMode = currentSortMode === 'recent-asc' ? 'recent-desc' : 'recent-asc'
-      setVisibleProjectIds(getVisibleProjectIds(projectList, query, nextSortMode))
-      return nextSortMode
-    })
+    setSortMode('recent-desc')
+    setVisibleProjectIds(getVisibleProjectIds(projectList, query, 'recent-desc', pinnedProjectIds))
   }
 
   const isAlphabeticalSortActive = sortMode === 'name-asc' || sortMode === 'name-desc'
-  const isRecencySortActive = sortMode === 'recent-asc' || sortMode === 'recent-desc'
+  const isRecencySortActive = sortMode === 'recent-desc'
   const alphabeticalSortLabel = sortMode === 'name-desc' ? 'Ordina progetti Z-A' : 'Ordina progetti A-Z'
-  const recencySortLabel =
-    sortMode === 'recent-asc' ? 'Ordina progetti dal meno recente al piu recente' : 'Ordina progetti dal piu recente al meno recente'
+  const recencySortLabel = 'Ordina progetti dal piu recente al meno recente'
 
   return (
     <div className="page-stack projects-page">
@@ -289,7 +362,7 @@ export function ProjectsPage() {
               onChange={(event) => {
                 const nextQuery = event.target.value
                 setQuery(nextQuery)
-                setVisibleProjectIds(getVisibleProjectIds(projectList, nextQuery, sortMode))
+                setVisibleProjectIds(getVisibleProjectIds(projectList, nextQuery, sortMode, pinnedProjectIds))
               }}
               placeholder="Cerca.."
               aria-label="Cerca progetto"
@@ -322,45 +395,76 @@ export function ProjectsPage() {
                   aria-label={recencySortLabel}
                   title={recencySortLabel}
                 >
-                  {sortMode === 'recent-asc' ? (
-                    <ClockArrowUp aria-hidden="true" className="button-icon" />
-                  ) : (
-                    <ClockArrowDown aria-hidden="true" className="button-icon" />
-                  )}
+                  <ClockArrowDown aria-hidden="true" className="button-icon" />
                 </button>
               </div>
             </div>
           </div>
 
           <div className="record-list record-list--desktop" aria-label="Progetti">
-            {filteredProjects.map((project) => (
-              <button
-                type="button"
-                key={project.id}
-                className={project.id === selectedProject?.id ? 'record-row record-row--active' : 'record-row'}
-                onClick={() => {
-                  setSelectedId(project.id)
-                  setActiveTab('Dati progetto')
-                }}
-              >
-                <strong>{project.name}</strong>
-                <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
-                <small>{getProjectPreviewMeta(project, normalizeSelectableFieldValue)}</small>
-              </button>
-            ))}
+            {filteredProjects.map((project) => {
+              const isPinned = pinnedProjectIds.includes(project.id)
+              return (
+                <article
+                  key={project.id}
+                  className={[
+                    'record-row',
+                    project.id === selectedProject?.id ? 'record-row--active' : '',
+                    isPinned ? 'record-row--pinned' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <button
+                    type="button"
+                    className="record-row__main"
+                    onClick={() => {
+                      setSelectedId(project.id)
+                      setActiveTab('Dati progetto')
+                    }}
+                  >
+                    <strong>{project.name}</strong>
+                    <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
+                  </button>
+                  <button
+                    type="button"
+                    className={isPinned ? 'project-pin-button project-pin-button--active' : 'project-pin-button'}
+                    aria-label={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                    aria-pressed={isPinned}
+                    title={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                    onClick={() => togglePinnedProject(project.id)}
+                  >
+                    <Pin aria-hidden="true" className="button-icon" />
+                  </button>
+                </article>
+              )
+            })}
           </div>
 
           <div className="record-list record-list--mobile" aria-label="Progetti mobile">
             {filteredProjects.map((project) => {
               const isExpanded = project.id === expandedMobileId
+              const isPinned = pinnedProjectIds.includes(project.id)
               const deployLink = getDeployLink(buildNormalizedSheetFields(project), project)
               const deployAdminLink = getDeployAdminLink(buildProjectVariables(project), deployLink)
 
               return (
                 <article
                   key={project.id}
-                  className={isExpanded ? 'mobile-project-card mobile-project-card--active' : 'mobile-project-card'}
+                  className={[
+                    'mobile-project-card',
+                    isExpanded ? 'mobile-project-card--active' : '',
+                    isPinned ? 'mobile-project-card--pinned' : '',
+                  ].filter(Boolean).join(' ')}
                 >
+                  <button
+                    type="button"
+                    className={isPinned ? 'project-pin-button project-pin-button--active' : 'project-pin-button'}
+                    aria-label={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                    aria-pressed={isPinned}
+                    title={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                    onClick={() => togglePinnedProject(project.id)}
+                  >
+                    <Pin aria-hidden="true" className="button-icon" />
+                  </button>
                   <button
                     type="button"
                     className="mobile-project-card__trigger"
@@ -371,6 +475,7 @@ export function ProjectsPage() {
                     }}
                   >
                     <strong>{project.name}</strong>
+                    <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
                   </button>
                   {isExpanded ? (
                     <div className="mobile-project-card__links">
@@ -476,7 +581,12 @@ function ProjectDetail({
   const [operationalNotes, setOperationalNotes] = useState(project.operationalNotes)
   const [saveState, setSaveState] = useState<ProjectSaveState>('idle')
   const [saveMessage, setSaveMessage] = useState('')
-  const didMountRef = useRef(false)
+  const imageSlotsSignature = useMemo(() => getProjectImageSlotsSignature(imageSlots), [imageSlots])
+  const detailSignature = useMemo(
+    () => getProjectDetailSignature({ imageSlotsSignature, operationalNotes, sheetFields, variables }),
+    [imageSlotsSignature, operationalNotes, sheetFields, variables],
+  )
+  const lastSavedSignatureRef = useRef(detailSignature)
   const saveContextRef = useRef({ onSave, project })
   const saveVersionRef = useRef(0)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
@@ -500,10 +610,7 @@ function ProjectDetail({
   }, [saveState])
 
   useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true
-      return
-    }
+    if (detailSignature === lastSavedSignatureRef.current) return
 
     const currentSaveVersion = saveVersionRef.current + 1
     saveVersionRef.current = currentSaveVersion
@@ -526,6 +633,7 @@ function ProjectDetail({
       })
         .then(() => {
           if (saveVersionRef.current !== currentSaveVersion) return
+          lastSavedSignatureRef.current = detailSignature
           setSaveState('saved')
           setSaveMessage('Salvataggio completato')
         })
@@ -537,7 +645,7 @@ function ProjectDetail({
     }, 650)
 
     return () => window.clearTimeout(saveTimer)
-  }, [imageSlots, operationalNotes, sheetFields, variables])
+  }, [detailSignature, imageSlots, operationalNotes, sheetFields, variables])
 
   function handleImageSlotsChange(nextImageSlots: ProjectImageSlot[]) {
     setImageSlots(nextImageSlots)
@@ -693,6 +801,8 @@ export function VariablesPanel({
   valueAriaLabel: string
 }) {
   const [envBlockCopied, setEnvBlockCopied] = useState(false)
+  const [editingVariableIds, setEditingVariableIds] = useState<Set<string>>(() => new Set())
+  const [draftVariableIds, setDraftVariableIds] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     if (!envBlockCopied) return
@@ -701,7 +811,37 @@ export function VariablesPanel({
     return () => window.clearTimeout(timeout)
   }, [envBlockCopied])
 
-  function updateVariable(id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) {
+  function isDraftVariable(id: string) {
+    return draftVariableIds.has(id)
+  }
+
+  function isEditingVariable(id: string) {
+    return draftVariableIds.has(id) || editingVariableIds.has(id)
+  }
+
+  function isEditingVariableGroup(ids: string[]) {
+    return ids.some((id) => draftVariableIds.has(id) || editingVariableIds.has(id))
+  }
+
+  function toggleVariableEditing(ids: string[]) {
+    setEditingVariableIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+      const isEditing = ids.some((id) => nextIds.has(id))
+
+      ids.forEach((id) => {
+        if (isEditing) {
+          nextIds.delete(id)
+          return
+        }
+
+        nextIds.add(id)
+      })
+
+      return nextIds
+    })
+  }
+
+  function updateVariable(id: string, field: VariableUpdateField, value: string | boolean) {
     const currentVariables = variables
     const targetVariable = currentVariables.find((variable) => variable.id === id)
 
@@ -722,7 +862,8 @@ export function VariablesPanel({
       return
     }
 
-    onChange(currentVariables.map((variable) => (variable.id === id ? { ...variable, [field]: value } : variable)))
+    const nextValue = field === 'value' && targetVariable && isProjectNameField(targetVariable.key) ? normalizeProjectName(String(value)) : value
+    onChange(currentVariables.map((variable) => (variable.id === id ? { ...variable, [field]: nextValue } : variable)))
   }
 
   function updatePlatformAccess(variableId: string, accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) {
@@ -772,14 +913,36 @@ export function VariablesPanel({
   }
 
   function deleteVariable(id: string) {
+    setEditingVariableIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+      nextIds.delete(id)
+      return nextIds
+    })
+    setDraftVariableIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+      nextIds.delete(id)
+      return nextIds
+    })
     onChange(variables.filter((variable) => variable.id !== id))
   }
 
+  function finalizeDraftVariable(id: string) {
+    setDraftVariableIds((currentIds) => {
+      if (!currentIds.has(id)) return currentIds
+
+      const nextIds = new Set(currentIds)
+      nextIds.delete(id)
+      return nextIds
+    })
+  }
+
   function addVariable() {
+    const variableId = `variable-${Date.now()}`
+    setDraftVariableIds((currentIds) => new Set(currentIds).add(variableId))
     onChange([
       ...variables,
       {
-        id: `variable-${Date.now()}`,
+        id: variableId,
         key: '',
         value: '',
         sensitive: true,
@@ -850,7 +1013,9 @@ export function VariablesPanel({
                   key="github-credentials"
                   emailVariable={variables[githubEmailIndex]}
                   passwordVariable={variables[githubPasswordIndex]}
+                  editable={isEditingVariableGroup([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
                   onDelete={deleteVariable}
+                  onEdit={() => toggleVariableEditing([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
                   onUpdate={updateVariable}
                   valueAriaLabel={valueAriaLabel}
                 />
@@ -863,7 +1028,9 @@ export function VariablesPanel({
                   key="deploy-links"
                   deployLinkVariable={variables[linkDeployIndex]}
                   deployAdminLinkVariable={variables[linkDeployAdminIndex]}
+                  editable={isEditingVariableGroup([variables[linkDeployIndex].id, variables[linkDeployAdminIndex].id])}
                   onDelete={deleteVariable}
+                  onEdit={() => toggleVariableEditing([variables[linkDeployIndex].id, variables[linkDeployAdminIndex].id])}
                   onUpdate={updateVariable}
                   valueAriaLabel={valueAriaLabel}
                 />
@@ -876,7 +1043,9 @@ export function VariablesPanel({
                   key="deploy-credentials"
                   deployVariable={variables[deployIndex]}
                   passwordVariable={variables[deployPasswordIndex]}
+                  editable={isEditingVariableGroup([variables[deployIndex].id, variables[deployPasswordIndex].id])}
                   onDelete={deleteVariable}
+                  onEdit={() => toggleVariableEditing([variables[deployIndex].id, variables[deployPasswordIndex].id])}
                   onUpdate={updateVariable}
                   valueAriaLabel={valueAriaLabel}
                 />
@@ -899,9 +1068,13 @@ export function VariablesPanel({
               <VariableEditorCard
                 key={variable.id}
                 variable={variable}
+                editable={isEditingVariable(variable.id)}
+                isDraft={isDraftVariable(variable.id)}
                 onAddAccess={addPlatformAccess}
                 onDelete={deleteVariable}
                 onDeleteAccess={deletePlatformAccess}
+                onDraftCommit={finalizeDraftVariable}
+                onEdit={() => toggleVariableEditing([variable.id])}
                 onUpdateAccess={updatePlatformAccess}
                 onUpdate={updateVariable}
                 valueAriaLabel={valueAriaLabel}
@@ -916,15 +1089,19 @@ export function VariablesPanel({
 
 function DeployCredentialsCard({
   deployVariable,
+  editable,
   passwordVariable,
   onDelete,
+  onEdit,
   onUpdate,
   valueAriaLabel,
 }: {
   deployVariable: ProjectVariable
+  editable: boolean
   passwordVariable: ProjectVariable
   onDelete: (id: string) => void
-  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  onEdit: () => void
+  onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
   const selectFieldConfig = getSelectableFieldConfig(deployVariable.key)
@@ -951,7 +1128,7 @@ function DeployCredentialsCard({
   }
 
   return (
-    <article className="editable-variable-card editable-variable-card--grouped editable-variable-card--deploy">
+    <article className={editable ? 'editable-variable-card editable-variable-card--grouped editable-variable-card--deploy editable-variable-card--editing' : 'editable-variable-card editable-variable-card--grouped editable-variable-card--deploy'}>
       <div className="grouped-variable-stack">
         <div className="grouped-card-title grouped-card-title--deploy">Deploy con</div>
         <div className="grouped-variable-row">
@@ -961,7 +1138,7 @@ function DeployCredentialsCard({
             </span>
             {selectFieldConfig ? (
               <div className="variable-select-row">
-                <select value={selectValue} onChange={(event) => handleSelectChange(event.target.value)}>
+                <select value={selectValue} disabled={!editable} onChange={(event) => handleSelectChange(event.target.value)}>
                   {selectOptions.map((option) => (
                     <option value={option} key={option}>
                       {option}
@@ -972,15 +1149,18 @@ function DeployCredentialsCard({
               </div>
             ) : null}
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(deployVariable.id)}
-            aria-label="Elimina deploy con"
-            title="Elimina deploy con"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions">
+            <VariableEditButton active={editable} onClick={onEdit} />
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(deployVariable.id)}
+              aria-label="Elimina deploy con"
+              title="Elimina deploy con"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="grouped-variable-row">
@@ -989,19 +1169,22 @@ function DeployCredentialsCard({
             <input
               value={passwordVariable.value}
               type="text"
+              readOnly={!editable}
               onChange={(event) => onUpdate(passwordVariable.id, 'value', event.target.value)}
             />
             <CopyButton value={passwordVariable.value} iconOnly className="copy-button--inside-input" />
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(passwordVariable.id)}
-            aria-label="Elimina Password deploy"
-            title="Elimina Password deploy"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions grouped-variable-row__actions--single">
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(passwordVariable.id)}
+              aria-label="Elimina Password deploy"
+              title="Elimina Password deploy"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -1054,30 +1237,74 @@ function addDerivedEnvExportValues(variables: Array<{ exportKey: string; value: 
   return nextVariables
 }
 
-function SupabaseFieldTitle({ title }: { title: string }) {
+function VariableFieldTitle({
+  canEdit,
+  editable,
+  onChange,
+  value,
+}: {
+  canEdit: boolean
+  editable: boolean
+  onChange: (value: string) => void
+  value: string
+}) {
+  if (editable && canEdit) {
+    return (
+      <span className="field-title-edit-row">
+        <input
+          className="field-title-input"
+          value={value}
+          placeholder="Titolo campo"
+          aria-label="Titolo campo"
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />
+      </span>
+    )
+  }
+
   return (
     <span className="fixed-field-name fixed-field-name--with-inline-copy">
-      <span>{title}</span>
-      <CopyButton value={title} iconOnly className="copy-button--field-title" label="Copia titolo" />
+      <span>{value || 'Titolo campo'}</span>
+      <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />
     </span>
+  )
+}
+
+function VariableEditButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={active ? 'inline-icon-button variable-edit-button variable-edit-button--active' : 'inline-icon-button variable-edit-button'}
+      onClick={onClick}
+      aria-label={active ? 'Blocca modifica campo' : 'Modifica campo'}
+      aria-pressed={active}
+      title={active ? 'Blocca modifica campo' : 'Modifica campo'}
+    >
+      <Pencil aria-hidden="true" className="button-icon" />
+    </button>
   )
 }
 
 function DeployLinksCard({
   deployLinkVariable,
   deployAdminLinkVariable,
+  editable,
   onDelete,
+  onEdit,
   onUpdate,
   valueAriaLabel,
 }: {
   deployLinkVariable: ProjectVariable
   deployAdminLinkVariable: ProjectVariable
+  editable: boolean
   onDelete: (id: string) => void
-  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  onEdit: () => void
+  onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
   return (
-    <article className="editable-variable-card editable-variable-card--grouped">
+    <article className={editable ? 'editable-variable-card editable-variable-card--grouped editable-variable-card--editing' : 'editable-variable-card editable-variable-card--grouped'}>
       <div className="grouped-variable-stack">
         <div className="grouped-variable-row">
           <label className="variable-value-input" aria-label={valueAriaLabel}>
@@ -1085,19 +1312,23 @@ function DeployLinksCard({
             <input
               value={deployLinkVariable.value}
               type="text"
+              readOnly={!editable}
               onChange={(event) => onUpdate(deployLinkVariable.id, 'value', event.target.value)}
             />
             <CopyButton value={deployLinkVariable.value} iconOnly className="copy-button--inside-input" />
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(deployLinkVariable.id)}
-            aria-label="Elimina LINK_DEPLOY"
-            title="Elimina LINK_DEPLOY"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions">
+            <VariableEditButton active={editable} onClick={onEdit} />
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(deployLinkVariable.id)}
+              aria-label="Elimina LINK_DEPLOY"
+              title="Elimina LINK_DEPLOY"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="grouped-variable-row">
@@ -1106,19 +1337,22 @@ function DeployLinksCard({
             <input
               value={deployAdminLinkVariable.value}
               type="text"
+              readOnly={!editable}
               onChange={(event) => onUpdate(deployAdminLinkVariable.id, 'value', event.target.value)}
             />
             <CopyButton value={deployAdminLinkVariable.value} iconOnly className="copy-button--inside-input" />
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(deployAdminLinkVariable.id)}
-            aria-label="Elimina LINK_DEPLOY ADMIN"
-            title="Elimina LINK_DEPLOY ADMIN"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions grouped-variable-row__actions--single">
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(deployAdminLinkVariable.id)}
+              aria-label="Elimina LINK_DEPLOY ADMIN"
+              title="Elimina LINK_DEPLOY ADMIN"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -1150,20 +1384,28 @@ function normalizeEnvExportValue(key: string, value: string) {
 
 
 function VariableEditorCard({
+  editable,
+  isDraft,
   variable,
   onAddAccess,
   onDelete,
   onDeleteAccess,
+  onDraftCommit,
+  onEdit,
   onUpdateAccess,
   onUpdate,
   valueAriaLabel,
 }: {
+  editable: boolean
+  isDraft: boolean
   variable: ProjectVariable
   onAddAccess: (variableId: string) => void
   onDelete: (id: string) => void
   onDeleteAccess: (variableId: string, accessId: string) => void
+  onDraftCommit: (id: string) => void
+  onEdit: () => void
   onUpdateAccess: (variableId: string, accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) => void
-  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
   const selectFieldConfig = getSelectableFieldConfig(variable.key)
@@ -1174,6 +1416,7 @@ function VariableEditorCard({
   )
   const selectValue = selectFieldConfig ? getSelectValue(variable.value, selectFieldConfig) : variable.value
   const selectOptions = selectFieldConfig ? getSelectOptions(selectValue, selectFieldConfig.options) : []
+  const canEditTitle = isDraft || !isProtectedVariableTitle(variable)
 
   function addSelectOption() {
     if (!selectFieldConfig) return
@@ -1194,16 +1437,37 @@ function VariableEditorCard({
     onUpdate(variable.id, 'value', value)
   }
 
+  function handleCardBlur(event: FocusEvent<HTMLElement>) {
+    if (!isDraft) return
+    if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return
+    if (!variable.key.trim() && !variable.value.trim() && !(variable.accessAccounts ?? []).length) return
+
+    onDraftCommit(variable.id)
+  }
+
   return (
     <article
-      className={`editable-variable-card${isGitHubVariable ? ' editable-variable-card--github' : ''}${isSupabaseVariable ? ' editable-variable-card--deploy' : ''}`}
+      className={[
+        'editable-variable-card',
+        isGitHubVariable ? 'editable-variable-card--github' : '',
+        isSupabaseVariable ? 'editable-variable-card--deploy' : '',
+        editable ? 'editable-variable-card--editing' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onBlur={handleCardBlur}
     >
       <div className="variable-field-stack">
         <label className="variable-value-input" aria-label={valueAriaLabel}>
-          {isSupabaseVariable ? <SupabaseFieldTitle title={variable.key} /> : <span className="fixed-field-name">{variable.key}</span>}
+          <VariableFieldTitle
+            canEdit={canEditTitle}
+            editable={editable}
+            onChange={(value) => onUpdate(variable.id, 'key', value)}
+            value={variable.key}
+          />
           {selectFieldConfig ? (
             <div className="variable-select-row">
-              <select value={selectValue} onChange={(event) => handleSelectChange(event.target.value)}>
+              <select value={selectValue} disabled={!editable} onChange={(event) => handleSelectChange(event.target.value)}>
                 {selectOptions.map((option) => (
                   <option value={option} key={option}>
                     {option}
@@ -1217,6 +1481,7 @@ function VariableEditorCard({
               <input
                 value={variable.value}
                 type="text"
+                readOnly={!editable}
                 onChange={(event) => onUpdate(variable.id, 'value', event.target.value)}
               />
               <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" />
@@ -1226,6 +1491,7 @@ function VariableEditorCard({
         {isDevelopmentField ? (
           <PlatformAccessList
             accounts={variable.accessAccounts ?? []}
+            editable={editable}
             platformOptions={selectFieldConfig?.options ?? []}
             onAdd={() => onAddAccess(variable.id)}
             onDelete={(accessId) => onDeleteAccess(variable.id, accessId)}
@@ -1233,34 +1499,41 @@ function VariableEditorCard({
           />
         ) : null}
       </div>
-      <button
-        type="button"
-        className="inline-icon-button trash-button"
-        onClick={() => onDelete(variable.id)}
-        aria-label="Elimina variabile"
-        title="Elimina variabile"
-      >
-        <Trash2 aria-hidden="true" />
-      </button>
+      <div className="editable-variable-card__actions">
+        {isDraft ? null : <VariableEditButton active={editable} onClick={onEdit} />}
+        <button
+          type="button"
+          className="inline-icon-button trash-button"
+          onClick={() => onDelete(variable.id)}
+          aria-label="Elimina variabile"
+          title="Elimina variabile"
+        >
+          <Trash2 aria-hidden="true" />
+        </button>
+      </div>
     </article>
   )
 }
 
 function GitHubCredentialsCard({
+  editable,
   emailVariable,
   passwordVariable,
   onDelete,
+  onEdit,
   onUpdate,
   valueAriaLabel,
 }: {
+  editable: boolean
   emailVariable: ProjectVariable
   passwordVariable: ProjectVariable
   onDelete: (id: string) => void
-  onUpdate: (id: string, field: 'key' | 'value' | 'sensitive', value: string | boolean) => void
+  onEdit: () => void
+  onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
   return (
-    <article className="editable-variable-card editable-variable-card--grouped editable-variable-card--github">
+    <article className={editable ? 'editable-variable-card editable-variable-card--grouped editable-variable-card--github editable-variable-card--editing' : 'editable-variable-card editable-variable-card--grouped editable-variable-card--github'}>
       <div className="grouped-variable-stack">
         <div className="grouped-card-title">GitHub</div>
         <div className="grouped-variable-row">
@@ -1269,19 +1542,23 @@ function GitHubCredentialsCard({
             <input
               value={emailVariable.value}
               type="text"
+              readOnly={!editable}
               onChange={(event) => onUpdate(emailVariable.id, 'value', event.target.value)}
             />
             <CopyButton value={emailVariable.value} iconOnly className="copy-button--inside-input" />
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(emailVariable.id)}
-            aria-label="Elimina Mail accesso"
-            title="Elimina Mail accesso"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions">
+            <VariableEditButton active={editable} onClick={onEdit} />
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(emailVariable.id)}
+              aria-label="Elimina Mail accesso"
+              title="Elimina Mail accesso"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="grouped-variable-row">
@@ -1290,19 +1567,22 @@ function GitHubCredentialsCard({
             <input
               value={passwordVariable.value}
               type="text"
+              readOnly={!editable}
               onChange={(event) => onUpdate(passwordVariable.id, 'value', event.target.value)}
             />
             <CopyButton value={passwordVariable.value} iconOnly className="copy-button--inside-input" />
           </label>
-          <button
-            type="button"
-            className="inline-icon-button trash-button"
-            onClick={() => onDelete(passwordVariable.id)}
-            aria-label="Elimina Password"
-            title="Elimina Password"
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
+          <div className="grouped-variable-row__actions grouped-variable-row__actions--single">
+            <button
+              type="button"
+              className="inline-icon-button trash-button"
+              onClick={() => onDelete(passwordVariable.id)}
+              aria-label="Elimina Password"
+              title="Elimina Password"
+            >
+              <Trash2 aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -1311,12 +1591,14 @@ function GitHubCredentialsCard({
 
 function PlatformAccessList({
   accounts,
+  editable,
   platformOptions,
   onAdd,
   onDelete,
   onUpdate,
 }: {
   accounts: PlatformAccess[]
+  editable: boolean
   platformOptions: readonly string[]
   onAdd: () => void
   onDelete: (accessId: string) => void
@@ -1339,14 +1621,14 @@ function PlatformAccessList({
     <div className="platform-access-list">
       <div className="platform-access-list__header">
         <span>Accessi piattaforme</span>
-        <button type="button" className="secondary-button platform-access-add-button" onClick={onAdd}>
+        <button type="button" className="secondary-button platform-access-add-button" disabled={!editable} onClick={onAdd}>
           <Plus aria-hidden="true" className="button-icon" />
           Aggiungi accesso
         </button>
       </div>
       {accounts.map((access) => (
         <div className="platform-access-row" key={access.id}>
-          <select value={access.platform} onChange={(event) => handlePlatformChange(access.id, event.target.value)}>
+          <select value={access.platform} disabled={!editable} onChange={(event) => handlePlatformChange(access.id, event.target.value)}>
             {getSelectOptions(access.platform, platformOptions).map((option) => (
               <option value={option} key={option}>
                 {option}
@@ -1359,6 +1641,7 @@ function PlatformAccessList({
             type="email"
             placeholder="Mail accesso"
             aria-label={`Mail accesso ${access.platform}`}
+            readOnly={!editable}
             onChange={(event) => onUpdate(access.id, 'email', event.target.value)}
           />
           <input
@@ -1366,11 +1649,13 @@ function PlatformAccessList({
             type="text"
             placeholder="Password"
             aria-label={`Password ${access.platform}`}
+            readOnly={!editable}
             onChange={(event) => onUpdate(access.id, 'password', event.target.value)}
           />
           <button
             type="button"
             className="inline-icon-button trash-button"
+            disabled={!editable}
             onClick={() => onDelete(access.id)}
             aria-label={`Elimina accesso ${access.platform}`}
             title={`Elimina accesso ${access.platform}`}
@@ -1388,7 +1673,7 @@ function getSelectableFieldConfig(key: string) {
 }
 
 function createEmptyProject(index: number): Project {
-  const name = `Nuovo progetto ${index}`
+  const name = normalizeProjectName(`Nuovo progetto ${index}`)
   const projectId = createProjectSlug(name)
 
   return {
@@ -2466,6 +2751,15 @@ function isGithubEmailField(key: string) {
 
 function isGithubPasswordField(key: string) {
   return key.trim().toLowerCase() === 'password'
+}
+
+function isProtectedVariableTitle(variable: ProjectVariable) {
+  const normalizedKey = variable.key.trim().toLowerCase()
+  const normalizedEnvKey = variable.key.trim().toUpperCase()
+  const protectedDataKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con', 'password deploy'])
+  const protectedEnvKeys = new Set(['LINK_DEPLOY', deployAdminLinkKey, 'GITHUB_URL', 'GITHUB_TOKEN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', ...supabaseServiceKeyAliases, 'DATABASE_URL'])
+
+  return protectedDataKeys.has(normalizedKey) || protectedEnvKeys.has(normalizedEnvKey)
 }
 
 function isDeployField(key: string) {

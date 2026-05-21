@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Customer, CustomerProject, EnvVariable, PlatformAccess, ProjectStatus, ProjectVariable } from '../../types/app'
-import { supabaseServiceKey } from '../projects/projectShared'
+import { normalizeProjectName, supabaseServiceKey } from '../projects/projectShared'
 import { buildCustomerDisplayName, buildCustomerDraftIdentity } from './customerIdentity'
 
 const legacyCustomerStorageKey = 'app-control-customers'
@@ -228,7 +228,7 @@ export async function createCustomerProjectRecord(customerId: string, index: num
     .from('customer_projects')
     .insert({
       customer_id: customerId,
-      name: `Nuovo progetto ${index}`,
+      name: normalizeProjectName(`Nuovo progetto ${index}`),
       status: 'Attivo',
       development_environment: 'Windsurf',
       github_repo_url: '',
@@ -301,7 +301,7 @@ export async function saveCustomerProjectSnapshot(customerId: string, project: C
       .from('customer_projects')
       .update({
         customer_id: customerId,
-        name: project.name,
+        name: normalizeProjectName(project.name),
         status: project.status,
         development_environment: project.developmentEnvironment,
         github_repo_url: project.githubRepoUrl,
@@ -652,7 +652,7 @@ function mapCustomerProjectRow(
 ): CustomerProject {
   return {
     id: project.id,
-    name: project.name,
+    name: normalizeProjectName(project.name),
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     status: project.status,

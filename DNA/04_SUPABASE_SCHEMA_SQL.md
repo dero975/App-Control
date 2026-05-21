@@ -40,7 +40,7 @@ Mappatura:
 - Lista progetti e header dettaglio: `projects`.
 - `created_at` alimenta la `Data creazione` del dettaglio; `updated_at` alimenta `Ultima modifica` nella lista progetti.
 - JSON sync progetto: `projects.agent_project_id` piu `project_agent_keys`.
-- Preview progetto `sviluppo in / deploy con`: `projects.development_environment` e `projects.deploy_provider`.
+- Campi tecnici `sviluppo in / deploy con`: `projects.development_environment` e `projects.deploy_provider`; restano nel dettaglio e nella ricerca, ma non nella card lista progetti.
 - Tab `Dati progetto`:
   - `nome progetto`: `projects.name`
   - `mail github`: `projects.github_account_email`

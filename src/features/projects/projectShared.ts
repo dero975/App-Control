@@ -15,6 +15,15 @@ export const orderedProjectKeys = [
 
 export const deployPasswordFieldKey = 'Password deploy'
 export const deployAdminLinkKey = 'LINK_DEPLOY ADMIN'
+export const projectNameFieldKey = 'nome progetto'
+
+export function normalizeProjectName(value: string) {
+  return value.toLocaleUpperCase('it-IT')
+}
+
+export function isProjectNameField(key: string) {
+  return key.trim().toLowerCase() === projectNameFieldKey
+}
 
 export function buildSheetFields(
   project: Project,
@@ -33,8 +42,8 @@ export function buildSheetFields(
   return [
     {
       id: 'sheet-nome-progetto',
-      key: 'nome progetto',
-      value: project.name,
+      key: projectNameFieldKey,
+      value: normalizeProjectName(project.name),
       sensitive: false,
     },
     {

@@ -114,29 +114,31 @@ export function SettingsPage() {
           </form>
         </FieldGroup>
 
-        <FieldGroup
-          className="settings-panel"
-          title="Dispositivo attendibile"
-          description="Gestisci lo sblocco automatico su questo browser senza salvare il PIN."
-        >
-          <div className="settings-session-card">
-            <div className="settings-session-card__copy">
-              <strong>{trustedDeviceActive ? 'Questo dispositivo e ricordato' : 'Questo dispositivo non e ricordato'}</strong>
-              <span>
-                {trustedDeviceActive
-                  ? 'Alla prossima apertura l’app puo sbloccarsi senza richiedere il PIN.'
-                  : 'Puoi abilitarlo dalla schermata PIN selezionando Ricorda questo dispositivo.'}
-              </span>
+        <FieldGroup className="settings-panel settings-panel--trusted-device">
+          <div className="trusted-device-card">
+            <div className="trusted-device-card__copy">
+              <h3>Dispositivo attendibile</h3>
+              <p>Gestisci lo sblocco automatico su questo browser senza salvare il PIN.</p>
+              <div className="trusted-device-card__state">
+                <strong>{trustedDeviceActive ? 'Questo dispositivo è ricordato' : 'Questo dispositivo non è ricordato'}</strong>
+                <span>
+                  {trustedDeviceActive
+                    ? 'Alla prossima apertura l’app può sbloccarsi senza richiedere il PIN.'
+                    : 'Puoi abilitarlo dalla schermata PIN selezionando Ricorda questo dispositivo.'}
+                </span>
+              </div>
             </div>
-            <button
-              type="button"
-              className="secondary-button settings-logout-button"
-              disabled={!trustedDeviceActive}
-              onClick={forgetTrustedDevice}
-            >
-              Dimentica questo dispositivo
-            </button>
-            {trustedDeviceStatus ? <p className="status-message">{trustedDeviceStatus}</p> : null}
+            <div className="trusted-device-card__actions">
+              <button
+                type="button"
+                className="secondary-button trusted-device-button"
+                disabled={!trustedDeviceActive}
+                onClick={forgetTrustedDevice}
+              >
+                Dimentica questo dispositivo
+              </button>
+              {trustedDeviceStatus ? <p className="status-message">{trustedDeviceStatus}</p> : null}
+            </div>
           </div>
         </FieldGroup>
       </div>

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
@@ -17,6 +17,7 @@ export function PromptsPage() {
   const [promptList, setPromptList] = useState<Prompt[]>([])
   const [activeCategory, setActiveCategory] = useState<'Tutte' | PromptCategory>('Tutte')
   const [openPromptId, setOpenPromptId] = useState('')
+  const [editingPromptId, setEditingPromptId] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [deleteCandidate, setDeleteCandidate] = useState<Prompt | null>(null)
   const [draft, setDraft] = useState<PromptDraft>(() => createEmptyPromptDraft())
@@ -67,6 +68,7 @@ export function PromptsPage() {
         if (!active) return
         setPromptList(prompts)
         setOpenPromptId((current) => (current && prompts.some((prompt) => prompt.id === current) ? current : ''))
+        setEditingPromptId((current) => (current && prompts.some((prompt) => prompt.id === current) ? current : ''))
         setErrorMessage('')
       } catch (error) {
         if (!active) return
@@ -90,6 +92,7 @@ export function PromptsPage() {
     setDraggingPromptId('')
     setDragPreviewOrder(null)
     setDragOverPromptId('')
+    setEditingPromptId('')
     setActiveCategory(nextCategory)
   }
 
@@ -163,6 +166,18 @@ export function PromptsPage() {
     })
   }
 
+  function togglePromptOpen(promptId: string) {
+    setOpenPromptId((currentPromptId) => {
+      const isClosing = currentPromptId === promptId
+      if (isClosing) {
+        setEditingPromptId((currentEditingPromptId) => (currentEditingPromptId === promptId ? '' : currentEditingPromptId))
+        return ''
+      }
+
+      return promptId
+    })
+  }
+
   async function deletePrompt() {
     if (!deleteCandidate) return
 
@@ -173,6 +188,7 @@ export function PromptsPage() {
       await deletePromptRecord(promptId)
       setPromptList((current) => current.filter((prompt) => prompt.id !== promptId))
       setOpenPromptId((current) => (current === promptId ? '' : current))
+      setEditingPromptId((current) => (current === promptId ? '' : current))
       setDeleteCandidate(null)
       setErrorMessage('')
     } catch (error) {
@@ -343,6 +359,7 @@ export function PromptsPage() {
               key={prompt.id}
               prompt={prompt}
               open={prompt.id === openPromptId}
+              editing={prompt.id === editingPromptId}
               draggable={activeCategory !== 'Tutte'}
               isDragPreviewActive={Boolean(dragPreviewOrder?.length)}
               isDragging={draggingPromptId === prompt.id}
@@ -352,7 +369,11 @@ export function PromptsPage() {
               onDragEnd={() => void handleDragEnd()}
               onDelete={() => setDeleteCandidate(prompt)}
               onChange={(field, value) => handlePromptChange(prompt.id, field, value)}
-              onToggle={() => setOpenPromptId((current) => (current === prompt.id ? '' : prompt.id))}
+              onEdit={() => {
+                setOpenPromptId(prompt.id)
+                setEditingPromptId((current) => (current === prompt.id ? '' : prompt.id))
+              }}
+              onToggle={() => togglePromptOpen(prompt.id)}
             />
           ))}
         </div>
@@ -386,6 +407,7 @@ export function PromptsPage() {
 function PromptLibraryCard({
   prompt,
   open,
+  editing,
   draggable,
   isDragPreviewActive,
   isDragging,
@@ -395,10 +417,12 @@ function PromptLibraryCard({
   onDragEnd,
   onDelete,
   onChange,
+  onEdit,
   onToggle,
 }: {
   prompt: Prompt
   open: boolean
+  editing: boolean
   draggable: boolean
   isDragPreviewActive: boolean
   isDragging: boolean
@@ -408,6 +432,7 @@ function PromptLibraryCard({
   onDragEnd: () => void
   onDelete: () => void
   onChange: (field: keyof PromptDraft, value: string) => void
+  onEdit: () => void
   onToggle: () => void
 }) {
   const rowRef = useRef<HTMLDivElement | null>(null)
@@ -476,7 +501,11 @@ function PromptLibraryCard({
         </button>
       ) : null}
 
-      <article className={['prompt-library-card', open ? 'prompt-library-card--open' : ''].filter(Boolean).join(' ')}>
+      <article
+        className={['prompt-library-card', open ? 'prompt-library-card--open' : '', editing ? 'prompt-library-card--editing' : '']
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div className="prompt-library-card__header">
           <div className="prompt-library-card__actions">
             <CopyButton value={buildPromptClipboardValue(prompt)} />
@@ -491,6 +520,17 @@ function PromptLibraryCard({
             <span className="prompt-library-card__toggle-icon" aria-hidden="true">
               {open ? <ChevronUp className="button-icon" /> : <ChevronDown className="button-icon" />}
             </span>
+          </button>
+
+          <button
+            type="button"
+            className={['inline-icon-button prompt-edit-button', editing ? 'prompt-edit-button--active' : ''].filter(Boolean).join(' ')}
+            onClick={onEdit}
+            title={editing ? 'Blocca modifica prompt' : 'Modifica prompt'}
+            aria-label={editing ? 'Blocca modifica prompt' : 'Modifica prompt'}
+            aria-pressed={editing}
+          >
+            <Pencil aria-hidden="true" className="button-icon" />
           </button>
 
           <button
@@ -513,13 +553,14 @@ function PromptLibraryCard({
                   value={prompt.title}
                   type="text"
                   className="prompt-title-input"
+                  readOnly={!editing}
                   onChange={(event) => onChange('title', event.target.value)}
                 />
               </label>
 
               <label className="settings-input">
                 <span>Sezione</span>
-                <PromptCategoryTabs value={prompt.category} onChange={(category) => onChange('category', category)} />
+                <PromptCategoryTabs value={prompt.category} disabled={!editing} onChange={(category) => onChange('category', category)} />
               </label>
 
               <label className="settings-input">
@@ -528,6 +569,7 @@ function PromptLibraryCard({
                   value={prompt.fullText}
                   rows={9}
                   className="prompt-library-card__textarea"
+                  readOnly={!editing}
                   onChange={(event) => onChange('fullText', event.target.value)}
                 />
               </label>
@@ -699,9 +741,11 @@ function stripPromptTitlePrefix(value: string, title: string) {
 }
 
 function PromptCategoryTabs({
+  disabled = false,
   value,
   onChange,
 }: {
+  disabled?: boolean
   value: PromptCategory
   onChange: (category: PromptCategory) => void
 }) {
@@ -713,6 +757,7 @@ function PromptCategoryTabs({
           type="button"
           role="tab"
           aria-selected={value === category}
+          disabled={disabled}
           className={value === category ? 'tab-button tab-button--active' : 'tab-button'}
           onClick={() => onChange(category)}
         >

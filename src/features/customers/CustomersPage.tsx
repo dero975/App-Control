@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, ClockArrowDown, ClockArrowUp, Plus, Trash2 } from 'lucide-react'
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, ClockArrowDown, Pin, Plus, Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
 import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
+import { getNextPinnedRecordIds, readPinnedRecordIds, sortPinnedRecordsFirst, writePinnedRecordIds } from '../../lib/pinnedRecords'
 import {
   VariablesPanel,
 } from '../projects/ProjectsPage'
@@ -16,6 +17,7 @@ import {
   getDeployLink,
   getProjectPreviewMeta,
   inferScopeFromEnvKey,
+  normalizeProjectName,
 } from '../projects/projectShared'
 import {
   clearLegacyCustomerStorage,
@@ -36,9 +38,10 @@ const developmentOptions = ['Windsurf', 'Replit']
 const deployOptions = ['Render', 'CloudeFlare']
 
 type SaveState = 'idle' | 'loading' | 'saving' | 'saved' | 'error'
-type CustomerProjectListSortMode = 'recent-desc' | 'recent-asc' | 'name-asc' | 'name-desc'
+type CustomerProjectListSortMode = 'recent-desc' | 'name-asc' | 'name-desc'
 const saveDebounceMs = 420
 const createCustomerEventName = 'app-control:create-customer'
+const customerPinnedProjectIdsStoragePrefix = 'app-control-customer-pinned-project-ids:'
 
 export function CustomersPage({
   customerSearchQuery,
@@ -437,6 +440,7 @@ export function CustomersPage({
           <EmptyState title="Caricamento clienti" message="Sto recuperando archivio clienti e progetti da Supabase." />
         ) : selectedCustomer ? (
           <CustomerWorkspace
+            key={selectedCustomer.id}
             customer={selectedCustomer}
             activeProjectTab={activeProjectTab}
             selectedProject={selectedProject}
@@ -520,27 +524,35 @@ function CustomerWorkspace({
   const [isCustomerCardOpen, setIsCustomerCardOpen] = useState(false)
   const [projectQuery, setProjectQuery] = useState('')
   const [projectSortMode, setProjectSortMode] = useState<CustomerProjectListSortMode>('recent-desc')
+  const [pinnedProjectIds, setPinnedProjectIds] = useState(() => readPinnedRecordIds(`${customerPinnedProjectIdsStoragePrefix}${customer.id}`))
   const [mobileModalProjectId, setMobileModalProjectId] = useState('')
   const isMobileViewport = useIsMobileViewport()
 
   const filteredProjects = useMemo(
-    () => getSortedCustomerProjects(customer.projects, projectQuery, projectSortMode),
-    [customer.projects, projectQuery, projectSortMode],
+    () => getSortedCustomerProjects(customer.projects, projectQuery, projectSortMode, pinnedProjectIds),
+    [customer.projects, pinnedProjectIds, projectQuery, projectSortMode],
   )
   const mobileModalProject = isMobileViewport ? customer.projects.find((project) => project.id === mobileModalProjectId) ?? null : null
 
   const isAlphabeticalSortActive = projectSortMode === 'name-asc' || projectSortMode === 'name-desc'
-  const isRecencySortActive = projectSortMode === 'recent-asc' || projectSortMode === 'recent-desc'
+  const isRecencySortActive = projectSortMode === 'recent-desc'
   const alphabeticalSortLabel = projectSortMode === 'name-desc' ? 'Ordina progetti Z-A' : 'Ordina progetti A-Z'
-  const recencySortLabel =
-    projectSortMode === 'recent-asc' ? 'Ordina progetti dal meno recente al piu recente' : 'Ordina progetti dal piu recente al meno recente'
+  const recencySortLabel = 'Ordina progetti dal piu recente al meno recente'
 
   function toggleAlphabeticalSort() {
     setProjectSortMode((currentSortMode) => (currentSortMode === 'name-asc' ? 'name-desc' : 'name-asc'))
   }
 
   function toggleRecencySort() {
-    setProjectSortMode((currentSortMode) => (currentSortMode === 'recent-asc' ? 'recent-desc' : 'recent-asc'))
+    setProjectSortMode('recent-desc')
+  }
+
+  function togglePinnedProject(projectId: string) {
+    setPinnedProjectIds((currentPinnedProjectIds) => {
+      const nextPinnedProjectIds = getNextPinnedRecordIds(currentPinnedProjectIds, projectId)
+      writePinnedRecordIds(`${customerPinnedProjectIdsStoragePrefix}${customer.id}`, nextPinnedProjectIds)
+      return nextPinnedProjectIds
+    })
   }
 
   return (
@@ -675,37 +687,54 @@ function CustomerWorkspace({
                     aria-label={recencySortLabel}
                     title={recencySortLabel}
                   >
-                    {projectSortMode === 'recent-asc' ? (
-                      <ClockArrowUp aria-hidden="true" className="button-icon" />
-                    ) : (
-                      <ClockArrowDown aria-hidden="true" className="button-icon" />
-                    )}
+                    <ClockArrowDown aria-hidden="true" className="button-icon" />
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="record-list record-list--desktop" aria-label="Progetti cliente">
-              {filteredProjects.map((project) => (
-                <button
-                  type="button"
-                  key={project.id}
-                  className={project.id === selectedProjectId ? 'record-row record-row--active' : 'record-row'}
-                  onClick={() => {
-                    onSelectProject(project.id)
-                    onChangeProjectTab('Dati progetto')
-                  }}
-                >
-                  <strong>{project.name}</strong>
-                  <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
-                  <small>{getProjectPreviewMeta(buildAdminLikeProject(project))}</small>
-                </button>
-              ))}
+              {filteredProjects.map((project) => {
+                const isPinned = pinnedProjectIds.includes(project.id)
+                return (
+                  <article
+                    key={project.id}
+                    className={[
+                      'record-row',
+                      project.id === selectedProjectId ? 'record-row--active' : '',
+                      isPinned ? 'record-row--pinned' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <button
+                      type="button"
+                      className="record-row__main"
+                      onClick={() => {
+                        onSelectProject(project.id)
+                        onChangeProjectTab('Dati progetto')
+                      }}
+                    >
+                      <strong>{project.name}</strong>
+                      <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
+                    </button>
+                    <button
+                      type="button"
+                      className={isPinned ? 'project-pin-button project-pin-button--active' : 'project-pin-button'}
+                      aria-label={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                      aria-pressed={isPinned}
+                      title={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                      onClick={() => togglePinnedProject(project.id)}
+                    >
+                      <Pin aria-hidden="true" className="button-icon" />
+                    </button>
+                  </article>
+                )
+              })}
             </div>
 
             <div className="record-list record-list--mobile" aria-label="Progetti cliente mobile">
               {filteredProjects.map((project) => {
                 const isExpanded = isMobileViewport && project.id === selectedProjectId
+                const isPinned = pinnedProjectIds.includes(project.id)
                 const adminLikeProject = buildAdminLikeProject(project)
                 const variables = buildProjectVariables(adminLikeProject)
                 const deployLink = getDeployLink(buildSheetFields(adminLikeProject), adminLikeProject)
@@ -714,8 +743,22 @@ function CustomerWorkspace({
                 return (
                   <article
                     key={project.id}
-                    className={isExpanded ? 'mobile-project-card mobile-project-card--active' : 'mobile-project-card'}
+                    className={[
+                      'mobile-project-card',
+                      isExpanded ? 'mobile-project-card--active' : '',
+                      isPinned ? 'mobile-project-card--pinned' : '',
+                    ].filter(Boolean).join(' ')}
                   >
+                    <button
+                      type="button"
+                      className={isPinned ? 'project-pin-button project-pin-button--active' : 'project-pin-button'}
+                      aria-label={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                      aria-pressed={isPinned}
+                      title={isPinned ? 'Rimuovi progetto fissato' : 'Fissa progetto in alto'}
+                      onClick={() => togglePinnedProject(project.id)}
+                    >
+                      <Pin aria-hidden="true" className="button-icon" />
+                    </button>
                     <button
                       type="button"
                       className="mobile-project-card__trigger"
@@ -726,7 +769,6 @@ function CustomerWorkspace({
                     >
                       <strong>{project.name}</strong>
                       <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
-                      <small>{getProjectPreviewMeta(adminLikeProject)}</small>
                     </button>
                     {isExpanded ? (
                       <div className="mobile-project-card__links">
@@ -920,7 +962,7 @@ function CustomerProjectDetail({
 function buildAdminLikeProject(project: CustomerProject): Project {
   return {
     id: project.id,
-    name: project.name,
+    name: normalizeProjectName(project.name),
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     status: project.status,
@@ -954,7 +996,12 @@ function buildAdminLikeProject(project: CustomerProject): Project {
   }
 }
 
-function getSortedCustomerProjects(projects: CustomerProject[], query: string, sortMode: CustomerProjectListSortMode) {
+function getSortedCustomerProjects(
+  projects: CustomerProject[],
+  query: string,
+  sortMode: CustomerProjectListSortMode,
+  pinnedProjectIds: string[] = [],
+) {
   const normalizedQuery = query.trim().toLowerCase()
   const matchingProjects = projects.filter((project) => {
     const adminLikeProject = buildAdminLikeProject(project)
@@ -966,17 +1013,19 @@ function getSortedCustomerProjects(projects: CustomerProject[], query: string, s
     )
   })
 
-  if (sortMode === 'recent-desc' || sortMode === 'recent-asc') {
-    return [...matchingProjects].sort((firstProject, secondProject) => {
+  if (sortMode === 'recent-desc') {
+    const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => {
       const timeDiff = Date.parse(secondProject.updatedAt) - Date.parse(firstProject.updatedAt)
-      return sortMode === 'recent-desc' ? timeDiff : -timeDiff
+      return timeDiff
     })
+    return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
   }
 
-  return [...matchingProjects].sort((firstProject, secondProject) => {
+  const sortedProjects = [...matchingProjects].sort((firstProject, secondProject) => {
     const sortResult = firstProject.name.localeCompare(secondProject.name, 'it', { sensitivity: 'base' })
     return sortMode === 'name-asc' ? sortResult : -sortResult
   })
+  return sortPinnedRecordsFirst(sortedProjects, pinnedProjectIds)
 }
 
 function applySheetFieldsToCustomerProject(project: CustomerProject, sheetFields: ProjectVariable[]): CustomerProject {
@@ -990,7 +1039,7 @@ function applySheetFieldsToCustomerProject(project: CustomerProject, sheetFields
 
   return {
     ...project,
-    name: getField('nome progetto')?.value ?? project.name,
+    name: normalizeProjectName(getField('nome progetto')?.value ?? project.name),
     githubAccountEmail: getField('mail github')?.value ?? '',
     linkedSecretLabel: getField('password')?.value ?? '',
     developmentEnvironment: getField('sviluppo in')?.value || developmentOptions[0],
