@@ -68,8 +68,8 @@
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 82%, rgba(223, 238, 216, 0.28) 0%, rgba(79, 141, 97, 0.13) 34%, transparent 68%),
-    linear-gradient(155deg, var(--nav-bg) 0%, #1a2b21 48%, #385f47 100%);
+    radial-gradient(ellipse at 50% 82%, rgba(95, 145, 109, 0.2) 0%, rgba(46, 87, 58, 0.12) 34%, transparent 68%),
+    linear-gradient(155deg, #07110c 0%, #102119 52%, #1f3d2b 100%);
 }
 
 .intro-splash__logo {
@@ -1170,9 +1170,9 @@ textarea {
   top: 12px;
   right: 12px;
   z-index: 2;
-  width: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 20px;
+  min-width: 20px;
+  min-height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1185,8 +1185,8 @@ textarea {
 }
 
 .project-pin-button .button-icon {
-  width: 17px;
-  height: 17px;
+  width: 13px;
+  height: 13px;
   transition:
     fill 160ms ease,
     transform 160ms ease;

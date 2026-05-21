@@ -137,6 +137,7 @@ export function ProjectsPage() {
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
   const [visibleProjectIds, setVisibleProjectIds] = useState<string[]>([])
+  const [loadedProjectIds, setLoadedProjectIds] = useState<Set<string>>(() => new Set())
   const [pinnedProjectIds, setPinnedProjectIds] = useState(() => readPinnedRecordIds(pinnedProjectIdsStorageKey))
   const isMobileViewport = useIsMobileViewport()
 
@@ -158,6 +159,7 @@ export function ProjectsPage() {
         const storedPinnedProjectIds = readPinnedRecordIds(pinnedProjectIdsStorageKey)
         const nextVisibleProjectIds = getVisibleProjectIds(projects, '', 'name-asc', storedPinnedProjectIds)
         setProjectList(projects)
+        setLoadedProjectIds(new Set())
         setPinnedProjectIds(storedPinnedProjectIds)
         setVisibleProjectIds(nextVisibleProjectIds)
         setSelectedId(nextVisibleProjectIds[0] ?? '')
@@ -185,8 +187,36 @@ export function ProjectsPage() {
       .filter((project): project is Project => Boolean(project))
   }, [pinnedProjectIds, projectList, query, sortMode, visibleProjectIds])
 
-  const selectedProject = filteredProjects.find((project) => project.id === selectedId) ?? filteredProjects[0]
+  const effectiveSelectedId = filteredProjects.some((project) => project.id === selectedId)
+    ? selectedId
+    : filteredProjects[0]?.id ?? ''
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !effectiveSelectedId || loadedProjectIds.has(effectiveSelectedId)) return
+
+    let isCancelled = false
+
+    fetchProjectById(effectiveSelectedId)
+      .then((project) => {
+        if (isCancelled) return
+        setProjectList((currentProjects) => currentProjects.map((currentProject) => (currentProject.id === project.id ? project : currentProject)))
+        setLoadedProjectIds((currentIds) => new Set(currentIds).add(project.id))
+        setLoadError('')
+      })
+      .catch((error) => {
+        if (isCancelled) return
+        setLoadError(error instanceof Error ? error.message : 'Errore caricamento dettaglio progetto')
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [effectiveSelectedId, loadedProjectIds])
+
+  const selectedProject = filteredProjects.find((project) => project.id === effectiveSelectedId) ?? null
+  const selectedProjectIsLoaded = selectedProject ? loadedProjectIds.has(selectedProject.id) : false
   const mobileModalProject = isMobileViewport ? projectList.find((project) => project.id === mobileModalProjectId) ?? null : null
+  const mobileModalProjectIsLoaded = mobileModalProject ? loadedProjectIds.has(mobileModalProject.id) : false
 
   async function createProject() {
     const nextProject = createEmptyProject(projectList.length + 1)
@@ -195,6 +225,7 @@ export function ProjectsPage() {
       const nextProjects = [project, ...projectList]
       const nextQuery = ''
       setProjectList(nextProjects)
+      setLoadedProjectIds((currentIds) => new Set(currentIds).add(project.id))
       setVisibleProjectIds(getVisibleProjectIds(nextProjects, nextQuery, sortMode, pinnedProjectIds))
       setSelectedId(project.id)
       setExpandedMobileId('')
@@ -236,6 +267,7 @@ export function ProjectsPage() {
 
     await saveProjectSnapshot(snapshot)
     const refreshedProject = await fetchProjectById(snapshot.project.id)
+    setLoadedProjectIds((currentIds) => new Set(currentIds).add(refreshedProject.id))
     setProjectList((currentProjects) => {
       const nextProjects = currentProjects.map((project) => (project.id === refreshedProject.id ? refreshedProject : project))
       setVisibleProjectIds((currentIds) => getVisibleProjectIds(nextProjects, query, sortMode, pinnedProjectIds, currentIds))
@@ -435,7 +467,7 @@ export function ProjectsPage() {
         </aside>
 
         <section className="detail-panel">
-          {selectedProject ? (
+          {selectedProject && selectedProjectIsLoaded ? (
             <ProjectDetail
               key={selectedProject.id}
               activeTab={activeTab}
@@ -443,6 +475,11 @@ export function ProjectsPage() {
               onSave={isSupabaseConfigured ? saveProject : undefined}
               onTabChange={setActiveTab}
               project={selectedProject}
+            />
+          ) : selectedProject ? (
+            <EmptyState
+              title="Caricamento progetto"
+              message="Sto recuperando dati, variabili e immagini da Supabase."
             />
           ) : (
             <EmptyState
@@ -465,18 +502,22 @@ export function ProjectsPage() {
           subtitle="Scheda progetto mobile"
           onClose={() => setMobileModalProjectId('')}
         >
-          <ProjectDetail
-            key={mobileModalProject.id}
-            activeTab={activeTab}
-            mobileModal
-            onRequestDelete={() => {
-              setMobileModalProjectId('')
-              setDeleteCandidate(mobileModalProject)
-            }}
-            onSave={isSupabaseConfigured ? saveProject : undefined}
-            onTabChange={setActiveTab}
-            project={mobileModalProject}
-          />
+          {mobileModalProjectIsLoaded ? (
+            <ProjectDetail
+              key={mobileModalProject.id}
+              activeTab={activeTab}
+              mobileModal
+              onRequestDelete={() => {
+                setMobileModalProjectId('')
+                setDeleteCandidate(mobileModalProject)
+              }}
+              onSave={isSupabaseConfigured ? saveProject : undefined}
+              onTabChange={setActiveTab}
+              project={mobileModalProject}
+            />
+          ) : (
+            <EmptyState title="Caricamento progetto" message="Sto recuperando il dettaglio completo da Supabase." />
+          )}
         </MobileWorkspaceModal>
       ) : null}
     </div>

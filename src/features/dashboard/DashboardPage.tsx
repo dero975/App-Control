@@ -2,7 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '../../components/EmptyState'
 import { SectionHeader } from '../../components/SectionHeader'
-import { fetchProjects } from '../projects/projectRepository'
+import { fetchDashboardProjects } from '../projects/projectRepository'
 import type { PlatformAccess, Project } from '../../types/app'
 
 type EmailFilter = 'all' | 'github-duplicates' | 'any-duplicates'
@@ -57,7 +57,7 @@ export function DashboardPage() {
     async function loadProjects() {
       setIsLoading(true)
       try {
-        const nextProjects = await fetchProjects()
+        const nextProjects = await fetchDashboardProjects()
         if (!active) return
         setProjects(nextProjects)
         setErrorMessage('')

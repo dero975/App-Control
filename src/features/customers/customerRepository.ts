@@ -37,6 +37,11 @@ type CustomerProjectRow = {
   operational_notes: string
 }
 
+type CustomerProjectListRow = Pick<
+  CustomerProjectRow,
+  'id' | 'customer_id' | 'created_at' | 'updated_at' | 'name' | 'status' | 'development_environment' | 'deploy_provider' | 'deploy_url'
+>
+
 type PlatformAccessRow = {
   id: string
   customer_project_id: string
@@ -93,27 +98,18 @@ export async function fetchCustomers() {
   const customerIds = customers.map((customer) => customer.id)
   const { data: projectRows, error: projectsError } = await client
     .from('customer_projects')
-    .select(
-      'id, customer_id, created_at, updated_at, name, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
-    )
+    .select('id, customer_id, created_at, updated_at, name, status, development_environment, deploy_provider, deploy_url')
     .in('customer_id', customerIds)
     .order('updated_at', { ascending: false })
 
   if (projectsError) throw projectsError
 
-  const projects = (projectRows as CustomerProjectRow[] | null) ?? []
-  const projectIds = projects.map((project) => project.id)
-  const relations = projectIds.length ? await fetchProjectRelations(projectIds) : emptyProjectRelations()
+  const projects = (projectRows as CustomerProjectListRow[] | null) ?? []
 
   const projectsByCustomerId = new Map<string, CustomerProject[]>()
 
   for (const project of projects) {
-    const mappedProject = mapCustomerProjectRow(
-      project,
-      relations.envRowsByProjectId.get(project.id) ?? [],
-      relations.dataFieldsByProjectId.get(project.id) ?? [],
-      relations.platformAccessRowsByProjectId.get(project.id) ?? [],
-    )
+    const mappedProject = mapCustomerProjectListRow(project)
     const currentProjects = projectsByCustomerId.get(project.customer_id)
     if (currentProjects) {
       currentProjects.push(mappedProject)
@@ -542,14 +538,6 @@ async function deleteObsoleteRows(tableName: string, existingRows: Array<{ id: s
   if (error) throw error
 }
 
-function emptyProjectRelations() {
-  return {
-    envRowsByProjectId: new Map<string, CustomerEnvVariableRow[]>(),
-    dataFieldsByProjectId: new Map<string, CustomerDataFieldRow[]>(),
-    platformAccessRowsByProjectId: new Map<string, PlatformAccessRow[]>(),
-  }
-}
-
 async function fetchCustomerProjectBackup(projectId: string): Promise<CustomerProjectBackup> {
   const projectRow = await fetchCustomerProjectRowById(projectId)
   const relations = await fetchProjectRelations([projectId])
@@ -632,6 +620,29 @@ function groupRowsByProjectId<T extends { customer_project_id: string }>(rows: T
   return groupedRows
 }
 
+function mapCustomerProjectListRow(project: CustomerProjectListRow): CustomerProject {
+  return {
+    id: project.id,
+    name: normalizeProjectName(project.name),
+    createdAt: project.created_at,
+    updatedAt: project.updated_at,
+    status: project.status,
+    developmentEnvironment: project.development_environment,
+    githubRepoUrl: '',
+    githubAccountEmail: '',
+    linkedSecretLabel: '',
+    deploy: {
+      provider: project.deploy_provider,
+      url: project.deploy_url,
+      accountEmail: '',
+    },
+    operationalNotes: '',
+    env: [],
+    dataFields: [],
+    platformAccesses: [],
+  }
+}
+
 function mapCustomerProjectRow(
   project: CustomerProjectRow,
   envRows: CustomerEnvVariableRow[],
@@ -675,7 +686,7 @@ function mapCustomerProjectRow(
   }
 }
 
-async function fetchCustomerProjectById(projectId: string) {
+export async function fetchCustomerProjectById(projectId: string) {
   const projectRow = await fetchCustomerProjectRowById(projectId)
   const relations = await fetchProjectRelations([projectId])
 

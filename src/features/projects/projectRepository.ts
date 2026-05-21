@@ -20,6 +20,13 @@ type ProjectRow = {
   operational_notes: string
 }
 
+type ProjectListRow = Pick<
+  ProjectRow,
+  'id' | 'agent_project_id' | 'name' | 'created_at' | 'updated_at' | 'status' | 'development_environment' | 'deploy_provider' | 'deploy_url'
+>
+
+type ProjectDashboardRow = ProjectListRow & Pick<ProjectRow, 'github_account_email'>
+
 type EnvVariableRow = {
   id?: string
   project_id: string
@@ -45,6 +52,8 @@ type PlatformAccessRow = {
   password_ciphertext: string | null
   sort_order: number
 }
+
+type PlatformAccessListRow = Pick<PlatformAccessRow, 'id' | 'project_id' | 'platform' | 'email' | 'sort_order'>
 
 type DataFieldRow = {
   id: string
@@ -92,13 +101,32 @@ export async function fetchProjects() {
 
   const { data: projects, error: projectsError } = await client
     .from('projects')
-    .select(
-      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
-    )
+    .select('id, agent_project_id, name, created_at, updated_at, status, development_environment, deploy_provider, deploy_url')
     .order('updated_at', { ascending: false })
   if (projectsError) throw projectsError
 
-  return mapProjects((projects as ProjectRow[] | null) ?? [])
+  return ((projects as ProjectListRow[] | null) ?? []).map(mapProjectListRow)
+}
+
+export async function fetchDashboardProjects() {
+  const client = requireSupabaseClient()
+
+  const { data: projects, error: projectsError } = await client
+    .from('projects')
+    .select('id, agent_project_id, name, created_at, updated_at, status, development_environment, github_account_email, deploy_provider, deploy_url')
+    .order('name', { ascending: true })
+  if (projectsError) throw projectsError
+
+  const projectRows = (projects as ProjectDashboardRow[] | null) ?? []
+  const projectIds = projectRows.map((project) => project.id)
+  const accessRows = projectIds.length ? await fetchDashboardPlatformAccessRows(projectIds) : []
+  const accessRowsByProjectId = groupRowsByProjectId(accessRows)
+
+  return projectRows.map((project) => ({
+    ...mapProjectListRow(project),
+    githubAccountEmail: project.github_account_email,
+    platformAccesses: (accessRowsByProjectId.get(project.id) ?? []).map(mapPlatformAccessListRow),
+  }))
 }
 
 export async function fetchProjectById(projectId: string) {
@@ -552,6 +580,65 @@ async function mapProjects(projects: ProjectRow[]) {
       imageByProjectId.get(project.id) ?? [],
     ),
   )
+}
+
+function mapProjectListRow(project: ProjectListRow): Project {
+  return {
+    id: project.id,
+    name: normalizeProjectName(project.name),
+    createdAt: project.created_at,
+    updatedAt: project.updated_at,
+    status: project.status,
+    developmentEnvironment: project.development_environment,
+    githubRepoUrl: '',
+    githubAccountEmail: '',
+    linkedSecretLabel: '',
+    supabase: {
+      projectUrl: '',
+      anonKeyLabel: '',
+      serviceRoleLabel: '',
+      databaseUrlLabel: '',
+    },
+    deploy: {
+      provider: project.deploy_provider,
+      url: project.deploy_url,
+      accountEmail: '',
+    },
+    operationalNotes: '',
+    agent: {
+      projectId: project.agent_project_id,
+      agentKey: '',
+      syncPrompt: '',
+    },
+    promptIds: [],
+    assetIds: [],
+    env: [],
+    dataFields: [],
+    platformAccesses: [],
+    images: [],
+  }
+}
+
+function mapPlatformAccessListRow(access: PlatformAccessListRow): PlatformAccess {
+  return {
+    id: access.id,
+    platform: access.platform,
+    email: access.email,
+    password: '',
+  }
+}
+
+async function fetchDashboardPlatformAccessRows(projectIds: string[]) {
+  const client = requireSupabaseClient()
+
+  const { data, error } = await client
+    .from('project_platform_accesses')
+    .select('id, project_id, platform, email, sort_order')
+    .in('project_id', projectIds)
+    .order('sort_order', { ascending: true })
+
+  if (error) throw error
+  return (data as PlatformAccessListRow[] | null) ?? []
 }
 
 async function fetchProjectRelations(projectIds: string[]) {

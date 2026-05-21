@@ -24,6 +24,7 @@ import {
   deleteCustomerProjectRecord,
   deleteCustomerRecord,
   fetchCustomers,
+  fetchCustomerProjectById,
   saveCustomerProjectSnapshot,
   saveCustomerRecord,
 } from './customerRepository'
@@ -64,6 +65,7 @@ export function CustomersPage({
   const customerSaveVersionRef = useRef(0)
   const projectSaveTimerRef = useRef<number | null>(null)
   const projectSaveVersionRef = useRef(0)
+  const [loadedCustomerProjectIds, setLoadedCustomerProjectIds] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -81,6 +83,7 @@ export function CustomersPage({
 
         clearLegacyCustomerStorage()
         setCustomers(nextCustomers)
+        setLoadedCustomerProjectIds(new Set())
         setSelectedProjectId((currentProjectId) => {
           const allProjects = nextCustomers.flatMap((customer) => customer.projects)
           if (currentProjectId && allProjects.some((project) => project.id === currentProjectId)) {
@@ -128,7 +131,39 @@ export function CustomersPage({
     () => customers.find((customer) => customer.id === selectedCustomerId) ?? customers[0] ?? null,
     [customers, selectedCustomerId],
   )
-  const selectedProject = selectedCustomer?.projects.find((project) => project.id === selectedProjectId) ?? selectedCustomer?.projects[0] ?? null
+  const effectiveSelectedProjectId =
+    selectedCustomer?.projects.some((project) => project.id === selectedProjectId)
+      ? selectedProjectId
+      : selectedCustomer?.projects[0]?.id ?? ''
+  const selectedProject = selectedCustomer?.projects.find((project) => project.id === effectiveSelectedProjectId) ?? null
+  const selectedProjectIsLoaded = selectedProject ? loadedCustomerProjectIds.has(selectedProject.id) : false
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !effectiveSelectedProjectId || loadedCustomerProjectIds.has(effectiveSelectedProjectId)) return
+
+    let isCancelled = false
+
+    fetchCustomerProjectById(effectiveSelectedProjectId)
+      .then((project) => {
+        if (isCancelled) return
+        setCustomers((currentCustomers) =>
+          currentCustomers.map((customer) => ({
+            ...customer,
+            projects: customer.projects.map((currentProject) => (currentProject.id === project.id ? project : currentProject)),
+          })),
+        )
+        setLoadedCustomerProjectIds((currentIds) => new Set(currentIds).add(project.id))
+        setLoadError('')
+      })
+      .catch((error) => {
+        if (isCancelled) return
+        setLoadError(getErrorMessage(error, 'Impossibile caricare il dettaglio progetto cliente.'))
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [effectiveSelectedProjectId, loadedCustomerProjectIds])
 
   function updateCustomers(nextCustomers: Customer[]) {
     setCustomers(nextCustomers)
@@ -252,6 +287,7 @@ export function CustomersPage({
 
     try {
       const nextProject = await createCustomerProjectRecord(customerId, targetCustomer.projects.length + 1)
+      setLoadedCustomerProjectIds((currentIds) => new Set(currentIds).add(nextProject.id))
       updateCustomers(
         customers.map((customer) =>
           customer.id === customerId
@@ -390,6 +426,7 @@ export function CustomersPage({
       const savedProject = await saveCustomerProjectSnapshot(customerId, project)
       if (version !== projectSaveVersionRef.current) return
 
+      setLoadedCustomerProjectIds((currentIds) => new Set(currentIds).add(savedProject.id))
       setCustomers((currentCustomers) =>
         currentCustomers.map((currentCustomer) => {
           if (currentCustomer.id !== customerId) return currentCustomer
@@ -442,7 +479,9 @@ export function CustomersPage({
             customer={selectedCustomer}
             activeProjectTab={activeProjectTab}
             selectedProject={selectedProject}
-            selectedProjectId={selectedProjectId}
+            selectedProjectIsLoaded={selectedProjectIsLoaded}
+            selectedProjectId={effectiveSelectedProjectId}
+            loadedProjectIds={loadedCustomerProjectIds}
             onChangeProjectTab={setActiveProjectTab}
             onCreateProject={() => void createCustomerProject(selectedCustomer.id)}
             onDeleteCustomer={() => setDeleteCustomerCandidate(selectedCustomer)}
@@ -498,7 +537,9 @@ function CustomerWorkspace({
   customer,
   activeProjectTab,
   selectedProject,
+  selectedProjectIsLoaded,
   selectedProjectId,
+  loadedProjectIds,
   onChangeProjectTab,
   onCreateProject,
   onDeleteCustomer,
@@ -510,7 +551,9 @@ function CustomerWorkspace({
   customer: Customer
   activeProjectTab: (typeof customerProjectTabs)[number]
   selectedProject: CustomerProject | null
+  selectedProjectIsLoaded: boolean
   selectedProjectId: string
+  loadedProjectIds: Set<string>
   onChangeProjectTab: (tab: (typeof customerProjectTabs)[number]) => void
   onCreateProject: () => void
   onDeleteCustomer: () => void
@@ -531,6 +574,7 @@ function CustomerWorkspace({
     [customer.projects, pinnedProjectIds, projectQuery, projectSortMode],
   )
   const mobileModalProject = isMobileViewport ? customer.projects.find((project) => project.id === mobileModalProjectId) ?? null : null
+  const mobileModalProjectIsLoaded = mobileModalProject ? loadedProjectIds.has(mobileModalProject.id) : false
 
   const isAlphabeticalSortActive = projectSortMode === 'name-asc' || projectSortMode === 'name-desc'
   const isRecencySortActive = projectSortMode === 'recent-desc'
@@ -803,13 +847,18 @@ function CustomerWorkspace({
 
           {!isMobileViewport ? (
             <section className="detail-panel detail-panel--customer-project">
-              {selectedProject ? (
+              {selectedProject && selectedProjectIsLoaded ? (
                 <CustomerProjectDetail
                   activeTab={activeProjectTab}
                   project={selectedProject}
                   onChangeTab={onChangeProjectTab}
                   onDelete={() => onDeleteProject(selectedProject)}
                   onUpdate={(updater) => onUpdateProject(selectedProject.id, updater)}
+                />
+              ) : selectedProject ? (
+                <EmptyState
+                  title="Caricamento progetto cliente"
+                  message="Sto recuperando dati progetto, variabili e accessi da Supabase."
                 />
               ) : (
                 <EmptyState title="Nessun progetto cliente" message="Crea un progetto cliente oppure selezionane uno dall'archivio." />
@@ -825,17 +874,21 @@ function CustomerWorkspace({
           subtitle="Scheda progetto cliente mobile"
           onClose={() => setMobileModalProjectId('')}
         >
-          <CustomerProjectDetail
-            activeTab={activeProjectTab}
-            project={mobileModalProject}
-            onChangeTab={onChangeProjectTab}
-            onDelete={() => {
-              setMobileModalProjectId('')
-              onDeleteProject(mobileModalProject)
-            }}
-            onUpdate={(updater) => onUpdateProject(mobileModalProject.id, updater)}
-            inlineMobile
-          />
+          {mobileModalProjectIsLoaded ? (
+            <CustomerProjectDetail
+              activeTab={activeProjectTab}
+              project={mobileModalProject}
+              onChangeTab={onChangeProjectTab}
+              onDelete={() => {
+                setMobileModalProjectId('')
+                onDeleteProject(mobileModalProject)
+              }}
+              onUpdate={(updater) => onUpdateProject(mobileModalProject.id, updater)}
+              inlineMobile
+            />
+          ) : (
+            <EmptyState title="Caricamento progetto cliente" message="Sto recuperando il dettaglio completo da Supabase." />
+          )}
         </MobileWorkspaceModal>
       ) : null}
     </div>
