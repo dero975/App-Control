@@ -20,6 +20,7 @@ type ProjectRow = {
 }
 
 type EnvVariableRow = {
+  id?: string
   project_id: string
   key: string
   value_text: string
@@ -56,6 +57,7 @@ type DataFieldRow = {
 }
 
 type ImageRow = {
+  id?: string
   project_id: string
   slot_id: string
   name: string
@@ -81,6 +83,8 @@ type ProjectBackup = {
   fieldRows: DataFieldRow[]
   imageRows: ImageRow[]
 }
+
+type PlatformAccessWriteRow = Omit<PlatformAccessRow, 'id'> & { id?: string }
 
 export async function fetchProjects() {
   const client = requireSupabase()
@@ -243,6 +247,7 @@ async function savePlatformAccesses(projectId: string, sheetFields: ProjectVaria
   await replacePlatformAccesses(
     projectId,
     accounts.map((account, index) => ({
+      id: account.id,
       project_id: projectId,
       platform: account.platform,
       email: account.email,
@@ -288,59 +293,180 @@ async function saveProjectImages(projectId: string, images: ProjectImage[]) {
 
 async function replaceDataFields(projectId: string, rows: Array<Omit<DataFieldRow, 'id'>>) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('project_data_fields').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  assertUniqueIdentifiers(rows, (row) => row.field_key, 'Campi progetto duplicati')
 
-  const { error } = await client.from('project_data_fields').insert(
-    rows.map((row) => ({
+  const { data: existingRows, error: existingError } = await client
+    .from('project_data_fields')
+    .select('id, field_key')
+    .eq('project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingByKey = new Map(((existingRows as Array<Pick<DataFieldRow, 'id' | 'field_key'>> | null) ?? []).map((row) => [row.field_key, row]))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const payload = {
       ...row,
       visible_by_default: true,
       field_kind: 'text',
-    })),
-  )
-  if (error) throw error
+    }
+    const existingRow = existingByKey.get(row.field_key)
+
+    if (existingRow) {
+      const { error } = await client.from('project_data_fields').update(payload).eq('id', existingRow.id)
+      if (error) throw error
+      keptIds.push(existingRow.id)
+      continue
+    }
+
+    const { data, error } = await client.from('project_data_fields').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Pick<DataFieldRow, 'id'>).id)
+  }
+
+  await deleteObsoleteRows('project_data_fields', (existingRows as Array<Pick<DataFieldRow, 'id'>> | null) ?? [], keptIds)
 }
 
-async function replacePlatformAccesses(projectId: string, rows: Array<Omit<PlatformAccessRow, 'id'>>) {
+async function replacePlatformAccesses(projectId: string, rows: PlatformAccessWriteRow[]) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('project_platform_accesses').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  const { data: existingRows, error: existingError } = await client
+    .from('project_platform_accesses')
+    .select('id')
+    .eq('project_id', projectId)
+  if (existingError) throw existingError
 
-  const { error } = await client.from('project_platform_accesses').insert(
-    rows.map((row) => ({
-      ...row,
+  const existingIds = new Set(((existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? []).map((row) => row.id))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const { id, ...rowPayload } = row
+    const payload = {
+      ...rowPayload,
       password_visible_by_default: true,
-    })),
-  )
-  if (error) throw error
+    }
+
+    if (id && existingIds.has(id)) {
+      const { error } = await client.from('project_platform_accesses').update(payload).eq('id', id)
+      if (error) throw error
+      keptIds.push(id)
+      continue
+    }
+
+    const { data, error } = await client.from('project_platform_accesses').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Pick<PlatformAccessRow, 'id'>).id)
+  }
+
+  await deleteObsoleteRows('project_platform_accesses', (existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? [], keptIds)
 }
 
 async function replaceEnvVariables(projectId: string, rows: Array<EnvVariableRow & { sort_order: number }>) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('project_env_variables').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  assertUniqueIdentifiers(rows, (row) => row.key, 'Variabili progetto duplicate')
 
-  const { error } = await client.from('project_env_variables').insert(rows)
-  if (error) throw error
+  const { data: existingRows, error: existingError } = await client
+    .from('project_env_variables')
+    .select('id, key')
+    .eq('project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingByKey = new Map(((existingRows as Array<Pick<EnvVariableRow, 'id' | 'key'>> | null) ?? []).map((row) => [row.key, row]))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const rowPayload = {
+      project_id: row.project_id,
+      key: row.key,
+      value_text: row.value_text,
+      value_ciphertext: row.value_ciphertext,
+      scope: row.scope,
+      is_sensitive: row.is_sensitive,
+      sort_order: row.sort_order,
+    }
+    const existingRow = existingByKey.get(row.key)
+
+    if (existingRow?.id) {
+      const { error } = await client.from('project_env_variables').update(rowPayload).eq('id', existingRow.id)
+      if (error) throw error
+      keptIds.push(existingRow.id)
+      continue
+    }
+
+    const { data, error } = await client.from('project_env_variables').insert(rowPayload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Required<Pick<EnvVariableRow, 'id'>>).id)
+  }
+
+  await deleteObsoleteRows('project_env_variables', (existingRows as Array<Required<Pick<EnvVariableRow, 'id'>>> | null) ?? [], keptIds)
 }
 
 async function replaceProjectImages(projectId: string, rows: ImageRow[]) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('project_images').delete().eq('project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  assertUniqueIdentifiers(rows, (row) => row.slot_id, 'Slot immagine duplicati')
 
-  const { error } = await client.from('project_images').insert(
-    rows.map((row) => ({
-      ...row,
+  const { data: existingRows, error: existingError } = await client
+    .from('project_images')
+    .select('id, slot_id')
+    .eq('project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingBySlotId = new Map(((existingRows as Array<Required<Pick<ImageRow, 'id'>> & Pick<ImageRow, 'slot_id'>> | null) ?? []).map((row) => [row.slot_id, row]))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const payload = {
+      project_id: row.project_id,
+      slot_id: row.slot_id,
+      name: row.name,
+      file_name: row.file_name,
+      mime_type: row.mime_type,
+      size_bytes: row.size_bytes,
+      original_size_bytes: row.original_size_bytes,
+      data_url: row.data_url,
+      sort_order: row.sort_order,
       type: row.slot_id.includes('icon') ? 'Icona' : 'Logo',
       path: '',
-    })),
-  )
+    }
+    const existingRow = existingBySlotId.get(row.slot_id)
+
+    if (existingRow) {
+      const { error } = await client.from('project_images').update(payload).eq('id', existingRow.id)
+      if (error) throw error
+      keptIds.push(existingRow.id)
+      continue
+    }
+
+    const { data, error } = await client.from('project_images').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Required<Pick<ImageRow, 'id'>>).id)
+  }
+
+  await deleteObsoleteRows('project_images', (existingRows as Array<Required<Pick<ImageRow, 'id'>>> | null) ?? [], keptIds)
+}
+
+async function deleteObsoleteRows(tableName: string, existingRows: Array<{ id: string }>, keptIds: string[]) {
+  const obsoleteIds = existingRows
+    .map((row) => row.id)
+    .filter((id) => !keptIds.includes(id))
+
+  if (!obsoleteIds.length) return
+
+  const client = requireSupabase()
+  const { error } = await client.from(tableName).delete().in('id', obsoleteIds)
   if (error) throw error
+}
+
+function assertUniqueIdentifiers<T>(rows: T[], getIdentifier: (row: T) => string, errorLabel: string) {
+  const seenIdentifiers = new Set<string>()
+
+  for (const row of rows) {
+    const identifier = getIdentifier(row).trim()
+    if (seenIdentifiers.has(identifier)) {
+      throw new Error(`${errorLabel}: ${identifier || 'campo vuoto'}`)
+    }
+
+    seenIdentifiers.add(identifier)
+  }
 }
 
 async function fetchProjectBackup(projectId: string): Promise<ProjectBackup> {
@@ -393,6 +519,7 @@ async function restoreProjectBackup(backup: ProjectBackup) {
   await replacePlatformAccesses(
     projectRow.id,
     backup.accessRows.map((row, index) => ({
+      id: row.id,
       project_id: row.project_id,
       platform: row.platform,
       email: row.email,
@@ -451,7 +578,7 @@ async function fetchProjectRelations(projectIds: string[]) {
   ] = await Promise.all([
     client
       .from('project_env_variables')
-      .select('project_id, key, value_text, value_ciphertext, scope, is_sensitive')
+      .select('id, project_id, key, value_text, value_ciphertext, scope, is_sensitive')
       .in('project_id', projectIds)
       .order('sort_order', { ascending: true }),
     client.from('project_agent_keys').select('project_id, key_prefix, key_ciphertext, sync_prompt').in('project_id', projectIds),
@@ -572,7 +699,7 @@ async function fetchImageRows(projectIds: string[]) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('project_images')
-    .select('project_id, slot_id, name, file_name, mime_type, size_bytes, original_size_bytes, data_url, sort_order')
+    .select('id, project_id, slot_id, name, file_name, mime_type, size_bytes, original_size_bytes, data_url, sort_order')
     .in('project_id', projectIds)
     .order('sort_order', { ascending: true })
 

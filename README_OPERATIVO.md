@@ -12,7 +12,7 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 ## Stato sintetico
 
-App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Il client prepara anche un header tecnico derivato dal PIN verificato, da usare nelle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
+App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Se l'utente abilita `Ricorda questo dispositivo`, il browser salva solo un token casuale locale e Supabase conserva solo l'hash. Il client invia header tecnici autorizzativi usati dalle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
 
 L'app ora e divisa in due ambienti:
 
@@ -41,7 +41,7 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - Non inserire segreti reali in codice, mock o documentazione.
 - In `Agent sync`, mantenere solo prompt generico stabile non modificabile e JSON di collegamento per progetto; non duplicare chiavi o credenziali in viste parallele. Le variabili canoniche archiviate in App Control sono `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `DATABASE_URL`; `LINK_DEPLOY ADMIN`, eventuali `VITE_SUPABASE_*` e `SUPABASE_DB_URL` vanno derivate solo quando il codice o il provider le richiedono.
 - Il backup Google Sheets usa solo due tab canonici: `Progetti` e `Prompt`. Serve come copia leggibile e ripristinabile, non come fonte primaria o canale di editing.
-- RLS finale: le tabelle operative non hanno letture anonime libere. L'app passa da `public.app_control_request_is_authorized()` dopo PIN; il backup Google Sheets puo leggere solo con header dedicato `x-app-control-backup-token`.
+- RLS finale: le tabelle operative non hanno letture anonime libere. L'app passa da `public.app_control_request_is_authorized()` dopo PIN o dispositivo attendibile; il backup Google Sheets puo leggere solo con header dedicato `x-app-control-backup-token`.
 - In `Immagini`, mantenere cinque slot fissi sempre disponibili; il database futuro deve persistere metadati e path Storage, non data URL come fonte canonica.
 - Non creare dashboard o voci sidebar per `Dati progetto` e `Immagini`.
 - Su mobile la shell mostra il logo centrato nella top bar superiore.

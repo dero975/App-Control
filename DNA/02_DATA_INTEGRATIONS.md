@@ -40,6 +40,7 @@
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
 - `operationalNotes` viene letto e scritto nella colonna `projects.operational_notes` tramite il normale autosave del dettaglio progetto.
 - Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI: i record rimossi dall'admin vengono eliminati anche da Supabase.
+- Per ridurre il rischio operativo in caso di errore intermedio, il riallineamento delle relazioni progetto e progetto cliente aggiorna o inserisce prima le righe correnti e rimuove solo alla fine le righe obsolete; non usare pattern delete-first per questi set relazionali.
 
 ## Google Sheets Backup
 

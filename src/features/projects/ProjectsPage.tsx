@@ -1024,9 +1024,34 @@ function formatVariablesEnvForCopy(variables: ProjectVariable[]) {
 
   if (!exportableVariables.length) return ''
 
-  return exportableVariables
+  const variablesWithDerivedValues = addDerivedEnvExportValues(exportableVariables)
+
+  return variablesWithDerivedValues
     .map((variable) => `${variable.exportKey}=${formatEnvValue(normalizeEnvExportValue(variable.exportKey, variable.value))}`)
     .join('\n')
+}
+
+function addDerivedEnvExportValues(variables: Array<{ exportKey: string; value: string }>) {
+  const nextVariables = [...variables]
+  const derivedRules = [
+    { sourceKey: 'SUPABASE_URL', targetKey: 'VITE_SUPABASE_URL' },
+    { sourceKey: 'SUPABASE_ANON_KEY', targetKey: 'VITE_SUPABASE_ANON_KEY' },
+    { sourceKey: 'DATABASE_URL', targetKey: 'SUPABASE_DB_URL' },
+  ] as const
+
+  for (const rule of derivedRules) {
+    if (nextVariables.some((variable) => variable.exportKey === rule.targetKey)) continue
+
+    const sourceIndex = nextVariables.findIndex((variable) => variable.exportKey === rule.sourceKey)
+    if (sourceIndex === -1) continue
+
+    nextVariables.splice(sourceIndex + 1, 0, {
+      exportKey: rule.targetKey,
+      value: nextVariables[sourceIndex].value,
+    })
+  }
+
+  return nextVariables
 }
 
 function SupabaseFieldTitle({ title }: { title: string }) {

@@ -166,11 +166,11 @@ npm run dev -- --host 127.0.0.1 --port 5001
 
 - La cartella puo non essere un repository Git.
 - Non usare comandi distruttivi (`reset --hard`, checkout di massa, force push) senza richiesta esplicita.
-- Non committare `node_modules`, `dist`, cache, `Backup_Automatico`, `.env` o export con segreti.
-- I backup locali in `Backup_Automatico` devono usare il formato `Backup_7 Maggio_00.03.tar.gz`, con data e ora correnti.
+- Non committare `node_modules`, `dist`, cache, `BACKUP`, `Backup_Automatico`, `.env` o export con segreti.
+- I backup locali in `BACKUP` devono usare il formato `Backup_7 Maggio_00.03.tar.gz`, con data e ora correnti.
 - Il backup locale operativo deve includere solo materiale utile a ricostruire il progetto: file tracciati del repository come `src/`, `public/`, `.github/`, `DNA/`, `README*.md`, configurazioni versionate e anche il file `.env` operativo locale quando presente.
 - Il backup locale operativo deve mantenere disponibile l'ambiente locale del progetto anche in caso di export, copia o ripristino su un altro PC; per questo `.env` va incluso nel backup locale ma continua a restare escluso da commit e push.
-- Il backup locale operativo deve escludere sempre `.git`, altri export locali con segreti esterni al runtime del progetto, `node_modules`, `dist`, cache, artefatti generati e gli archivi gia presenti dentro `Backup_Automatico/`.
+- Il backup locale operativo deve escludere sempre `.git`, altri export locali con segreti esterni al runtime del progetto, `node_modules`, `dist`, cache, artefatti generati e gli archivi gia presenti dentro `BACKUP/` o `Backup_Automatico/`.
 - Commit e push solo se richiesti.
 - Se la cartella non e ancora un repository Git, inizializzare Git solo su richiesta esplicita di commit/push, collegare il remote GitHub corretto e verificare `.gitignore` prima del primo commit.
 - Remote operativo atteso per questo progetto: `https://github.com/dero975/App-Control.git`.

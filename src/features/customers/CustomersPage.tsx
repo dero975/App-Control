@@ -6,7 +6,6 @@ import { FieldGroup } from '../../components/FieldGroup'
 import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
 import {
-  ProjectAgentPanel,
   VariablesPanel,
 } from '../projects/ProjectsPage'
 import {
@@ -911,7 +910,7 @@ function CustomerProjectDetail({
           </div>
         ) : null}
         {activeTab === 'Sync' ? (
-          <ProjectAgentPanel project={adminLikeProject} />
+          <EmptyState title="Sync" message="La sincronizzazione agent per i progetti cliente non è ancora collegata al database." />
         ) : null}
       </div>
     </div>

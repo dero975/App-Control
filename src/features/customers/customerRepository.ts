@@ -74,6 +74,8 @@ type CustomerProjectBackup = {
   platformAccessRows: PlatformAccessRow[]
 }
 
+type PlatformAccessWriteRow = Omit<PlatformAccessRow, 'id'> & { id?: string }
+
 export async function fetchCustomers() {
   const client = requireSupabase()
 
@@ -345,7 +347,7 @@ async function fetchProjectRelations(projectIds: string[]) {
   ] = await Promise.all([
     client
       .from('customer_project_env_variables')
-      .select('customer_project_id, key, value_text, value_ciphertext, scope, is_sensitive, sort_order')
+      .select('id, customer_project_id, key, value_text, value_ciphertext, scope, is_sensitive, sort_order')
       .in('customer_project_id', projectIds)
       .order('sort_order', { ascending: true }),
     client
@@ -408,6 +410,7 @@ async function saveProjectPlatformAccesses(projectId: string, platformAccesses: 
   await replaceProjectPlatformAccesses(
     projectId,
     sanitizedAccesses.map((access, index) => ({
+      id: access.id,
       customer_project_id: projectId,
       platform: access.platform.trim(),
       email: access.email.trim(),
@@ -419,43 +422,136 @@ async function saveProjectPlatformAccesses(projectId: string, platformAccesses: 
 
 async function replaceProjectEnvVariables(projectId: string, rows: CustomerEnvVariableRow[]) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('customer_project_env_variables').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  assertUniqueIdentifiers(rows, (row) => row.key, 'Variabili progetto cliente duplicate')
 
-  const { error } = await client.from('customer_project_env_variables').insert(rows)
-  if (error) throw error
+  const { data: existingRows, error: existingError } = await client
+    .from('customer_project_env_variables')
+    .select('id, key')
+    .eq('customer_project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingByKey = new Map(((existingRows as Array<Required<Pick<CustomerEnvVariableRow, 'id'>> & Pick<CustomerEnvVariableRow, 'key'>> | null) ?? []).map((row) => [row.key, row]))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const payload = {
+      customer_project_id: row.customer_project_id,
+      key: row.key,
+      value_text: row.value_text,
+      value_ciphertext: row.value_ciphertext,
+      scope: row.scope,
+      is_sensitive: row.is_sensitive,
+      sort_order: row.sort_order,
+    }
+    const existingRow = existingByKey.get(row.key)
+
+    if (existingRow) {
+      const { error } = await client.from('customer_project_env_variables').update(payload).eq('id', existingRow.id)
+      if (error) throw error
+      keptIds.push(existingRow.id)
+      continue
+    }
+
+    const { data, error } = await client.from('customer_project_env_variables').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Required<Pick<CustomerEnvVariableRow, 'id'>>).id)
+  }
+
+  await deleteObsoleteRows('customer_project_env_variables', (existingRows as Array<Required<Pick<CustomerEnvVariableRow, 'id'>>> | null) ?? [], keptIds)
 }
 
 async function replaceProjectDataFields(projectId: string, rows: Array<Omit<CustomerDataFieldRow, 'id'>>) {
   const client = requireSupabase()
-  const { error: deleteError } = await client.from('customer_project_data_fields').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+  assertUniqueIdentifiers(rows, (row) => row.field_key, 'Campi progetto cliente duplicati')
 
-  const { error } = await client.from('customer_project_data_fields').insert(
-    rows.map((row) => ({
+  const { data: existingRows, error: existingError } = await client
+    .from('customer_project_data_fields')
+    .select('id, field_key')
+    .eq('customer_project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingByKey = new Map(((existingRows as Array<Pick<CustomerDataFieldRow, 'id' | 'field_key'>> | null) ?? []).map((row) => [row.field_key, row]))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const payload = {
       ...row,
       visible_by_default: true,
       field_kind: 'text',
-    })),
-  )
+    }
+    const existingRow = existingByKey.get(row.field_key)
+
+    if (existingRow) {
+      const { error } = await client.from('customer_project_data_fields').update(payload).eq('id', existingRow.id)
+      if (error) throw error
+      keptIds.push(existingRow.id)
+      continue
+    }
+
+    const { data, error } = await client.from('customer_project_data_fields').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Pick<CustomerDataFieldRow, 'id'>).id)
+  }
+
+  await deleteObsoleteRows('customer_project_data_fields', (existingRows as Array<Pick<CustomerDataFieldRow, 'id'>> | null) ?? [], keptIds)
+}
+
+async function replaceProjectPlatformAccesses(projectId: string, rows: PlatformAccessWriteRow[]) {
+  const client = requireSupabase()
+  const { data: existingRows, error: existingError } = await client
+    .from('customer_project_platform_accesses')
+    .select('id')
+    .eq('customer_project_id', projectId)
+  if (existingError) throw existingError
+
+  const existingIds = new Set(((existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? []).map((row) => row.id))
+  const keptIds: string[] = []
+
+  for (const row of rows) {
+    const { id, ...rowPayload } = row
+    const payload = {
+      ...rowPayload,
+      password_visible_by_default: true,
+    }
+
+    if (id && existingIds.has(id)) {
+      const { error } = await client.from('customer_project_platform_accesses').update(payload).eq('id', id)
+      if (error) throw error
+      keptIds.push(id)
+      continue
+    }
+
+    const { data, error } = await client.from('customer_project_platform_accesses').insert(payload).select('id').single()
+    if (error) throw error
+    keptIds.push((data as Pick<PlatformAccessRow, 'id'>).id)
+  }
+
+  await deleteObsoleteRows('customer_project_platform_accesses', (existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? [], keptIds)
+}
+
+async function deleteObsoleteRows(tableName: string, existingRows: Array<{ id: string }>, keptIds: string[]) {
+  const obsoleteIds = existingRows
+    .map((row) => row.id)
+    .filter((id) => !keptIds.includes(id))
+
+  if (!obsoleteIds.length) return
+
+  const client = requireSupabase()
+  const { error } = await client.from(tableName).delete().in('id', obsoleteIds)
   if (error) throw error
 }
 
-async function replaceProjectPlatformAccesses(projectId: string, rows: Array<Omit<PlatformAccessRow, 'id'>>) {
-  const client = requireSupabase()
-  const { error: deleteError } = await client.from('customer_project_platform_accesses').delete().eq('customer_project_id', projectId)
-  if (deleteError) throw deleteError
-  if (!rows.length) return
+function assertUniqueIdentifiers<T>(rows: T[], getIdentifier: (row: T) => string, errorLabel: string) {
+  const seenIdentifiers = new Set<string>()
 
-  const { error } = await client.from('customer_project_platform_accesses').insert(
-    rows.map((row) => ({
-      ...row,
-      password_visible_by_default: true,
-    })),
-  )
-  if (error) throw error
+  for (const row of rows) {
+    const identifier = getIdentifier(row).trim()
+    if (seenIdentifiers.has(identifier)) {
+      throw new Error(`${errorLabel}: ${identifier || 'campo vuoto'}`)
+    }
+
+    seenIdentifiers.add(identifier)
+  }
 }
 
 function emptyProjectRelations() {
@@ -522,6 +618,7 @@ async function restoreCustomerProjectBackup(backup: CustomerProjectBackup) {
   await replaceProjectPlatformAccesses(
     projectRow.id,
     backup.platformAccessRows.map((row, index) => ({
+      id: row.id,
       customer_project_id: row.customer_project_id,
       platform: row.platform,
       email: row.email,
