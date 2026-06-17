@@ -167,7 +167,7 @@ npm run dev -- --host 127.0.0.1 --port 5001
 
 - La cartella puo non essere un repository Git.
 - Non usare comandi distruttivi (`reset --hard`, checkout di massa, force push) senza richiesta esplicita.
-- Non committare `node_modules`, `dist`, cache, `BACKUP`, `Backup_Automatico`, `.env` o export con segreti.
+- Non committare `node_modules`, `dist`, cache, `BACKUP`, `Backup_Automatico`, `.env`, `.mcp.json`, `.agent/` o export con segreti.
 - I backup locali in `BACKUP` devono usare il formato `Backup_7 Maggio_00.03.tar.gz`, con data e ora correnti.
 - Il backup locale operativo deve includere solo materiale utile a ricostruire il progetto: file tracciati del repository come `src/`, `public/`, `.github/`, `DNA/`, `README*.md`, configurazioni versionate e anche il file `.env` operativo locale quando presente.
 - Il backup locale operativo deve mantenere disponibile l'ambiente locale del progetto anche in caso di export, copia o ripristino su un altro PC; per questo `.env` va incluso nel backup locale ma continua a restare escluso da commit e push.

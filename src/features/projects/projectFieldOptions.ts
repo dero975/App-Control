@@ -6,9 +6,9 @@ export type SelectableFieldConfig = {
 
 export const selectableFieldConfigs: Record<string, SelectableFieldConfig> = {
   'sviluppo in': {
-    options: ['Windsurf', 'Replit'],
+    options: ['Claude Code', 'Windsurf', 'Replit'],
     promptLabel: 'Nuovo ambiente di sviluppo',
-    fallback: 'Windsurf',
+    fallback: 'Claude Code',
   },
   'deploy con': {
     options: ['Render', 'CloudeFlare'],

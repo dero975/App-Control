@@ -9,6 +9,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - Backend custom assente. Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon.
 - Deploy produzione attuale: Render `Static Site` collegato al repository GitHub `dero975/App-Control`; Supabase resta il backend dati.
 - Workflow esterno presente: GitHub Actions `Supabase Keepalive` schedulato, separato dal runtime app.
+- Agent esterni (Claude Code) accedono ai dati progetto via Supabase REST con header `x-app-control-project-id` e `x-app-control-agent-key`. RLS valida la chiave per progetto. Accesso in sola lettura, scoped al singolo progetto. Documentato in `DNA/05_AGENT_API.md`.
 - Workflow esterno presente anche per backup leggibile: Google Sheets popolato da Apps Script leggendo Supabase in sola lettura.
 - Accesso app con PIN a 6 cifre sincronizzato su Supabase; sessione sbloccata in `sessionStorage` fino a chiusura/esci.
 - Le sezioni Progetti e Prompt leggono/scrivono dati reali su Supabase dopo sblocco PIN app.
@@ -41,6 +42,7 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 ## Regole non negoziabili
 
 - Non reintrodurre login email/password o Auth UI senza richiesta esplicita.
+- Non aggiungere policy Supabase che concedano scrittura tramite agent key: l'accesso agent è sempre sola lettura.
 - Non ampliare Supabase, SQL o storage senza richiesta esplicita.
 - `SUPABASE_SERVICE_ROLE_KEY`, `RENDER_API_KEY`, DB URL e token GitHub devono restare solo in `.env` locale o sistemi sicuri: mai frontend, log, markdown o chat.
 - Non hardcodare segreti reali in mock, codice o documentazione.
@@ -58,3 +60,4 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `DNA/02_DATA_INTEGRATIONS.md`: modello dati reale, mock, integrazioni future.
 - `DNA/03_OPERATIONS.md`: script, validazione e workflow operativo.
 - `DNA/04_SUPABASE_SCHEMA_SQL.md`: schema Supabase target e script SQL ordinati.
+- `DNA/05_AGENT_API.md`: API per agent esterni con autenticazione agent key.

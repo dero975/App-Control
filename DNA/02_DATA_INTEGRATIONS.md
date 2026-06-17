@@ -25,7 +25,7 @@
 ## Vincoli dati attuali
 
 - I nuovi progetti devono partire senza dati demo o credenziali reali.
-- `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Windsurf` e `Replit`; la UI mantiene fallback per eventuali valori esterni non previsti.
+- `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Claude Code`, `Windsurf` e `Replit`; `Claude Code` e il default per i nuovi progetti. La UI mantiene fallback per eventuali valori esterni non previsti.
 - `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
 - `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
 - Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
@@ -58,6 +58,18 @@
 - Il foglio non sostituisce Supabase: resta una copia leggibile e ripristinabile.
 - La sync usa Supabase REST in sola lettura con `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
 - Il backup invia a Supabase l'header dedicato `x-app-control-backup-token`; le tabelle operative non devono mantenere letture anonime libere.
+
+
+## Agent API (Claude Code)
+
+Accesso in sola lettura ai dati progetto per agent esterni tramite Supabase REST.
+
+- Autenticazione: header `x-app-control-project-id` + `x-app-control-agent-key`.
+- RLS valida la chiave contro `project_agent_keys.key_ciphertext` per il progetto specifico.
+- Tabelle accessibili (solo SELECT, solo per il proprio progetto): `projects`, `project_env_variables`, `project_data_fields`, `project_platform_accesses`, `project_agent_keys`.
+- Il file `.agent/app-control.json` nella root di ogni progetto contiene: `projectId`, `agentKey`, `appControlSupabaseUrl`, `appControlSupabaseAnonKey`.
+- Questo file è generato dal tab Sync di App Control e non va mai committato su GitHub.
+- Dettaglio completo in `DNA/05_AGENT_API.md`.
 
 ## Integrazioni future
 

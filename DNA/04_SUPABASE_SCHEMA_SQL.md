@@ -690,3 +690,20 @@ order by table_name::text, trigger_name;
 - Persistenza reale della libreria Prompt finche non vengono eseguiti e verificati gli script `7A`, `7B`, `9`, `10`.
 
 Questi punti richiedono una richiesta esplicita e modifiche codice dedicate.
+
+## Funzioni RLS agenti (migration 20260617)
+
+Aggiunte con `supabase/migrations/20260617_01_agent_key_access.sql`:
+
+- `app_control_request_project_id()` — legge header `x-app-control-project-id`
+- `app_control_request_agent_key()` — legge header `x-app-control-agent-key`
+- `app_control_verify_agent_key(project_id, agent_key)` — valida chiave contro `project_agent_keys.key_ciphertext`
+- `app_control_request_is_agent_authorized_for_project(project_id)` — combina le due precedenti
+
+Policy aggiunte (SELECT sola lettura, project-scoped):
+- `projects_agent_select`
+- `project_env_variables_agent_select`
+- `project_data_fields_agent_select`
+- `project_platform_accesses_agent_select`
+- `project_agent_keys_agent_select`
+

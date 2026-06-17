@@ -30,6 +30,11 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - `DNA/02_DATA_INTEGRATIONS.md`: dati reali, integrazioni attive/future e vincoli.
 - `DNA/03_OPERATIONS.md`: script, validazione e workflow operativo.
 - `DNA/04_SUPABASE_SCHEMA_SQL.md`: schema Supabase target e script SQL ordinati.
+- `DNA/05_AGENT_API.md`: API per agent esterni (Claude Code) con autenticazione tramite agent key.
+
+## Learning log
+
+- `LEARNINGS.md`: osservazioni accumulate dagli agent su errori ricorrenti, fix non ovvi e vincoli di sistema. L'agent aggiunge voci solo quando rilevante. Non va mai modificato in autonomia.
 
 ## Regole operative
 
@@ -57,4 +62,6 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - All'apertura della sezione `Progetti`, l'ordinamento predefinito e alfabetico A-Z; solo un'azione esplicita di Admin puo portarlo su altri ordinamenti.
 - Nella libreria `Prompt`, aprire una card e sola lettura: per modificare titolo, sezione o testo bisogna cliccare la matita accanto al cestino.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.
+- Agent esterni accedono ai dati progetto tramite Supabase REST con header `x-app-control-project-id` e `x-app-control-agent-key`. Accesso in sola lettura, scoped al singolo progetto. Il file `.agent/app-control.json` contiene le credenziali di connessione e non va mai committato.
+- Il file `.mcp.json` generato dal sync contiene token di progetto e non va mai committato.
 - Dopo modifiche codice, verificare con gli script esistenti in `package.json`.

@@ -96,7 +96,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 ## Campi speciali in Dati progetto
 
 - `Password`: label canonica; non e trattata come campo sensibile nel tab `Dati progetto`, quindi resta visibile.
-- `sviluppo in`: select con opzioni `Windsurf`, `Replit`, piu voce `+ Aggiungi` dentro al menu.
+- `sviluppo in`: select con opzioni `Claude Code`, `Windsurf`, `Replit`, piu voce `+ Aggiungi` dentro al menu. `Claude Code` e il default per i nuovi progetti.
 - Dentro `sviluppo in`, `Accessi piattaforme` mostra il pulsante `Aggiungi accesso`; le righe piattaforma/mail/password sono visibili solo dopo creazione esplicita. Possono coesistere accessi separati per Windsurf, Replit o piattaforme custom.
 - `deploy con`: select con opzioni `Render`, `CloudeFlare`, piu voce `+ Aggiungi` dentro al menu.
 - Se un valore non previsto arriva ai select, il codice usa fallback del campo.

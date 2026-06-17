@@ -29,3 +29,7 @@ apps-script-google-sheet
 *.njsproj
 *.sln
 *.sw?
+
+# Agent configuration (contains credentials)
+.mcp.json
+.agent/

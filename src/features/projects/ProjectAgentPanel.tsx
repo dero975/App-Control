@@ -41,6 +41,8 @@ function formatAgentConfig(project: Project) {
     {
       projectId: project.agent.projectId,
       agentKey: project.agent.agentKey,
+      appControlSupabaseUrl: import.meta.env.VITE_SUPABASE_URL?.trim() ?? '',
+      appControlSupabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '',
     },
     null,
     2,
