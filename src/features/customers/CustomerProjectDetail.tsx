@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { EmptyState } from '../../components/EmptyState'
 import { FieldGroup } from '../../components/FieldGroup'
+import { handleExternalLinkClick } from '../../lib/externalLink'
 import type { CustomerProject } from '../../types/app'
 import { VariablesPanel } from '../projects/VariablesPanel'
 import { formatProjectUpdatedAt, getDeployAdminLink, getDeployLink } from '../projects/projectShared'
@@ -115,7 +116,7 @@ function ProjectLinkRow({ value }: { value: string }) {
 
   return (
     <div className="project-deploy-link">
-      <a href={value} target="_blank" rel="noreferrer">
+      <a href={value} target="_blank" rel="noreferrer" onClick={(event) => handleExternalLinkClick(event, value)}>
         {value}
       </a>
       <CopyButton value={value} iconOnly />

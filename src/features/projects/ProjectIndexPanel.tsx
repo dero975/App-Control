@@ -1,5 +1,6 @@
 import { ArrowDownWideNarrow, ArrowUpWideNarrow, ClockArrowDown, FileText, Pin, Plus } from 'lucide-react'
 import type { Project } from '../../types/app'
+import { handleExternalLinkClick } from '../../lib/externalLink'
 import { buildProjectVariables, formatProjectUpdatedAt, getDeployAdminLink, getDeployLink } from './projectShared'
 import { buildNormalizedSheetFields } from './projectPageModel'
 import type { ProjectListSortMode, ProjectTab } from './projectPageConstants'
@@ -183,7 +184,7 @@ function ProjectMobileLinks({ deployAdminLink, deployLink, onOpen }: { deployAdm
 
 function ProjectMobileLink({ value }: { value: string }) {
   return (
-    <a className="mobile-project-card__link" href={value} target="_blank" rel="noreferrer">
+    <a className="mobile-project-card__link" href={value} target="_blank" rel="noreferrer" onClick={(event) => handleExternalLinkClick(event, value)}>
       {value}
     </a>
   )

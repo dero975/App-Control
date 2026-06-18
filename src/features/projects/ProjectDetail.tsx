@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import { FieldGroup } from '../../components/FieldGroup'
+import { handleExternalLinkClick } from '../../lib/externalLink'
 import type { Project, ProjectVariable } from '../../types/app'
 import { buildProjectVariables, formatProjectUpdatedAt, getDeployAdminLink, getDeployLink, getFieldValue } from './projectShared'
 import { buildProjectImageSlots, getProjectImageSlotsSignature, type ProjectImageSlot } from './projectImageModel'
@@ -113,7 +114,7 @@ export function ProjectDetail({
           <h2>{projectTitle}</h2>
           {deployLink ? (
             <div className="project-deploy-link">
-              <a href={deployLink} target="_blank" rel="noreferrer">
+              <a href={deployLink} target="_blank" rel="noreferrer" onClick={(event) => handleExternalLinkClick(event, deployLink)}>
                 {deployLink}
               </a>
               <CopyButton value={deployLink} iconOnly />
@@ -121,7 +122,7 @@ export function ProjectDetail({
           ) : null}
           {deployAdminLink ? (
             <div className="project-deploy-link">
-              <a href={deployAdminLink} target="_blank" rel="noreferrer">
+              <a href={deployAdminLink} target="_blank" rel="noreferrer" onClick={(event) => handleExternalLinkClick(event, deployAdminLink)}>
                 {deployAdminLink}
               </a>
               <CopyButton value={deployAdminLink} iconOnly />
