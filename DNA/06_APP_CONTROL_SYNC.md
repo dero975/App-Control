@@ -49,12 +49,15 @@ I titoli archiviati sono i **nomi canonici di sorgente** e vanno tenuti cosi (no
 
 Il formato "giusto per il provider" lo produce l'export `.env`: per frontend Vite genera `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `SUPABASE_DB_URL` con lo stesso valore. Le variabili che l'agent crea devono seguire questa stessa regola: nome canonico in App Control, prefisso `VITE_` aggiunto solo nel `.env` quando il progetto e Vite.
 
-## Scrittura sicura (da attivare)
+## Scrittura sicura (ATTIVA)
 
-Oggi il canale agent e **solo lettura**. Per far scrivere l'agent senza usare la service_role ("tasto master"), c'e la migration additiva e reversibile:
-`supabase/migrations/20260618_01_agent_env_write_access.sql` (policy INSERT/UPDATE/DELETE su `project_env_variables` limitate al solo progetto della chiave agent).
+Il canale agent supporta ora **lettura e scrittura**, senza usare la service_role ("tasto master"). Migration additiva e reversibile:
+`supabase/migrations/20260618_01_agent_env_write_access.sql` — policy INSERT/UPDATE/DELETE su `project_env_variables` limitate al solo progetto della chiave agent (riusa `app_control_request_is_agent_authorized_for_project`).
 
-Stato: **scritta, NON ancora applicata** al DB di produzione. Fermarsi sempre prima di applicare migration/modifiche al DB di App Control: l'owner decide quando.
+Stato: **applicata al DB di produzione il 18 Giugno 2026** e verificata end-to-end sul canale agent (anon + header `x-app-control-project-id`/`x-app-control-agent-key`, niente service_role):
+READ 200, INSERT 201, UPDATE 204, DELETE 204; scrittura cross-progetto **bloccata 401** = isolamento per progetto confermato.
+
+Per qualsiasi futura modifica al DB di App Control: fermarsi sempre e farsi dare il "vai" dall'owner.
 
 ## Prove ed eccezioni
 
