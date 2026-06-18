@@ -1,55 +1,21 @@
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { getNavigationItems } from './navigation'
-import type { AppEnvironment, AppSection, Customer } from '../types/app'
-import { buildCustomerDisplayName } from '../features/customers/customerIdentity'
+import type { AppSection } from '../types/app'
 import { copyToClipboard } from '../lib/clipboard'
 
 const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/1bmNXfzFZpisko8M6MpN7gOnw8U3ibQGXXbEmXRBvOmA/edit?gid=832828269#gid=832828269'
 const githubCliAuthCommand = 'gh auth login -h github.com -p https -w'
 const githubTokenUrl = 'https://github.com/settings/tokens/new'
-const createCustomerEventName = 'app-control:create-customer'
 
 type SidebarProps = {
-  activeEnvironment: AppEnvironment
   activeSection: AppSection
-  customerDirectory: Customer[]
-  activeCustomerId: string
-  customerSearchQuery: string
-  onChangeEnvironment: (environment: AppEnvironment) => void
-  onChangeCustomer: (customerId: string) => void
-  onChangeCustomerSearchQuery: (query: string) => void
   onLock: () => void
   onNavigate: (section: AppSection) => void
 }
 
-const environmentOptions: Array<{ id: AppEnvironment; label: string }> = [
-  { id: 'admin', label: 'Admin' },
-  { id: 'customers', label: 'Clienti' },
-]
-
-export function Sidebar({
-  activeEnvironment,
-  activeSection,
-  customerDirectory,
-  activeCustomerId,
-  customerSearchQuery,
-  onChangeEnvironment,
-  onChangeCustomer,
-  onChangeCustomerSearchQuery,
-  onLock,
-  onNavigate,
-}: SidebarProps) {
-  const navigationItems = getNavigationItems(activeEnvironment)
+export function Sidebar({ activeSection, onLock, onNavigate }: SidebarProps) {
+  const navigationItems = getNavigationItems()
   const [showGitHubAuthToast, setShowGitHubAuthToast] = useState(false)
-  const filteredCustomers = activeEnvironment === 'customers'
-    ? customerDirectory.filter((customer) =>
-        [buildCustomerDisplayName(customer), customer.company, customer.email, customer.developmentEmail]
-          .join(' ')
-          .toLowerCase()
-          .includes(customerSearchQuery.trim().toLowerCase()),
-      )
-    : customerDirectory
 
   async function startGitHubCliAuth() {
     await copyToClipboard(githubCliAuthCommand)
@@ -68,115 +34,48 @@ export function Sidebar({
         />
       </div>
 
-      <div className="workspace-switch" aria-label="Ambiente applicativo">
-        {environmentOptions.map((option) => (
+      <nav className="sidebar__nav">
+        {navigationItems.map((item) => (
           <button
             type="button"
-            key={option.id}
-            className={option.id === activeEnvironment ? 'workspace-switch__button workspace-switch__button--active' : 'workspace-switch__button'}
-            onClick={() => onChangeEnvironment(option.id)}
+            key={item.id}
+            className={item.id === activeSection ? 'nav-item nav-item--active' : 'nav-item'}
+            onClick={() => onNavigate(item.id)}
           >
-            {option.label}
+            <span>
+              <strong>{item.label}</strong>
+            </span>
           </button>
         ))}
-      </div>
-
-      {activeEnvironment === 'customers' ? (
-        <nav className="sidebar__nav sidebar__nav--customers" aria-label="Clienti">
-          <div className="sidebar-customer-tools">
-            <input
-              type="search"
-              value={customerSearchQuery}
-              onChange={(event) => onChangeCustomerSearchQuery(event.target.value)}
-              placeholder="Cerca cliente"
-              aria-label="Cerca cliente"
-              className="sidebar-customer-search"
-            />
-            <button
-              type="button"
-              className="sidebar-customer-create"
-              onClick={() => window.dispatchEvent(new CustomEvent(createCustomerEventName))}
-            >
-              <Plus aria-hidden="true" className="button-icon" />
-              Nuovo cliente
-            </button>
-          </div>
-          <div className="sidebar__section-label">Clienti</div>
-          <div className="sidebar-customer-list">
-            {filteredCustomers.length ? (
-              filteredCustomers.map((customer) => {
-                const isActive = customer.id === resolveActiveCustomerId(filteredCustomers, activeCustomerId)
-
-                return (
-                  <button
-                    type="button"
-                    key={customer.id}
-                  className={isActive ? 'sidebar-customer-card sidebar-customer-card--active' : 'sidebar-customer-card'}
-                  onClick={() => onChangeCustomer(customer.id)}
-                >
-                    <strong>{buildCustomerDisplayName(customer)}</strong>
-                  </button>
-                )
-              })
-            ) : (
-              <div className="sidebar-customer-empty">
-                {customerDirectory.length ? 'Nessun cliente trovato con questo filtro' : 'Nessun cliente disponibile'}
-              </div>
-            )}
-          </div>
-        </nav>
-      ) : (
-        <nav className="sidebar__nav">
-          {navigationItems.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              className={item.id === activeSection ? 'nav-item nav-item--active' : 'nav-item'}
-              onClick={() => onNavigate(item.id)}
-            >
-              <span>
-                <strong>{item.label}</strong>
-              </span>
-            </button>
-          ))}
-        </nav>
-      )}
+      </nav>
 
       <div className="sidebar__footer-actions">
-        {activeEnvironment === 'admin' ? (
-          <>
-            <a
-              className="sidebar-token-link"
-              href={githubTokenUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <GitHubMarkIcon />
-              Token Github
-            </a>
-            <button
-              type="button"
-              className="sidebar-cli-auth-button"
-              onClick={() => void startGitHubCliAuth()}
-            >
-              Auth Github 8
-            </button>
-            {showGitHubAuthToast ? (
-              <div className="sidebar-auth-toast" role="status" aria-live="polite">
-                <strong>Comando copiato</strong>
-                <span>Apri Terminale e incolla.</span>
-              </div>
-            ) : null}
-            <a
-              className="sidebar-utility-button"
-              href={googleSheetUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Foglio Google
-            </a>
-          </>
+        <div className="sidebar-newproject-guide" aria-label="Promemoria nuovo progetto">
+          <span className="sidebar-newproject-guide__title">Nuovo progetto — i tuoi step</span>
+          <ol className="sidebar-newproject-guide__list">
+            <li>Crea account: GitHub, Supabase, Render</li>
+            <li>Crea progetto in App Control + 5 variabili</li>
+            <li>Copia il testo del tab Sync</li>
+            <li>In Devin incolla: prompt bootstrap + testo Sync</li>
+          </ol>
+        </div>
+
+        <a className="sidebar-token-link" href={githubTokenUrl} target="_blank" rel="noreferrer">
+          <GitHubMarkIcon />
+          Token Github
+        </a>
+        <button type="button" className="sidebar-cli-auth-button" onClick={() => void startGitHubCliAuth()}>
+          Auth Github 8
+        </button>
+        {showGitHubAuthToast ? (
+          <div className="sidebar-auth-toast" role="status" aria-live="polite">
+            <strong>Comando copiato</strong>
+            <span>Apri Terminale e incolla.</span>
+          </div>
         ) : null}
+        <a className="sidebar-utility-button" href={googleSheetUrl} target="_blank" rel="noreferrer">
+          Foglio Google
+        </a>
 
         <button type="button" className="sidebar-lock-button" onClick={onLock}>
           Esci
@@ -195,12 +94,4 @@ function GitHubMarkIcon() {
       />
     </svg>
   )
-}
-
-function resolveActiveCustomerId(customers: Customer[], activeCustomerId: string) {
-  if (activeCustomerId && customers.some((customer) => customer.id === activeCustomerId)) {
-    return activeCustomerId
-  }
-
-  return customers[0]?.id ?? ''
 }

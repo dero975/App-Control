@@ -37,28 +37,27 @@
   animation: app-entry-fade 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.app-shell[data-environment='customers'] {
-  --bg: #fcf8ea;
-  --surface: #fffdf8;
-  --surface-soft: #fff8e4;
-  --surface-muted: #fdf3d8;
-  --text: #33281a;
-  --text-muted: #766650;
-  --text-soft: #95866f;
-  --border: #eadcbc;
-  --border-strong: #ddcda7;
-  --green: #d6a339;
-  --green-strong: #9b6a14;
-  --green-soft: #fdeec7;
-  --green-pale: #fff4d6;
-  --gray-soft: #fffaf0;
-  --nav-bg: #2b2115;
-  --nav-bg-soft: #392c1d;
-  --nav-border: #5a4630;
-  --nav-text: #fff7e6;
-  --nav-muted: #dec9a8;
-  --nav-active: #f7e5b9;
-  --shadow: 0 18px 50px rgba(74, 54, 21, 0.08);
+.main-content {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
+  height: 100svh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 30px 24px;
+}
+
+.page-stack {
+  max-width: 1480px;
+  margin: 0;
+  display: grid;
+  gap: 22px;
+}
+
+.projects-page {
+  height: calc(100svh - 60px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .intro-splash {

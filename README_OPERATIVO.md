@@ -14,14 +14,9 @@ Punto di ingresso obbligatorio per ogni agent che lavora su questo progetto.
 
 App Control e una web app privata locale in React, TypeScript e Vite. L'accesso app usa PIN a 6 cifre sincronizzato su Supabase; dopo sblocco resta attivo in `sessionStorage` fino a chiusura/esci. Il primo accesso propone `Ricorda questo dispositivo` gia attivo: il browser salva solo un token casuale locale e Supabase conserva solo l'hash, cosi alle aperture successive l'app verifica il dispositivo attendibile prima di mostrare il PIN. Il client invia header tecnici autorizzativi usati dalle policy Supabase hardenizzate. Le sezioni Progetti, Prompt e Dashboard usano dati reali coerenti con il database Supabase senza login email/password. Non esistono storage immagini o backend custom. E presente una GitHub Action separata per keepalive Supabase. E attivo anche un backup Google Sheets esterno letto da Supabase tramite Apps Script.
 
-L'app ora e divisa in due ambienti:
+L'app ha un unico ambiente `Admin`, senza selettore ambiente: la sezione principale resta `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni attive in navigazione sono `Prompt`, `Dashboard` e `Impostazioni`.
 
-- `Admin`: mantiene la logica storica con `Progetti`, `Prompt`, `Impostazioni` e `Dashboard`.
-- `Clienti`: archivio clienti separato con scheda cliente, progetti cliente e dati progetto cliente.
-
-Anche il workspace `Clienti` usa ora Supabase come fonte canonica. Non mantenere o reintrodurre persistenza locale browser come fallback dati.
-
-Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti` sono consolidati anche dati foglio, variabili, immagini e note. Le altre sezioni attive in navigazione sono `Prompt`, `Dashboard` e `Impostazioni`.
+Il tab `Dati progetto` di ogni progetto include ora il campo `CLIENTE`, salvato come campo dati del progetto: sostituisce il vecchio workspace Clienti separato, che e stato completamente rimosso dal codice e dal database.
 
 ## DNA canonico
 
@@ -53,16 +48,15 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - Su mobile la shell mostra il logo centrato nella top bar superiore.
 - La schermata PIN deve restare entro il viewport mobile anche su iPhone stretti: il pannello usa dimensioni responsive e non deve generare scroll orizzontale.
 - La pagina PIN e percorso critico e non va resa lazy: il passaggio dallo splash al PIN deve avvenire senza secondo flash dello splash.
-- Su mobile le liste progetto di `Admin` e `Clienti` restano compatte, ma ogni card espansa puo aprire una scheda progetto fullscreen dedicata. La scheda mobile riusa i tab reali del dettaglio (`Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`) con UX app-friendly; il pannello laterale dettaglio resta una logica desktop.
-- Le liste progetto di `Admin` e `Clienti` mostrano card separate direttamente sul fondo pagina, senza container/pannello esterno dell'elenco. Ogni card mostra nome progetto sempre in maiuscolo e `Ultima modifica`; la preview `sviluppo in / deploy con` non e piu mostrata nella card lista. La selezione usa sfondo bianco e accento verde scuro.
+- Su mobile la lista progetto resta compatta, ma ogni card espansa puo aprire una scheda progetto fullscreen dedicata. La scheda mobile riusa i tab reali del dettaglio (`Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`) con UX app-friendly; il pannello laterale dettaglio resta una logica desktop.
+- La lista progetto mostra card separate direttamente sul fondo pagina, senza container/pannello esterno dell'elenco. Ogni card mostra nome progetto sempre in maiuscolo e `Ultima modifica`; la preview `sviluppo in / deploy con` non e piu mostrata nella card lista. La selezione usa sfondo bianco e accento verde scuro.
 - La puntina sulle card progetto fissa il progetto in alto come preferenza locale browser tramite `localStorage`; non scrive su Supabase e non cambia il dato operativo del progetto.
 - Nei tab `Dati progetto` e `Variabili`, i box consolidati si modificano solo dopo click sulla matita; i nuovi campi appena aggiunti restano liberi per il primo inserimento di titolo e valore, poi si consolidano quando si esce dal box compilato.
-- Il cambio ambiente `Admin` / `Clienti` avviene dal selettore persistente nella shell e deve mantenere separato il contesto visivo e operativo.
 - La lista `Progetti` mantiene l'ordine corrente finche Admin non cambia ricerca o ordinamento: selezione/apertura card, cambio tab e pin locale non devono aggiornare `Ultima modifica`; solo modifiche reali ai contenuti del progetto attivano autosave e `updated_at`.
 - L'autosave del dettaglio progetto non deve ricalcolare payload pesanti non collegati alla modifica corrente: le immagini sono tracciate con firma dedicata per evitare rallentamenti durante typing e navigazione.
 - All'apertura della sezione `Progetti`, l'ordinamento predefinito e alfabetico A-Z; solo un'azione esplicita di Admin puo portarlo su altri ordinamenti.
 - Nella libreria `Prompt`, aprire una card e sola lettura: per modificare titolo, sezione o testo bisogna cliccare la matita accanto al cestino.
 - Non usare comandi distruttivi o Git push/commit senza richiesta esplicita.
-- Agent esterni accedono ai dati progetto tramite Supabase REST con header `x-app-control-project-id` e `x-app-control-agent-key`. Accesso in sola lettura, scoped al singolo progetto. Il file `.agent/app-control.json` contiene le credenziali di connessione e non va mai committato.
+- Agent esterni accedono ai dati progetto tramite Supabase REST con header `x-app-control-project-id` e `x-app-control-agent-key`. Accesso scoped al singolo progetto: lettura dei dati e scrittura su `project_env_variables`. Il file `.agent/app-control.json` contiene le credenziali di connessione e non va mai committato.
 - Il file `.mcp.json` generato dal sync contiene token di progetto e non va mai committato.
 - Dopo modifiche codice, verificare con gli script esistenti in `package.json`.

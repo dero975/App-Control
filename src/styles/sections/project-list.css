@@ -10,8 +10,7 @@
   height: 100%;
 }
 
-.projects-page .index-panel,
-.customer-projects-workspace > .index-panel {
+.projects-page .index-panel {
   border: 0;
   border-radius: 0;
   background: transparent;

@@ -1,7 +1,7 @@
-import type { AdminSection, AppEnvironment, CustomerSection } from '../types/app'
+import type { AdminSection } from '../types/app'
 
 export type NavigationItem = {
-  id: AdminSection | CustomerSection
+  id: AdminSection
   label: string
   description: string
 }
@@ -13,10 +13,6 @@ export const adminNavigationItems: NavigationItem[] = [
   { id: 'settings', label: 'Impostazioni', description: 'Preferenze e sicurezza futura' },
 ]
 
-export const customerNavigationItems: NavigationItem[] = [
-  { id: 'customers', label: 'Archivio clienti', description: 'Clienti, progetti e dati consegnati' },
-]
-
-export function getNavigationItems(environment: AppEnvironment) {
-  return environment === 'customers' ? customerNavigationItems : adminNavigationItems
+export function getNavigationItems() {
+  return adminNavigationItems
 }

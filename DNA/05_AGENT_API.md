@@ -4,7 +4,7 @@ Documentazione dell'accesso diretto da agent esterni (Claude Code, automazioni).
 
 ## Come funziona
 
-Ogni progetto in App Control ha un `projectId` e un `agentKey` univoci. Un agent esterno li usa come credenziali per leggere in sola lettura i dati del progetto direttamente da Supabase, senza passare per il PIN.
+Ogni progetto in App Control ha un `projectId` e un `agentKey` univoci. Un agent esterno li usa come credenziali per leggere i dati del progetto e aggiornarne le variabili direttamente da Supabase, senza passare per il PIN.
 
 ## Credenziali necessarie
 
@@ -54,9 +54,9 @@ curl "https://xxx.supabase.co/rest/v1/project_env_variables?project_id=eq.<proje
 
 ## Sicurezza
 
-- L'agent key dà accesso in **sola lettura** al proprio progetto soltanto.
+- L'agent key dà accesso al **proprio progetto soltanto** (lettura dati + scrittura su `project_env_variables`).
 - Nessun altro progetto è accessibile con quella chiave.
-- Nessuna scrittura possibile tramite agent key.
+- Scrittura consentita solo su `project_env_variables` del proprio progetto (vedi `DNA/06_APP_CONTROL_SYNC.md`); nessuna scrittura su altre tabelle.
 - Il file `.agent/app-control.json` non va mai committato su GitHub.
 
 ## Attivazione

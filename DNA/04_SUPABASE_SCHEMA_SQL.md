@@ -2,18 +2,17 @@
 
 Documento canonico per lo schema Supabase target. Deve restare coerente con il codice reale prima di eseguire script in SQL Editor.
 
-Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt/Clienti tramite client frontend anon. Dopo verifica PIN il client invia anche l'header tecnico `x-app-control-pin-hash`, usato dal target RLS hardenizzato. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
+Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Prompt tramite client frontend anon. Dopo verifica PIN il client invia anche l'header tecnico `x-app-control-pin-hash`, usato dal target RLS hardenizzato. Gli script qui sotto descrivono lo schema attivo/target e gli aggiornamenti incrementali.
 
 Stato setup Supabase eseguito nella fase corrente:
 
 - create le tabelle `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`;
-- create anche le tabelle `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`;
+- le tabelle del dominio Clienti (`customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`) e le relative viste/funzioni sono state eliminate con la migration `supabase/migrations/20260618_02_drop_customers.sql`; il vecchio workspace Clienti e sostituito dal campo `CLIENTE` del tab `Dati progetto`, salvato in `project_data_fields`;
 - attivati trigger `set_updated_at`;
 - RLS attiva; le policy owner iniziali sono state sostituite dalla fase PIN con policy permissive anon/auth per le tabelle operative;
 - creata tabella `app_control_settings` per PIN sincronizzato;
 - create le funzioni `app_control_verify_pin`, `app_control_request_pin_hash`, `app_control_request_is_authorized` come prerequisito per chiudere le policy anon permissive senza toccare record;
 - la sezione `Prompt` usa ora la tabella reale `prompts` con persistenza completa create/read/update/delete;
-- il dominio `Clienti` ha anche viste/funzioni operative: `customer_projects_overview`, `customer_projects_diagnostics`, `customer_projects_export_flat`, `customer_project_details_export`, `customer_domain_healthcheck`, `customer_domain_counts()`, `customer_domain_snapshot()`;
 - non creare `project_prompts` o `app_settings`: non esistono piu esigenze runtime coerenti con quelle tabelle nel codice attuale.
 
 ## Regole prima di eseguire SQL
@@ -34,7 +33,6 @@ Fonte codice primaria:
 - Editor `Dati progetto` / `Variabili` ed export `.env render`: `src/features/projects/VariablesPanel.tsx`
 - Immagini progetto: `src/features/projects/ProjectImagesPanel.tsx`
 - Prompt: `src/features/prompts`
-- Clienti: `src/features/customers`
 
 Mappatura:
 
@@ -49,7 +47,7 @@ Mappatura:
   - `sviluppo in`: `projects.development_environment`
   - accessi piattaforme dentro `sviluppo in`: `project_platform_accesses`
   - `deploy con`: `projects.deploy_provider`
-  - campi aggiunti manualmente: `project_data_fields`
+  - `CLIENTE` e gli altri campi aggiunti manualmente: `project_data_fields`
 - Tab `Variabili`: `project_env_variables`.
 - Set canonico variabili progetto atteso in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
 - `LINK_DEPLOY ADMIN` e `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_DB_URL` non sono piu input canonici da compilare in App Control: vanno derivate quando richieste dal codice reale o dal provider target.
@@ -58,8 +56,6 @@ Mappatura:
 - Tab `Note`: target dati `projects.operational_notes`; il repository corrente persiste gli update tramite il normale autosave del dettaglio progetto.
 - Tab `Sync`: `project_agent_keys`; la UI mostra prompt generico stabile e JSON `.agent/app-control.json` specifico del progetto.
 - Prompt library: `prompts`; non esiste relazione corrente `project_prompts`.
-- Workspace `Clienti`: `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`.
-- In `customers`, il nome visualizzato UI e derivato da `first_name + last_name`, con fallback su `company`, mentre `name` resta il campo canonico salvato e ricostruito dal frontend per compatibilita operativa e ricerca.
 - Impostazioni placeholder: `app_settings`, esclusa dalla fase corrente.
 - PIN app: `app_control_settings`.
 - Dispositivi attendibili: `app_control_trusted_devices`.
@@ -100,12 +96,6 @@ Mappatura:
 - `project_env_variables`
 - `project_images`
 - `project_agent_keys`
-- `customers`
-- colonne operative attese: `name`, `first_name`, `last_name`, `company`, `email`, `development_email`, `password_ciphertext`, `notes`
-- `customer_projects`
-- `customer_project_platform_accesses`
-- `customer_project_env_variables`
-- `customer_project_data_fields`
 - `app_control_settings`
 - `app_control_trusted_devices`
 - `prompts`
@@ -114,6 +104,8 @@ Tabelle future non attive nella fase corrente:
 
 - `project_prompts`
 - `app_settings`
+
+Tabelle rimosse: il dominio Clienti (`customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`) e le relative viste/funzioni sono state eliminate con la migration `supabase/migrations/20260618_02_drop_customers.sql`. Non ricrearle: il dato cliente vive ora nel campo `CLIENTE` del tab `Dati progetto`, salvato in `project_data_fields`.
 
 ## Script 0B - PIN app e policy senza Supabase Auth
 

@@ -7,8 +7,7 @@
   overflow: hidden;
 }
 
-.detail-stack--mobile-modal,
-.customer-project-detail--mobile {
+.detail-stack--mobile-modal {
   height: 100%;
 }
 

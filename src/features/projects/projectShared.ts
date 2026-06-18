@@ -18,6 +18,7 @@ export const orderedProjectKeys = [
 export const deployPasswordFieldKey = 'Password deploy'
 export const deployAdminLinkKey = 'LINK_DEPLOY ADMIN'
 export const projectNameFieldKey = 'nome progetto'
+export const clientFieldKey = 'CLIENTE'
 
 export function normalizeProjectName(value: string) {
   return value.toLocaleUpperCase('it-IT')
@@ -39,7 +40,16 @@ export function buildSheetFields(
       value: '',
       sensitive: true,
     }
-  const customDataFields = (project.dataFields ?? []).filter((field) => !isDeployPasswordField(field.key))
+  const clientField =
+    project.dataFields?.find((field) => isClientField(field.key)) ?? {
+      id: 'sheet-cliente',
+      key: clientFieldKey,
+      value: '',
+      sensitive: false,
+    }
+  const customDataFields = (project.dataFields ?? []).filter(
+    (field) => !isDeployPasswordField(field.key) && !isClientField(field.key),
+  )
 
   return [
     {
@@ -48,6 +58,7 @@ export function buildSheetFields(
       value: normalizeProjectName(project.name),
       sensitive: false,
     },
+    clientField,
     {
       id: 'sheet-mail-github',
       key: 'mail github',
@@ -196,6 +207,10 @@ export function buildDefaultDeployAdminLink(value: string) {
 
 export function isDeployPasswordField(key: string) {
   return key.trim().toLowerCase() === deployPasswordFieldKey.toLowerCase()
+}
+
+export function isClientField(key: string) {
+  return key.trim().toLowerCase() === clientFieldKey.toLowerCase()
 }
 
 export function inferScopeFromEnvKey(key: string) {

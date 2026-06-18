@@ -4,10 +4,9 @@
 
 - Le sezioni Progetti e Prompt usano Supabase dopo sblocco PIN app.
 - Persistenza reale attiva per Progetti: `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`.
-- Persistenza reale attiva per Clienti: `customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`.
+- Il tab `Dati progetto` include il campo `CLIENTE`, salvato come campo dati del progetto in `project_data_fields`: sostituisce il vecchio workspace Clienti separato, rimosso da codice e database.
 - I tipi condivisi sono in `src/types/app.ts`.
 - Client Supabase frontend in `src/lib/supabase.ts`; PIN in `src/lib/pinAccess.ts`; repository dati in `src/features/projects/projectRepository.ts`.
-- Repository clienti Supabase in `src/features/customers/customerRepository.ts`.
 - Utility repository condivise in `src/lib/repositoryUtils.ts`; non duplicare normalizzazione chiavi campo o controlli duplicati nei singoli repository.
 - Non esistono Supabase Storage o backend custom. E presente solo un workflow GitHub Actions separato per keepalive Supabase.
 
@@ -18,8 +17,6 @@
 - `EnvVariable`: variabili Supabase/GitHub/deploy/custom con flag `sensitive`.
 - `Prompt`: libreria prompt minima con `id`, `title`, `category` e `fullText`.
 - `VisualAsset`: asset collegato a progetto con path e note.
-- `Customer`: cliente con nome canonico derivato, `firstName`, `lastName`, `company`, `email`, `developmentEmail`, `password`, note e lista di `CustomerProject`.
-- `CustomerProject`: progetto cliente persistito con anagrafica, accessi piattaforme, variabili e note.
 - La `Dashboard` non introduce un nuovo tipo dominio persistito: deriva aggregazioni e filtri direttamente dai `Project` gia caricati.
 
 ## Vincoli dati attuali
@@ -32,7 +29,7 @@
 - `LINK_DEPLOY ADMIN` non e input canonico obbligatorio: la UI lo deriva automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma puo essere salvato come override manuale dentro `project_env_variables`.
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non vengono piu salvate come input canonici: vanno derivate quando il codice reale del progetto sincronizzato usa env client-side Vite.
 - `SUPABASE_DB_URL` non e piu una variabile canonica da compilare: resta solo alias derivabile di `DATABASE_URL` per script o provider che la richiedono.
-- `RENDER_API_KEY` resta variabile canonica server-only e viene classificata con scope `Deploy`, non `Custom`, anche nei progetti cliente.
+- `RENDER_API_KEY` resta variabile canonica server-only e viene classificata con scope `Deploy`, non `Custom`.
 - Il dettaglio progetto mostra `createdAt`; la lista progetti mostra `updatedAt` come `Ultima modifica`.
 - Gli accessi piattaforma del box `sviluppo in` vengono salvati in `project_platform_accesses` solo quando creati dall'utente e salvati.
 - I nuovi progetti partono senza righe `Accessi piattaforme`; ogni accesso viene creato esplicitamente dall'utente.
@@ -42,8 +39,8 @@
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
 - `operationalNotes` viene letto e scritto nella colonna `projects.operational_notes` tramite il normale autosave del dettaglio progetto.
 - Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI: i record rimossi dall'admin vengono eliminati anche da Supabase.
-- Per ridurre il rischio operativo in caso di errore intermedio, il riallineamento delle relazioni progetto e progetto cliente aggiorna o inserisce prima le righe correnti e rimuove solo alla fine le righe obsolete; non usare pattern delete-first per questi set relazionali.
-- Le liste `Progetti` e `Clienti > progetti cliente` non devono idratare tutte le relazioni al primo caricamento. `fetchProjects()` e `fetchCustomers()` leggono solo metadati da lista; `fetchProjectById()` e `fetchCustomerProjectById()` caricano campi completi, variabili, accessi, campi extra e immagini solo per il dettaglio selezionato.
+- Per ridurre il rischio operativo in caso di errore intermedio, il riallineamento delle relazioni progetto aggiorna o inserisce prima le righe correnti e rimuove solo alla fine le righe obsolete; non usare pattern delete-first per questi set relazionali.
+- La lista `Progetti` non deve idratare tutte le relazioni al primo caricamento. `fetchProjects()` legge solo metadati da lista; `fetchProjectById()` carica campi completi, variabili, accessi, campi extra e immagini solo per il dettaglio selezionato.
 - La Dashboard usa una query dedicata e non deve riusare il caricamento completo progetto: legge solo metadati, email GitHub e accessi piattaforma necessari ai riepiloghi, senza immagini, ENV o campi segreti.
 
 ## Google Sheets Backup

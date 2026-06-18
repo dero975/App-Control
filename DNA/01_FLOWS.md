@@ -4,7 +4,7 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 
 ## Navigazione
 
-- `App` tiene in stato ambiente attivo e sezione attiva per ciascun ambiente.
+- `App` tiene in stato la sezione attiva dell'unico ambiente `Admin`.
 - Alla prima apertura della sessione browser, `App` mostra `IntroSplash` per 4.5 secondi prima della shell o del PIN. Nella stessa sessione non viene ripetuta a ogni remount, perche il flag resta in `sessionStorage`. Sfondo intro stabile; logo e testo `by Dero` fanno fade in/out sullo stesso tempo del passaggio, evitando una fase finale vuota.
 - `PinLockPage` non deve essere caricata lazy: e parte del percorso critico di avvio, cosi il passaggio intro -> PIN non riusa lo splash come fallback e non crea un secondo flash.
 - Prima della shell, `App` mostra `PinLockPage` se `sessionStorage` non contiene lo sblocco app e non esiste un token dispositivo attendibile valido.
@@ -14,35 +14,12 @@ Documenta solo i flussi che riducono rischio operativo. Per dettagli di renderin
 - `Ricorda questo dispositivo` e attivo di default nella schermata PIN. Se resta selezionato, il browser salva un token casuale locale ad alta entropia; Supabase conserva solo l'hash del token e autorizza le richieste tramite `x-app-control-device-token`.
 - A ogni nuova sessione, se esiste un token locale e il comando `Esci` non ha sospeso lo sblocco nella sessione corrente, `App` verifica il token prima di mostrare la schermata PIN. Durante questa verifica resta visibile lo splash, cosi un dispositivo valido non vede il PIN lampeggiare.
 - Il comando `Esci` blocca la sessione corrente e sospende lo sblocco automatico finche non viene reinserito il PIN nella stessa sessione browser.
-- `AppLayout` rende sidebar desktop, switch ambiente `Admin` / `Clienti`, nav mobile e contenuto principale.
+- `AppLayout` rende sidebar desktop, nav mobile e contenuto principale; non esiste piu selettore ambiente.
 - `main.tsx` forza identita browser `App Control` e asset favicon/manifest versionati. In locale pulisce solo vecchi service worker/cache dell'origine `localhost` o `127.0.0.1`, per evitare che progetti precedenti riusino titolo, icona o PWA sullo stesso numero di porta.
 - La sidebar desktop `Admin` espone in basso i link esterni operativi: `Token Github` apre la creazione token GitHub in nuova finestra; `Auth Github 8` copia negli appunti il comando `gh auth login -h github.com -p https -w` e mostra un popup temporaneo chiaro per aprire Terminale e incollare; `Foglio Google` apre il backup Google Sheets.
-- Nella nav mobile il logo `App Control` resta centrato nella fascia superiore; sotto al logo la barra mantiene switch ambiente e select del contesto attivo.
+- Nella nav mobile il logo `App Control` resta centrato nella fascia superiore.
 - Su desktop la sidebar e la pagina `Progetti` restano bloccate nel viewport; scorrono solo lista progetti e liste card interne dei tab quando necessario.
-- `navigation.ts` definisce una nav distinta per i due ambienti:
-  - `Admin`: `projects`, `prompts`, `dashboard`, `settings`
-  - `Clienti`: `customers`, con lista clienti reale resa direttamente nella sidebar
-
-## Clienti
-
-Fonte principale: `src/features/customers/CustomersPage.tsx`.
-
-- L'ambiente `Clienti` e separato dal dominio admin e usa una palette chiara bianco/ambra tramite override dei token CSS nella shell.
-- La sidebar dell'ambiente `Clienti` mostra direttamente l'elenco clienti come card selezionabili, piu i controlli `Cerca cliente` e `Nuovo cliente`; il contenuto principale mostra il dettaglio del cliente attivo.
-- Nel dettaglio cliente, il blocco anagrafica resta sempre in alto sotto il nome visualizzato cliente; sotto a quel blocco parte la gestione dei progetti cliente, mantenendo un'impostazione il piu possibile coerente con l'area `Admin`.
-- `Nuovo cliente` crea un record Supabase con nome placeholder, contatti vuoti, note e lista progetti vuota.
-- Il blocco dati cliente parte chiuso di default e, quando aperto, espone `Nome`, `Cognome`, `Azienda`, `Email`, `Email sviluppo`, `Password` e `Note cliente`.
-- Sotto il blocco dati cliente, la sezione progetti mostra solo i progetti del cliente selezionato.
-- `Nuovo progetto cliente` crea un record Supabase collegato al cliente corrente con set ENV canonico iniziale e campo extra `Password deploy`.
-- Il caricamento iniziale dei progetti cliente deve restare leggero: la lista legge solo metadati essenziali e il dettaglio completo del progetto selezionato viene idratato da Supabase su richiesta.
-- La colonna progetti cliente usa la stessa toolbar dell'area `Admin`: `Cerca..`, toggle ordinamento alfabetico, pulsante nuovo progetto e pulsante ordinamento per ultima modifica.
-- Le card progetti cliente mostrano solo nome progetto in maiuscolo e `Ultima modifica`; la preview ambiente/deploy resta fuori dalla card lista. L'elenco non deve avere un container/pannello esterno separato dalla pagina.
-- Ogni card progetto cliente puo essere fissata in alto con puntina ambra piena e inclinata quando attiva, senza contorno. La preferenza resta locale al browser e al cliente corrente tramite `localStorage`, senza scrivere su Supabase.
-- Il dettaglio progetto cliente usa gli stessi cinque tab di `Admin`: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
-- `Dati progetto` e `Variabili` riusano la stessa struttura editor dell'area `Admin`; in `Clienti` cambia solo la palette visiva del workspace.
-- `Immagini` e `Sync` esistono anche nel dettaglio cliente per allineamento di layout e navigazione; oggi non hanno ancora persistenza/integrazione cliente dedicata.
-- Il workspace `Clienti` salva su Supabase con debounce breve per update e mostra stato esplicito di salvataggio.
-- Su mobile la lista progetti cliente non mostra piu il dettaglio completo inline sotto la card. Toccando una card si espandono i link deploy disponibili e il pulsante `Apri scheda progetto`, che apre una scheda fullscreen dedicata al progetto cliente con gli stessi tab reali del dettaglio desktop.
+- `navigation.ts` definisce la nav dell'unico ambiente `Admin`: `projects`, `prompts`, `dashboard`, `settings`.
 
 ## Progetti
 
@@ -53,13 +30,13 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Il caricamento iniziale della sezione Progetti deve restare leggero: la lista legge solo metadati essenziali e il dettaglio completo, incluse relazioni e immagini, viene caricato da Supabase solo per il progetto selezionato.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento per ultima modifica dal piu recente al piu vecchio; di default all'apertura parte in ordine alfabetico A-Z.
 - Le card lista progetti mostrano solo nome progetto in maiuscolo e `Ultima modifica`, con separazione visiva minima fra card, sfondo bianco sulla selezione, contorno verde scuro evidente e senza container/pannello esterno dell'elenco.
-- Il nome progetto viene normalizzato in maiuscolo in creazione, visualizzazione e modifica del campo `nome progetto`, sia in `Admin` sia in `Clienti`.
+- Il nome progetto viene normalizzato in maiuscolo in creazione, visualizzazione e modifica del campo `nome progetto`.
 - Ogni card progetto puo essere fissata in alto con puntina ambra piena e inclinata quando attiva, senza contorno. La preferenza resta locale al browser tramite `localStorage`, senza scrivere su Supabase e senza modificare la logica del pulsante `ultima modifica`.
 - `Ultima modifica` cambia solo quando vengono salvate modifiche reali ai contenuti del progetto. Selezione card, apertura dettaglio, cambio tab, pin locale e riordinamento lista non devono aggiornare `projects.updated_at`.
 - Una volta applicati ricerca e ordinamento, la lista mantiene quell'ordine finche Admin non cambia davvero i filtri: selezionare un progetto o aggiornarne i dati non deve rimescolare le card.
 - Su mobile la home `Progetti` mostra card compatte. Toccando una card si espandono `LINK_DEPLOY`, `LINK_DEPLOY ADMIN` e il pulsante `Apri scheda progetto`.
 - `Apri scheda progetto` apre una scheda fullscreen mobile dedicata, che riusa lo stesso dettaglio reale del desktop con i tab `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
-- La scheda fullscreen mobile e usata sia in `Admin` sia in `Clienti`, con header dedicato e chiusura esplicita; il dettaglio laterale resta limitato al desktop.
+- La scheda fullscreen mobile usa header dedicato e chiusura esplicita; il dettaglio laterale resta limitato al desktop.
 - `Nuovo progetto` crea un progetto in Supabase con campi vuoti, `agent_project_id`, Agent Key nel formato `XXXXX-XXXXX-XXXXX-XXXXX`, hash chiave e prompt sync generico.
 - `Elimina progetto` apre una modale di conferma e rimuove il progetto da Supabase; le tabelle figlie vengono rimosse via cascade.
 - Le modifiche al dettaglio progetto vengono salvate automaticamente su Supabase con debounce breve; non esiste pulsante manuale `Salva modifiche`.
@@ -95,6 +72,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 
 ## Campi speciali in Dati progetto
 
+- `CLIENTE`: campo del tab `Dati progetto` salvato come campo dati del progetto; sostituisce il vecchio workspace Clienti separato, rimosso da codice e database.
 - `Password`: label canonica; non e trattata come campo sensibile nel tab `Dati progetto`, quindi resta visibile.
 - `sviluppo in`: select con opzioni `Claude Code`, `Windsurf`, `Replit`, piu voce `+ Aggiungi` dentro al menu. `Claude Code` e il default per i nuovi progetti.
 - Dentro `sviluppo in`, `Accessi piattaforme` mostra il pulsante `Aggiungi accesso`; le righe piattaforma/mail/password sono visibili solo dopo creazione esplicita. Possono coesistere accessi separati per Windsurf, Replit o piattaforme custom.

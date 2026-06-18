@@ -1,10 +1,6 @@
-export type AppEnvironment = 'admin' | 'customers'
-
 export type AdminSection = 'projects' | 'prompts' | 'settings' | 'dashboard'
 
-export type CustomerSection = 'customers'
-
-export type AppSection = AdminSection | CustomerSection
+export type AppSection = AdminSection
 
 export type DevelopmentEnvironment = string
 
@@ -111,38 +107,3 @@ export type VisualAsset = {
   notes: string
 }
 
-export type CustomerProject = {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  status: ProjectStatus
-  developmentEnvironment: DevelopmentEnvironment
-  githubRepoUrl: string
-  githubAccountEmail: string
-  linkedSecretLabel: string
-  deploy: {
-    provider: string
-    url: string
-    accountEmail: string
-  }
-  operationalNotes: string
-  env: EnvVariable[]
-  dataFields: ProjectVariable[]
-  platformAccesses: PlatformAccess[]
-}
-
-export type Customer = {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string
-  firstName: string
-  lastName: string
-  company: string
-  email: string
-  developmentEmail: string
-  password: string
-  notes: string
-  projects: CustomerProject[]
-}

@@ -74,10 +74,6 @@
     padding-right: 0;
   }
 
-  .customers-page .detail-panel--customer-project {
-    display: none;
-  }
-
   .mobile-workspace-modal {
     width: 100%;
     height: 100svh;
@@ -128,13 +124,8 @@
   .metadata-grid,
   .settings-grid,
   .dashboard-summary-grid,
-  .customer-summary-grid,
   .settings-layout,
-  .settings-pin-grid,
-  .customer-form-grid,
-  .customer-form-grid--project,
-  .customer-inline-card--double,
-  .customer-inline-card--triple {
+  .settings-pin-grid {
     grid-template-columns: 1fr;
   }
 
@@ -163,10 +154,6 @@
 
   .mobile-nav__controls {
     min-width: 0;
-  }
-
-  .customer-inline-card .trash-button {
-    justify-self: start;
   }
 
   .detail-heading {
