@@ -44,8 +44,8 @@ export function ProjectDetail({
   const saveContextRef = useRef({ onSave, project })
   const saveVersionRef = useRef(0)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
-  const deployLink = getDeployLink(sheetFields, project)
-  const deployAdminLink = getDeployAdminLink(variables, deployLink)
+  const deployLink = getFieldValue(variables, 'LINK_DEPLOY') || getDeployLink(sheetFields, project)
+  const deployAdminLink = getDeployAdminLink(variables)
   const createdAtLabel = formatProjectUpdatedAt(project.createdAt)
 
   useEffect(() => {

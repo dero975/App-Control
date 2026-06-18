@@ -61,3 +61,4 @@ Contesto canonico per agent. Il codice reale resta la fonte primaria: leggere qu
 - `DNA/03_OPERATIONS.md`: script, validazione e workflow operativo.
 - `DNA/04_SUPABASE_SCHEMA_SQL.md`: schema Supabase target e script SQL ordinati.
 - `DNA/05_AGENT_API.md`: API per agent esterni con autenticazione agent key.
+- `DNA/06_APP_CONTROL_SYNC.md`: sincronizzazione agent <-> App Control, layout variabili e scrittura sicura.

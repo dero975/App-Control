@@ -31,7 +31,7 @@ export function CustomerProjectDetail({
 }) {
   const { adminLikeProject, sheetFields, variables } = useMemo(() => getCustomerProjectComputedData(project), [project])
   const deployLink = getDeployLink(sheetFields, adminLikeProject)
-  const deployAdminLink = getDeployAdminLink(variables, deployLink)
+  const deployAdminLink = getDeployAdminLink(variables)
   const createdAtLabel = formatProjectUpdatedAt(project.createdAt)
   const hasOperationalNotes = project.operationalNotes.trim().length > 0
 

@@ -71,6 +71,12 @@
   line-height: 1.55;
 }
 
+.variable-import-summary {
+  margin: 10px 2px 0;
+  font-size: 0.85rem;
+  color: var(--text-soft, #5a6b60);
+}
+
 .prompt-modal__footer {
   display: flex;
   justify-content: flex-end;

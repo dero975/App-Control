@@ -81,10 +81,10 @@ export function buildSheetFields(
 export function buildProjectVariables(project: Project): ProjectVariable[] {
   const variableMap = new Map(project.env.map((variable) => [variable.key, variable]))
   const deployLink = project.deploy.url
-  const deployAdminLink = variableMap.get(deployAdminLinkKey)?.value ?? buildDefaultDeployAdminLink(deployLink)
+  const deployAdminLink = variableMap.get(deployAdminLinkKey)?.value ?? ''
   const serviceKeyVariable = supabaseServiceKeyAliases.map((key) => variableMap.get(key)).find(Boolean)
 
-  return [
+  const canonicalVariables: ProjectVariable[] = [
     {
       id: 'link-deploy',
       key: 'LINK_DEPLOY',
@@ -120,6 +120,25 @@ export function buildProjectVariables(project: Project): ProjectVariable[] {
         }
       }),
   ]
+
+  const canonicalKeys = new Set<string>([
+    'LINK_DEPLOY',
+    deployAdminLinkKey,
+    ...orderedProjectKeys,
+    ...supabaseServiceKeyAliases,
+    'SUPABASE_DB_URL',
+  ])
+
+  const extraVariables: ProjectVariable[] = project.env
+    .filter((variable) => variable.key.trim() !== '' && !canonicalKeys.has(variable.key))
+    .map((variable) => ({
+      id: `env-extra-${variable.key.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      key: variable.key,
+      value: variable.value,
+      sensitive: variable.sensitive,
+    }))
+
+  return [...canonicalVariables, ...extraVariables]
 }
 
 export function getProjectPreviewMeta(project: Project, normalizeSelectableValue?: (key: string, value: string) => string) {
@@ -164,10 +183,9 @@ export function getDeployLink(fields: ProjectVariable[], project: Project) {
   return project.deploy.url
 }
 
-export function getDeployAdminLink(variables: ProjectVariable[], deployLink: string) {
-  const storedAdminLink = getFieldValue(variables, deployAdminLinkKey.toLowerCase())
-  if (storedAdminLink) return storedAdminLink
-  return buildDefaultDeployAdminLink(deployLink)
+export function getDeployAdminLink(variables: ProjectVariable[]) {
+  // Nessun default automatico /admina: il link admin si mostra solo se impostato a mano.
+  return getFieldValue(variables, deployAdminLinkKey.toLowerCase())
 }
 
 export function buildDefaultDeployAdminLink(value: string) {

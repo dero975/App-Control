@@ -31,6 +31,7 @@ Nel workspace `Admin`, la sezione principale resta `Progetti`. Dentro `Progetti`
 - `DNA/03_OPERATIONS.md`: script, validazione e workflow operativo.
 - `DNA/04_SUPABASE_SCHEMA_SQL.md`: schema Supabase target e script SQL ordinati.
 - `DNA/05_AGENT_API.md`: API per agent esterni (Claude Code) con autenticazione tramite agent key.
+- `DNA/06_APP_CONTROL_SYNC.md`: lavoro di sincronizzazione agent <-> App Control (chi inserisce quali variabili, layout, scrittura sicura).
 
 ## Learning log
 

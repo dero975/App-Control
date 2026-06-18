@@ -9,9 +9,9 @@ import {
   normalizeProjectName,
 } from './projectShared'
 import { getSelectValue, selectableFieldConfigs } from './projectFieldOptions'
-import { DeployCredentialsCard, DeployLinksCard, GitHubCredentialsCard } from './VariableGroupedCards'
+import { DeployCredentialsCard, GitHubCredentialsCard } from './VariableGroupedCards'
 import { VariableEditorCard } from './VariableEditorCard'
-import { formatVariablesEnvForCopy, getNextDeployAdminLink, isDeployField, isLinkDeployAdminField, isLinkDeployField } from './variableEnvFormatting'
+import { formatVariablesEnvForCopy, isDeployField, isLinkDeployAdminField, isLinkDeployField } from './variableEnvFormatting'
 import type { VariableUpdateField } from './variablePanelTypes'
 import {
   getEffectiveVariableTone,
@@ -74,20 +74,6 @@ export function VariablesPanel({
       const tone = normalizeVariableTone(String(value))
       writeStoredVariableTone(toneStorageKey, targetVariable, tone)
       setToneOverrides((currentTones) => ({ ...currentTones, [id]: tone }))
-      return
-    }
-
-    if (targetVariable && field === 'value' && isLinkDeployField(targetVariable.key)) {
-      const currentAdminVariable = currentVariables.find((variable) => isLinkDeployAdminField(variable.key))
-      const nextDeployValue = String(value)
-
-      onChange(
-        currentVariables.map((variable) => {
-          if (variable.id === id) return { ...variable, value: nextDeployValue }
-          if (!currentAdminVariable || variable.id !== currentAdminVariable.id) return variable
-          return { ...variable, value: getNextDeployAdminLink(targetVariable.value, nextDeployValue, currentAdminVariable.value) }
-        }),
-      )
       return
     }
 
@@ -215,12 +201,34 @@ export function VariablesPanel({
   const hasGroupedDeployCredentials = title === 'Dati progetto' && deployIndex !== -1 && deployPasswordIndex !== -1
   const deployCredentialsStartIndex = hasGroupedDeployCredentials ? Math.min(deployIndex, deployPasswordIndex) : -1
   const deployCredentialsEndIndex = hasGroupedDeployCredentials ? Math.max(deployIndex, deployPasswordIndex) : -1
-  const linkDeployIndex = variables.findIndex((variable) => isLinkDeployField(variable.key))
-  const linkDeployAdminIndex =
-    linkDeployIndex === -1 ? -1 : variables.findIndex((variable, index) => index > linkDeployIndex && isLinkDeployAdminField(variable.key))
-  const hasGroupedDeployLinks = title === 'Variabili' && linkDeployIndex !== -1 && linkDeployAdminIndex !== -1
-  const deployLinksStartIndex = hasGroupedDeployLinks ? Math.min(linkDeployIndex, linkDeployAdminIndex) : -1
-  const deployLinksEndIndex = hasGroupedDeployLinks ? Math.max(linkDeployIndex, linkDeployAdminIndex) : -1
+  const userVariableKeys = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL', 'RENDER_API_KEY']
+  const userVariables = variables.filter((variable) => userVariableKeys.includes(variable.key))
+  const managedVariables = variables.filter(
+    (variable) =>
+      !userVariableKeys.includes(variable.key) && !isLinkDeployField(variable.key) && !isLinkDeployAdminField(variable.key),
+  )
+
+  function renderVariableCard(variable: ProjectVariable) {
+    return (
+      <VariableEditorCard
+        key={variable.id}
+        variable={variable}
+        editable={isEditingVariable(variable.id)}
+        isDraft={isDraftVariable(variable.id)}
+        singleEnvCopy={isVariablesPanel}
+        onAddAccess={addPlatformAccess}
+        onDelete={deleteVariable}
+        onDeleteAccess={deletePlatformAccess}
+        onDraftCommit={finalizeDraftVariable}
+        onEdit={() => toggleVariableEditing([variable.id])}
+        toneOverride={toneOverrides[variable.id]}
+        toneStorageKey={toneStorageKey}
+        onUpdateAccess={updatePlatformAccess}
+        onUpdate={updateVariable}
+        valueAriaLabel={valueAriaLabel}
+      />
+    )
+  }
 
   return (
     <div className="tab-panel-stack">
@@ -238,7 +246,7 @@ export function VariablesPanel({
                 title="Copia tutte le variabili in formato .env"
               >
                 <FileText aria-hidden="true" className="button-icon" />
-                {envBlockCopied ? 'Copiato' : '.env render'}
+                {envBlockCopied ? 'Copiato' : '.env'}
               </button>
             ) : null}
             <button type="button" className="secondary-button" onClick={addVariable}>
@@ -249,83 +257,62 @@ export function VariablesPanel({
         }
       >
         <div className="editable-variable-list">
-          {variables.map((variable, index) => {
-            if (hasGroupedGithubCredentials && index === githubCredentialsStartIndex) {
-              return (
-                <GitHubCredentialsCard
-                  key="github-credentials"
-                  emailVariable={variables[githubEmailIndex]}
-                  passwordVariable={variables[githubPasswordIndex]}
-                  editable={isEditingVariableGroup([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
-                  onDelete={deleteVariable}
-                  onEdit={() => toggleVariableEditing([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
-                  onUpdate={updateVariable}
-                  valueAriaLabel={valueAriaLabel}
-                />
-              )
-            }
+          {isVariablesPanel ? (
+            <>
+              <div className="variable-user-box">
+                <span className="variable-user-box__title">Da inserire manualmente</span>
+                {userVariables.map(renderVariableCard)}
+              </div>
+              {managedVariables.length > 0 ? (
+                <div className="variable-managed-group">
+                  <span className="variable-managed-group__title">Gestite da Agent</span>
+                  {managedVariables.map(renderVariableCard)}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            variables.map((variable, index) => {
+              if (hasGroupedGithubCredentials && index === githubCredentialsStartIndex) {
+                return (
+                  <GitHubCredentialsCard
+                    key="github-credentials"
+                    emailVariable={variables[githubEmailIndex]}
+                    passwordVariable={variables[githubPasswordIndex]}
+                    editable={isEditingVariableGroup([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
+                    onDelete={deleteVariable}
+                    onEdit={() => toggleVariableEditing([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
+                    onUpdate={updateVariable}
+                    valueAriaLabel={valueAriaLabel}
+                  />
+                )
+              }
 
-            if (hasGroupedDeployLinks && index === deployLinksStartIndex) {
-              return (
-                <DeployLinksCard
-                  key="deploy-links"
-                  deployLinkVariable={variables[linkDeployIndex]}
-                  deployAdminLinkVariable={variables[linkDeployAdminIndex]}
-                  editable={isEditingVariableGroup([variables[linkDeployIndex].id, variables[linkDeployAdminIndex].id])}
-                  onDelete={deleteVariable}
-                  onEdit={() => toggleVariableEditing([variables[linkDeployIndex].id, variables[linkDeployAdminIndex].id])}
-                  onUpdate={updateVariable}
-                  valueAriaLabel={valueAriaLabel}
-                />
-              )
-            }
+              if (hasGroupedDeployCredentials && index === deployCredentialsStartIndex) {
+                return (
+                  <DeployCredentialsCard
+                    key="deploy-credentials"
+                    deployVariable={variables[deployIndex]}
+                    passwordVariable={variables[deployPasswordIndex]}
+                    editable={isEditingVariableGroup([variables[deployIndex].id, variables[deployPasswordIndex].id])}
+                    onDelete={deleteVariable}
+                    onEdit={() => toggleVariableEditing([variables[deployIndex].id, variables[deployPasswordIndex].id])}
+                    onUpdate={updateVariable}
+                    valueAriaLabel={valueAriaLabel}
+                  />
+                )
+              }
 
-            if (hasGroupedDeployCredentials && index === deployCredentialsStartIndex) {
-              return (
-                <DeployCredentialsCard
-                  key="deploy-credentials"
-                  deployVariable={variables[deployIndex]}
-                  passwordVariable={variables[deployPasswordIndex]}
-                  editable={isEditingVariableGroup([variables[deployIndex].id, variables[deployPasswordIndex].id])}
-                  onDelete={deleteVariable}
-                  onEdit={() => toggleVariableEditing([variables[deployIndex].id, variables[deployPasswordIndex].id])}
-                  onUpdate={updateVariable}
-                  valueAriaLabel={valueAriaLabel}
-                />
-              )
-            }
+              if (hasGroupedGithubCredentials && index === githubCredentialsEndIndex) {
+                return null
+              }
 
-            if (hasGroupedGithubCredentials && index === githubCredentialsEndIndex) {
-              return null
-            }
+              if (hasGroupedDeployCredentials && index === deployCredentialsEndIndex) {
+                return null
+              }
 
-            if (hasGroupedDeployLinks && index === deployLinksEndIndex) {
-              return null
-            }
-
-            if (hasGroupedDeployCredentials && index === deployCredentialsEndIndex) {
-              return null
-            }
-
-            return (
-              <VariableEditorCard
-                key={variable.id}
-                variable={variable}
-                editable={isEditingVariable(variable.id)}
-                isDraft={isDraftVariable(variable.id)}
-                onAddAccess={addPlatformAccess}
-                onDelete={deleteVariable}
-                onDeleteAccess={deletePlatformAccess}
-                onDraftCommit={finalizeDraftVariable}
-                onEdit={() => toggleVariableEditing([variable.id])}
-                toneOverride={toneOverrides[variable.id]}
-                toneStorageKey={toneStorageKey}
-                onUpdateAccess={updatePlatformAccess}
-                onUpdate={updateVariable}
-                valueAriaLabel={valueAriaLabel}
-              />
-            )
-          })}
+              return renderVariableCard(variable)
+            })
+          )}
         </div>
       </FieldGroup>
     </div>

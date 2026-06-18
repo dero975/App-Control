@@ -148,7 +148,7 @@ function ProjectMobileList({
         const isExpanded = project.id === expandedMobileId
         const isPinned = pinnedProjectIds.includes(project.id)
         const deployLink = getDeployLink(buildNormalizedSheetFields(project), project)
-        const deployAdminLink = getDeployAdminLink(buildProjectVariables(project), deployLink)
+        const deployAdminLink = getDeployAdminLink(buildProjectVariables(project))
 
         return (
           <article key={project.id} className={getMobileProjectCardClassName(isExpanded, isPinned)}>

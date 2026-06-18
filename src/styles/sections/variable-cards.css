@@ -10,6 +10,88 @@
   background: linear-gradient(180deg, #f0f3ee 0%, #f5f7f4 100%);
 }
 
+.variable-user-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(45, 127, 77, 0.28);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #e7f2e8 0%, #f0f7ef 100%);
+}
+
+.variable-user-box__title,
+.variable-managed-group__title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft, #5a6b60);
+}
+
+.variable-user-box__title {
+  color: #246b42;
+}
+
+.variable-managed-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Tab Variabili: nome variabile + valore sulla stessa riga, per ottimizzare lo spazio. */
+.variable-user-box .variable-value-input,
+.variable-managed-group .variable-value-input {
+  grid-template-columns: 210px minmax(0, 1fr);
+  align-items: center;
+  row-gap: 8px;
+  column-gap: 14px;
+}
+
+.variable-user-box .variable-value-input .fixed-field-name,
+.variable-managed-group .variable-value-input .fixed-field-name {
+  white-space: nowrap;
+}
+
+.variable-user-box .variable-value-input .variable-tone-palette,
+.variable-managed-group .variable-value-input .variable-tone-palette {
+  grid-column: 1 / -1;
+}
+
+.variable-user-box .editable-variable-card__actions,
+.variable-managed-group .editable-variable-card__actions {
+  align-self: center;
+  margin-top: 0;
+  width: auto;
+  gap: 6px;
+}
+
+/* Layout pulito: niente box per singola variabile, solo righe con divisorio sottile. */
+.variable-user-box,
+.variable-managed-group {
+  gap: 0;
+}
+
+.variable-user-box__title,
+.variable-managed-group__title {
+  margin-bottom: 8px;
+}
+
+.variable-user-box .editable-variable-card,
+.variable-managed-group .editable-variable-card {
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 12px 2px;
+}
+
+.variable-user-box .editable-variable-card + .editable-variable-card,
+.variable-managed-group .editable-variable-card + .editable-variable-card {
+  border-top: 1px solid rgba(45, 80, 60, 0.12);
+}
+
 .editable-variable-card--editing {
   border-color: rgba(65, 121, 79, 0.42);
   box-shadow: inset 4px 0 0 var(--green-strong), 0 10px 22px rgba(35, 52, 40, 0.06);

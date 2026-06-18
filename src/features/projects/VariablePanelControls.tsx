@@ -6,11 +6,13 @@ import { variableTones } from './variableToneStorage'
 export function VariableFieldTitle({
   canEdit,
   editable,
+  hideCopy = false,
   onChange,
   value,
 }: {
   canEdit: boolean
   editable: boolean
+  hideCopy?: boolean
   onChange: (value: string) => void
   value: string
 }) {
@@ -24,7 +26,7 @@ export function VariableFieldTitle({
           aria-label="Titolo campo"
           onChange={(event) => onChange(event.target.value)}
         />
-        <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />
+        {hideCopy ? null : <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />}
       </span>
     )
   }
@@ -32,7 +34,7 @@ export function VariableFieldTitle({
   return (
     <span className="fixed-field-name fixed-field-name--with-inline-copy">
       <span>{value || 'Titolo campo'}</span>
-      <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />
+      {hideCopy ? null : <CopyButton value={value} iconOnly className="copy-button--field-title" label="Copia titolo" />}
     </span>
   )
 }

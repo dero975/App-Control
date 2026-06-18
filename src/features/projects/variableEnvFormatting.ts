@@ -1,5 +1,5 @@
 import type { ProjectVariable } from '../../types/app'
-import { buildDefaultDeployAdminLink, deployAdminLinkKey } from './projectShared'
+import { deployAdminLinkKey } from './projectShared'
 
 export function formatVariablesEnvForCopy(variables: ProjectVariable[]) {
   const exportableVariables = variables
@@ -33,12 +33,6 @@ export function isLinkDeployField(key: string) {
 
 export function isLinkDeployAdminField(key: string) {
   return key.trim().toUpperCase() === deployAdminLinkKey.toUpperCase()
-}
-
-export function getNextDeployAdminLink(currentDeployValue: string, nextDeployValue: string, currentAdminValue: string) {
-  const currentAutoAdminValue = buildDefaultDeployAdminLink(currentDeployValue)
-  if (currentAdminValue && currentAdminValue !== currentAutoAdminValue) return currentAdminValue
-  return buildDefaultDeployAdminLink(nextDeployValue)
 }
 
 function addDerivedEnvExportValues(variables: Array<{ exportKey: string; value: string }>) {

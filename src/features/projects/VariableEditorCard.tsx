@@ -11,6 +11,7 @@ import { getEffectiveVariableTone, isProtectedVariableTitle } from './variableTo
 export function VariableEditorCard({
   editable,
   isDraft,
+  singleEnvCopy = false,
   toneOverride,
   toneStorageKey,
   variable,
@@ -25,6 +26,7 @@ export function VariableEditorCard({
 }: {
   editable: boolean
   isDraft: boolean
+  singleEnvCopy?: boolean
   toneOverride?: ProjectVariableTone
   toneStorageKey?: string
   variable: ProjectVariable
@@ -78,6 +80,7 @@ export function VariableEditorCard({
           <VariableFieldTitle
             canEdit
             editable={editable}
+            hideCopy={singleEnvCopy}
             onChange={(value) => onUpdate(variable.id, 'key', value)}
             value={variable.key}
           />
@@ -96,7 +99,7 @@ export function VariableEditorCard({
                 readOnly={!editable}
                 onChange={(event) => onUpdate(variable.id, 'value', event.target.value)}
               />
-              <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" />
+              {singleEnvCopy ? null : <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" />}
             </>
           )}
           {editable && canChooseTone ? (
@@ -115,6 +118,9 @@ export function VariableEditorCard({
         ) : null}
       </div>
       <div className="editable-variable-card__actions">
+        {singleEnvCopy ? (
+          <CopyButton value={`${variable.key.trim()}=${variable.value}`} iconOnly label="Copia variabile" />
+        ) : null}
         {isDraft ? null : <VariableEditButton active={editable} onClick={onEdit} />}
         <button type="button" className="inline-icon-button trash-button" onClick={() => onDelete(variable.id)} aria-label="Elimina variabile" title="Elimina variabile">
           <Trash2 aria-hidden="true" />
