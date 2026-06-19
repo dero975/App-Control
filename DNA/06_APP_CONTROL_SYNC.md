@@ -25,18 +25,18 @@ L'agent lo legge da solo a inizio sessione e si collega ad App Control con heade
 
 L'utente crea un account/email nuovo per progetto (limiti free tier) -> GitHub, Supabase, Render sono nuovi ogni volta.
 
-**Inserisce l'UTENTE (una volta, alla creazione), 5 valori:**
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (escono insieme creando il progetto Supabase a mano), `RENDER_API_KEY` (dal nuovo account Render).
+**Inserisce l'UTENTE (una volta, alla creazione), 7 valori:**
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (escono insieme creando il progetto Supabase a mano), `RENDER_API_KEY` (dal nuovo account Render), `GITHUB_URL` (l'URL del repo, se gia esistente) e `GITHUB_TOKEN` (scelta dell'owner: inserirlo a mano e piu semplice/robusto — l'agent lo trova pronto, niente `gh auth login` ne `gh repo create`).
 
 **Gestisce l'AGENT:**
-`GITHUB_URL` (crea lui il repo con `gh repo create`), `GITHUB_TOKEN` (consigliato un token messo in App Control: vale su tutti i dispositivi, evita `gh auth login` ad ogni device), `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` (dopo il deploy), piu **tutte** le variabili/segreti generati durante lo sviluppo (`SESSION_SECRET`, chiavi di altre piattaforme, ecc.).
+`LINK_DEPLOY` e `LINK_DEPLOY ADMIN` (dopo il deploy), piu **tutte** le variabili/segreti generati durante lo sviluppo (`SESSION_SECRET`, chiavi di altre piattaforme, ecc.). Se `GITHUB_URL` non e stato messo a mano (repo non ancora creato), lo crea lui con `gh repo create` e lo scrive.
 
 App Control va usata come **libretto privato** di tutti i segreti del progetto: oltre alle canoniche, accetta variabili extra.
 
 ## Layout sezione Variabili (implementato)
 
-- Le **5 dell'utente** in un box verde "**Da inserire manualmente**": `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
-- Quelle dell'agent in una lista "**Gestite da Agent**": `GITHUB_URL`, `GITHUB_TOKEN` + eventuali variabili extra/segreti.
+- Le **7 dell'utente** in un box verde "**Da inserire manualmente**": `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`, `GITHUB_URL`, `GITHUB_TOKEN`.
+- Quelle dell'agent in una lista "**Gestite da Agent**": variabili extra/segreti generati durante lo sviluppo.
 - La classificazione e in `VariablesPanel` (`userVariableKeys` vs `managedVariables`); il flag `singleEnvCopy` arriva da `isVariablesPanel`.
 - Ogni riga: nome + valore sulla **stessa riga**, niente box per singola variabile, divisorio sottile. Un **solo tasto copia** che copia `NOME=valore` (formato .env), allineato con matita e cestino.
 - `LINK_DEPLOY` / `LINK_DEPLOY ADMIN` non si mostrano nella lista (il valore resta salvato e il link sotto al titolo continua a funzionare).
