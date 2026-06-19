@@ -110,7 +110,7 @@ export function PromptLibraryCard({
       >
         <div className="prompt-library-card__header">
           <div className="prompt-library-card__actions">
-            <CopyButton value={buildPromptClipboardValue(prompt)} />
+            <CopyButton value={buildPromptClipboardValue(prompt)} iconOnly />
           </div>
 
           <button type="button" className="prompt-library-card__toggle" onClick={onToggle} aria-expanded={open}>

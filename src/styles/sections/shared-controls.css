@@ -74,10 +74,6 @@ code {
   gap: 6px;
 }
 
-.copy-button:not(.copy-button--icon-only):has(.copy-button__label) {
-  width: auto;
-}
-
 .copy-button__label {
   font-size: 13px;
   font-weight: 600;

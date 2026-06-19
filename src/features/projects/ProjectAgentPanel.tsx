@@ -12,8 +12,8 @@ export function ProjectAgentPanel({ project }: { project: Project }) {
       <FieldGroup title="Agent sync" className="field-group--bare">
         <div className="agent-sync-block">
           <div className="agent-sync-block__header">
-            <span>Prompt sincronizzazione</span>
             <CopyButton value={syncPrompt} label="Copia prompt" className="copy-button--labeled" />
+            <span>Prompt sincronizzazione</span>
           </div>
           <div className="agent-sync-box">
             <div className="agent-sync-readonly" aria-label="Prompt sincronizzazione">
@@ -24,8 +24,8 @@ export function ProjectAgentPanel({ project }: { project: Project }) {
 
         <div className="agent-sync-block">
           <div className="agent-sync-block__header">
-            <span>.agent/app-control.json</span>
             <CopyButton value={agentConfig} label="Copia JSON" className="copy-button--labeled" />
+            <span>.agent/app-control.json</span>
           </div>
           <div className="agent-sync-box">
             <pre>{agentConfig}</pre>

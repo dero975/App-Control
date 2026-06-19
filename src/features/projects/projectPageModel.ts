@@ -68,9 +68,9 @@ export function getVisibleProjectIds(
   return sortPinnedRecordsFirst([...preservedIds, ...appendedIds].map((id) => ({ id })), pinnedProjectIds).map((project) => project.id)
 }
 
-export function createEmptyProject(index: number): Project {
-  const name = normalizeProjectName(`Nuovo progetto ${index}`)
-  const projectId = createProjectSlug(name)
+export function createEmptyProject(projectName: string): Project {
+  const name = normalizeProjectName(projectName)
+  const projectId = generateProjectId()
 
   return {
     id: `project-${Date.now()}`,
@@ -140,16 +140,11 @@ function normalizeProjectVariableForSignature(variable: ProjectVariable) {
   }
 }
 
-function createProjectSlug(name: string) {
-  const normalizedName = name
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return normalizedName || `progetto-${Date.now()}`
+// projectId univoco e stabile per i nuovi progetti: codice alfanumerico casuale,
+// non derivato dal nome. Evita slug ambigui ("nuovo-progetto-18") e il riuso dello
+// stesso slug dopo un'eliminazione. I progetti esistenti mantengono il loro slug.
+function generateProjectId() {
+  return `prj-${generateAgentKeyGroup().toLowerCase()}`
 }
 
 function generateAgentKey() {

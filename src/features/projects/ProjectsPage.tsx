@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { NameProjectModal } from './NameProjectModal'
 import { EmptyState } from '../../components/EmptyState'
 import { MobileWorkspaceModal } from '../../components/MobileWorkspaceModal'
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport'
@@ -32,6 +33,7 @@ export function ProjectsPage() {
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ProjectListSortMode>('name-asc')
   const [deleteCandidate, setDeleteCandidate] = useState<Project | null>(null)
+  const [isNamingProject, setIsNamingProject] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [isLoadingProjects, setIsLoadingProjects] = useState(false)
   const [visibleProjectIds, setVisibleProjectIds] = useState<string[]>([])
@@ -110,8 +112,9 @@ export function ProjectsPage() {
     }
   }, [effectiveSelectedId, loadedProjectIds])
 
-  async function createProject() {
-    const nextProject = createEmptyProject(projectList.length + 1)
+  async function createProject(name: string) {
+    setIsNamingProject(false)
+    const nextProject = createEmptyProject(name)
     try {
       const project = isSupabaseConfigured ? await createProjectRecord(nextProject) : nextProject
       const nextProjects = [project, ...projectList]
@@ -213,7 +216,7 @@ export function ProjectsPage() {
           selectedProjectId={selectedProject?.id ?? ''}
           sortMode={sortMode}
           onChangeQuery={handleQueryChange}
-          onCreateProject={() => void createProject()}
+          onCreateProject={() => setIsNamingProject(true)}
           onOpenMobileProject={(projectId) => {
             handleSelectProject(projectId)
             setMobileModalProjectId(projectId)
@@ -237,6 +240,10 @@ export function ProjectsPage() {
       </div>
 
       {loadError ? <p className="status-message status-message--error">{loadError}</p> : null}
+      {isNamingProject ? (
+        <NameProjectModal onCancel={() => setIsNamingProject(false)} onConfirm={(name) => void createProject(name)} />
+      ) : null}
+
       {deleteCandidate ? (
         <ConfirmDialog
           title="Elimina progetto"
