@@ -64,6 +64,18 @@ export function Sidebar({ activeSection, onLock, onNavigate }: SidebarProps) {
           </p>
         </div>
 
+        <div className="sidebar-newproject-guide" aria-label="Promemoria progetto esistente">
+          <span className="sidebar-newproject-guide__title">Progetto esistente — i tuoi step</span>
+          <ol className="sidebar-newproject-guide__list">
+            <li>Apri la cartella del progetto nell'agent</li>
+            <li>Connetti i tuoi account: GitHub, Supabase, Render</li>
+            <li>Nell'agent incolla: prompt avvio sessione</li>
+          </ol>
+          <p className="sidebar-newproject-guide__note">
+            L'agent legge CLAUDE.md e DNA, rigenera il .env da App Control, verifica le connessioni e avvia l'app.
+          </p>
+        </div>
+
         <a className="sidebar-token-link" href={githubTokenUrl} target="_blank" rel="noreferrer">
           <GitHubMarkIcon />
           Token Github
