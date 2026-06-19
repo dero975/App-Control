@@ -1,19 +1,28 @@
-# DIAGNOSI + PIANO DI CORREZIONE — Sincronizzazione Agent ⇄ App Control
+# DIAGNOSI + STORICO — Sincronizzazione Agent ⇄ App Control
 
-**Data:** 19 Giugno 2026
-**Analisi basata su:** codice sorgente reale di App Control (`/Users/dero/Documents/App Control`) + test API in lettura sul backend + schema canonico `DNA/04_SUPABASE_SCHEMA_SQL.md`.
-**Progetto-test:** etichetta `rebecca` · slug nel JSON di Sync = `nuovo-progetto-18`
 **Backend App Control (Supabase):** `vpuvvelvggdooyidxach.supabase.co`
+**Repo App Control:** `dero975/App-Control` (locale: `/Users/dero/Documents/App Control`) · deploy Render Static Site, autodeploy da `main`.
+**Schema canonico:** `DNA/04_SUPABASE_SCHEMA_SQL.md` · doc canale agent: `DNA/05_AGENT_API.md`, `DNA/06_APP_CONTROL_SYNC.md`.
 
-> ### ▶️ ISTRUZIONI PER L'AGENT DI APP CONTROL
-> Questo file è stato prodotto da una sessione su un progetto-client (Rebecca) e va eseguito **dall'interno del progetto App Control**.
-> Quando l'owner dice *"analizza ed esegui diagnosi.md"*:
-> 1. Leggi tutto il documento (causa in cima, piano in fondo).
-> 2. Verifica lo stato reale del DB con la **FASE 0** del piano (sola lettura).
-> 3. Mostra all'owner cosa cambierai e **chiedi il "vai" esplicito** (regola di `DNA/06_APP_CONTROL_SYNC.md`).
-> 4. Applica la migrazione della **FASE 1** (additiva e reversibile).
-> 5. Esegui i **test di accettazione** della **FASE 2** e riporta gli esiti.
-> Lo stato attuale del documento è **diagnosi completa + piano pronto**; finora **nessuna modifica** è stata applicata al DB o al codice.
+---
+
+> ## ✅ STATO ATTUALE — RISOLTO (19 Giugno 2026)
+>
+> Il problema #1 descritto in questo documento (canale agent che tornava sempre `[]`) **è stato risolto e verificato in produzione**.
+> - **Fix applicata:** migration `supabase/migrations/20260619_01_agent_key_fix_slug_match.sql` (commit `5c91a88` su `main`).
+> - **Cosa fa:** le policy RLS del canale agent ora identificano il progetto con **slug (`agent_project_id`) + agent key** insieme, tramite la funzione `public.app_control_request_authorized_project_uuid()` che traduce verso `projects.id`.
+> - **Verificato dal vivo (REST, header con lo SLUG reale):** READ 200 (righe corrette), INSERT 201, DELETE 204; isolamento cross-progetto confermato con due progetti-test (chiave sbagliata/mancante → `[]`; scrittura cross-progetto → 401).
+> - Le sezioni qui sotto restano come **storico tecnico** della causa e della prova. La parte "PIANO DI CORREZIONE" descrive la fix che è GIÀ stata applicata (non rieseguirla).
+
+> ## 📌 COME USARE QUESTO FILE DA UN ALTRO PROGETTO
+>
+> Questo file viaggia con l'owner come **storico/diario** dei problemi del canale Sync di App Control. Se mentre lavori su un progetto qualsiasi il collegamento ad App Control non funziona (es. leggi `[]`, scrittura negata, `.env` non si genera):
+> 1. **Leggi prima questo file**: la causa nota #1 (slug vs id) è già risolta, ma i sintomi e i test diagnostici qui sotto restano la guida più veloce per capire cosa controllare.
+> 2. **Riproduci il sintomo** con i test della sezione "PROVE TECNICHE API" usando lo slug + agentKey reali del progetto corrente (presi da `.agent/app-control.json`, tab Sync).
+> 3. Se è un problema **nuovo** (non già descritto qui): **aggiorna questo stesso file** aggiungendo una voce datata nella sezione **"📒 STORICO PROBLEMI"** in fondo (sintomo, causa sospetta, prove raccolte). NON applicare fix da un altro progetto: il fix va fatto **dentro App Control**.
+> 4. Poi l'owner riporta il file dentro App Control e lì si applica la correzione (sempre con "vai" esplicito, come da `DNA/06`).
+>
+> Identificatori chiave da ricordare: `projectId` (del JSON Sync) = **slug** = `projects.agent_project_id`. La colonna `project_id` delle tabelle figlie è invece l'**UUID** interno (`projects.id`) — non filtrarci lo slug.
 
 ---
 
@@ -96,9 +105,9 @@ Com'è possibile, se è rotto? **Spiegazione tecnica:** quasi certamente il test
 
 ---
 
-## 🔧 COSA ANDREBBE CORRETTO (proposta, da decidere e fare TU — qui nessuna modifica)
+## 🔧 LA CORREZIONE (✅ GIÀ APPLICATA — qui per storico)
 
-> Tutto lato **App Control** (Supabase `vpuvvelvggdooyidxach`). Da fare come owner, con una nuova migrazione additiva. **Non eseguito**: è solo la proposta.
+> Tutto lato **App Control** (Supabase `vpuvvelvggdooyidxach`). È stata scelta e applicata l'**Opzione A** (vedi sotto), come migration additiva `20260619_01_agent_key_fix_slug_match.sql`. Questa sezione resta come riferimento di cosa è stato fatto.
 
 **Correzione principale (P1).** Riscrivere le policy del canale agent perché il match avvenga sullo slug. Due alternative:
 
@@ -413,6 +422,29 @@ Se 1–4 passano, il canale Sync è riparato end-to-end.
 
 ## 🧭 CONCLUSIONE
 
-Il problema **non è tuo, non è dei prompt**: è **un singolo bug nel backend di App Control**. Le regole di sicurezza del canale agent confrontano l'identificativo sbagliato del progetto (`id` invece di `agent_project_id`/slug), quindi negano sempre l'accesso e ogni lettura/scrittura fallisce. La tua intuizione sul "nome nel Sync" puntava esattamente lì. Il flusso risultava "verificato" perché i test interni usavano l'UUID, non lo slug che il Sync distribuisce davvero.
+Il problema **non era tuo, non era dei prompt**: era **un singolo bug nel backend di App Control**. Le regole di sicurezza del canale agent confrontavano l'identificativo sbagliato del progetto (`id` invece di `agent_project_id`/slug), quindi negavano sempre l'accesso e ogni lettura/scrittura falliva. L'intuizione sul "nome nel Sync" puntava esattamente lì. Il flusso risultava "verificato" perché i test interni usavano l'UUID, non lo slug che il Sync distribuisce davvero.
 
-La correzione è circoscritta (una migrazione additiva sulle policy) ma **va decisa e applicata da te come owner**, con il "vai" esplicito (come prescrive `DNA/06_APP_CONTROL_SYNC.md`). Questo documento resta **solo diagnosi**: nessuna modifica è stata effettuata.
+La correzione (migrazione additiva `20260619_01` sulle policy) **è stata applicata e verificata in produzione il 19 Giugno 2026** (vedi box "STATO ATTUALE — RISOLTO" in cima). Da qui in poi questo documento serve come **storico/diario**: se compaiono nuovi problemi sul canale Sync, si annotano nella sezione "STORICO PROBLEMI" qui sotto.
+
+---
+
+## 📒 STORICO PROBLEMI (diario — aggiungere in cima le voci nuove)
+
+> Formato voce: data · sintomo osservato · dove (progetto/tabella) · causa sospetta o accertata · prove raccolte · stato (aperto / risolto + come). Le voci nuove vanno **sopra** le vecchie.
+
+### 2026-06-19 · ✅ RISOLTO — canale agent tornava sempre `[]`
+- **Sintomo:** un agent esterno collegato via Sync (anon key + header `x-app-control-project-id`/`x-app-control-agent-key`) riceveva `[]` da ogni tabella e non poteva scrivere; il `.env` non si generava.
+- **Causa accertata:** le policy RLS (`20260617_01`, `20260618_01`) confrontavano `projects.id::text` (UUID) con l'header, che invece porta lo **slug** (`agent_project_id`). Match sempre falso.
+- **Prove:** lettura via REST con slug → `[]`; stessa lettura con UUID interno → righe presenti. Dettaglio completo nelle sezioni sopra.
+- **Fix:** migration `20260619_01_agent_key_fix_slug_match.sql` (commit `5c91a88`). Helper `app_control_request_authorized_project_uuid()` risolve slug + agent key → `projects.id`. Verificato end-to-end + isolamento cross-progetto con due progetti-test.
+
+<!-- AGGIUNGI QUI SOPRA le nuove voci se trovi altri problemi sul canale Sync -->
+<!-- Es.:
+### AAAA-MM-GG · ⛔ APERTO — <sintomo breve>
+- Sintomo: ...
+- Dove: progetto <slug>, tabella <...>
+- Causa sospetta: ...
+- Prove: ...
+- Stato: aperto — da risolvere DENTRO App Control col "vai" dell'owner.
+-->
+
