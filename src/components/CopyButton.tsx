@@ -35,6 +35,7 @@ export function CopyButton({ value, label = 'Copia', className = '', iconOnly = 
       title={buttonLabel}
     >
       {copied ? <Check aria-hidden="true" className="copy-button__icon" /> : <Copy aria-hidden="true" className="copy-button__icon" />}
+      {!iconOnly ? <span className="copy-button__label">{buttonLabel}</span> : null}
     </button>
   )
 }

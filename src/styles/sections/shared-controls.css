@@ -68,6 +68,20 @@ code {
   border: 0;
   background: transparent;
   padding: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.copy-button:not(.copy-button--icon-only):has(.copy-button__label) {
+  width: auto;
+}
+
+.copy-button__label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .copy-button:hover,
