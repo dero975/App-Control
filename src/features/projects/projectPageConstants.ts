@@ -1,4 +1,4 @@
-export const projectTabs = ['Dati progetto', 'Variabili', 'Immagini', 'Note', 'Sync'] as const
+export const projectTabs = ['Dati progetto', 'Variabili', 'Sync', 'Immagini', 'Note'] as const
 export const pinnedProjectIdsStorageKey = 'app-control-pinned-project-ids'
 
 export const legacyDefaultSyncPrompt =
