@@ -45,12 +45,16 @@ Con questi header l'agent può leggere (solo lettura, solo il proprio progetto):
 ## Esempio di chiamata
 
 ```bash
-curl "https://xxx.supabase.co/rest/v1/project_env_variables?project_id=eq.<projectId>&select=key,value_text" \
+# Nessun filtro project_id nell'URL: e' la RLS a limitare al proprio progetto
+# (projectId qui = slug del Sync; project_id colonna e' un UUID, non lo slug).
+curl "https://xxx.supabase.co/rest/v1/project_env_variables?select=key,value_text" \
   -H "Authorization: Bearer <anonKey>" \
   -H "apikey: <anonKey>" \
   -H "x-app-control-project-id: <projectId>" \
   -H "x-app-control-agent-key: <agentKey>"
 ```
+
+> `projectId` (header / JSON Sync) = **slug** = `projects.agent_project_id`. La colonna `project_id` delle tabelle figlie e' invece l'UUID interno (`projects.id`): non filtrarci lo slug nell'URL, darebbe errore `invalid input syntax for type uuid`. L'identificazione del progetto la fa la RLS combinando slug + agent key.
 
 ## Sicurezza
 

@@ -18,6 +18,27 @@ L'app ha un unico ambiente `Admin`, senza selettore ambiente: la sezione princip
 
 Il tab `Dati progetto` di ogni progetto include ora il campo `CLIENTE`, salvato come campo dati del progetto: sostituisce il vecchio workspace Clienti separato, che e stato completamente rimosso dal codice e dal database.
 
+## Stato connessioni verificato (19 Giugno 2026)
+
+Verifica operativa reale eseguita da agent (non dedotta dal codice). Distingue LETTURA e SCRITTURA con la prova.
+
+- **Database (Supabase, host `aws-0-eu-west-1.pooler.supabase.com`)**:
+  - LETTURA: verificata — `psql "$SUPABASE_DB_URL"` lista 9 tabelle public (`app_control_settings`, `app_control_trusted_devices`, `project_agent_keys`, `project_data_fields`, `project_env_variables`, `project_images`, `project_platform_accesses`, `projects`, `prompts`).
+  - SCRITTURA: verificata transazionale-rollback — `begin; create temp table _probe; insert; rollback;` accettato ed eseguito, poi rollback; conteggio tabelle invariato (9→9, zero drift). Nessuna scrittura persistente.
+- **GitHub (`dero975/App-Control`)**: connesso — `gh` autenticato (account attivo `dero975`, scope `repo`/`workflow`). Branch `main` allineato a `origin/main`.
+- **CI (GitHub Actions)**: unico workflow operativo `Supabase Keepalive` (cron giornaliero) — ultime run `success`. Dependabot attivo (un update vite fallito `#1416239346`, uno success: vedi RISCHI).
+- **Deploy (Render Static Site `srv-d80d0ebrjlhs73a7eua0`)**: `autoDeploy: yes` su branch `main`. Ultimo deploy `live` = commit `a711133` (= HEAD locale). Nessun deploy fallito recente. Sito `https://app-control-tz28.onrender.com` → HTTP 200. **Un push su `main` È un deploy in produzione.**
+- **Render API**: raggiungibile read-only con `RENDER_API_KEY` (lista servizi 200).
+- **Canale Agent (REST, header `x-app-control-project-id` + `x-app-control-agent-key`)**: ✅ **RIPARATO** (19 Giugno 2026, migration `20260619_01_agent_key_fix_slug_match.sql`). Verificato end-to-end con lo **slug** reale: READ 200 (9 righe), INSERT 201, DELETE 204, isolamento con chiave errata `[]`. Prima era rotto (RLS su `id` UUID invece che sullo slug). Storia in `DIAGNOSI-APP-CONTROL.md`.
+
+### Tool e runtime richiesti
+- `node` 22, `npm` 10 (lockfile = npm, non pnpm), `git`, `gh`, `psql` 18 — tutti presenti.
+- Nessun runtime container necessario: il progetto non usa `testcontainers`, `docker-compose` né `Dockerfile`.
+- `.env` locale presente con tutte le 10 variabili (`VITE_SUPABASE_*`, `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY/DB_URL`, `GITHUB_URL/TOKEN`, `RENDER_API_KEY`, `APP_CONTROL_BACKUP_TOKEN`) e correttamente in `.gitignore`. Nessun secret mancante da generare.
+
+### Problemi noti
+- ~~Canale agent inattivo (bug RLS)~~ → **RISOLTO il 19 Giugno 2026** con `20260619_01_agent_key_fix_slug_match.sql`. Le policy `20260617_01` / `20260618_01` confrontavano `id::text` con lo slug dell'header (sempre falso → `[]`); ora un helper risolve slug + agent key verso l'UUID. Storia completa in `DIAGNOSI-APP-CONTROL.md`. Nessun problema noto aperto sul canale agent.
+
 ## DNA canonico
 
 - `DNA/00_CONTEXT.md`: stato reale, architettura e guardrail non negoziabili.

@@ -22,4 +22,4 @@ Esempio:
 
 ## Log
 
-<!-- L'agent aggiunge qui le osservazioni quando rilevanti -->
+`[2026-06] — Canale agent / RLS — Il tab Sync distribuisce lo SLUG (projects.agent_project_id) come projectId, ma le policy RLS del canale agent confrontavano projects.id (UUID): match sempre falso -> ogni progetto riceveva []. Lezione: identificare il progetto con slug + agent key insieme (lo slug da solo non e univoco), e testare il canale SEMPRE con lo slug reale del Sync, mai con l'UUID interno (un test con UUID dava 200 e nascondeva il bug). Fix: migration 20260619_01.`

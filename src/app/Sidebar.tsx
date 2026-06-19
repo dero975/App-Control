@@ -53,11 +53,15 @@ export function Sidebar({ activeSection, onLock, onNavigate }: SidebarProps) {
         <div className="sidebar-newproject-guide" aria-label="Promemoria nuovo progetto">
           <span className="sidebar-newproject-guide__title">Nuovo progetto — i tuoi step</span>
           <ol className="sidebar-newproject-guide__list">
+            <li>Definisci l'idea con l'agent (prompt idea progetto)</li>
             <li>Crea account: GitHub, Supabase, Render</li>
             <li>Crea progetto in App Control + 5 variabili</li>
             <li>Copia il testo del tab Sync</li>
-            <li>In Devin incolla: prompt bootstrap + testo Sync</li>
+            <li>Nell'agent incolla: prompt bootstrap + testo Sync</li>
           </ol>
+          <p className="sidebar-newproject-guide__note">
+            Poi fa tutto l'agent: scarica il CLAUDE.md, genera il .env, si collega. Non ti chiede altri prompt.
+          </p>
         </div>
 
         <a className="sidebar-token-link" href={githubTokenUrl} target="_blank" rel="noreferrer">

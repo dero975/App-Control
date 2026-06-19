@@ -54,8 +54,12 @@ Il formato "giusto per il provider" lo produce l'export `.env`: per frontend Vit
 Il canale agent supporta ora **lettura e scrittura**, senza usare la service_role ("tasto master"). Migration additiva e reversibile:
 `supabase/migrations/20260618_01_agent_env_write_access.sql` — policy INSERT/UPDATE/DELETE su `project_env_variables` limitate al solo progetto della chiave agent (riusa `app_control_request_is_agent_authorized_for_project`).
 
-Stato: **applicata al DB di produzione il 18 Giugno 2026** e verificata end-to-end sul canale agent (anon + header `x-app-control-project-id`/`x-app-control-agent-key`, niente service_role):
-READ 200, INSERT 201, UPDATE 204, DELETE 204; scrittura cross-progetto **bloccata 401** = isolamento per progetto confermato.
+Stato: applicata al DB di produzione il 18 Giugno 2026. **ATTENZIONE — quella verifica del 18/06 NON rispecchiava il dato reale del Sync**: i test furono fatti passando come `x-app-control-project-id` l'`id` UUID interno (che soddisfaceva le policy 20260617/20260618, basate su `id::text`), non lo **slug** (`agent_project_id`) che il tab Sync distribuisce davvero. Col valore reale (slug) il canale rispondeva sempre `[]`. Il bug e la diagnosi completa sono in `DIAGNOSI-APP-CONTROL.md`.
+
+**Fix applicata il 19 Giugno 2026** — migration `supabase/migrations/20260619_01_agent_key_fix_slug_match.sql`: le policy del canale agent ora identificano il progetto con **slug (`agent_project_id`) + agent key** insieme (helper `app_control_request_authorized_project_uuid()` che traduce verso `projects.id`). Verificata end-to-end sul canale agent reale (anon + header con lo **slug** `nuovo-progetto-18`, niente service_role):
+READ 200 (9 righe), INSERT 201, DELETE 204; lettura/scrittura con agent key errata **bloccata** (`[]`) = isolamento per progetto confermato.
+
+Nota: lo slug da solo non e univoco (unique su `(user_id, agent_project_id)`, `user_id` nullable) — per questo il match usa slug + agent key insieme.
 
 Per qualsiasi futura modifica al DB di App Control: fermarsi sempre e farsi dare il "vai" dall'owner.
 
