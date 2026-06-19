@@ -41,6 +41,7 @@ Con questi header l'agent può leggere (solo lettura, solo il proprio progetto):
 - `project_data_fields` — campi custom (email GitHub, password, etc.)
 - `project_platform_accesses` — accessi piattaforme
 - `project_agent_keys` — prompt sincronizzazione
+- `prompts` — libreria prompt globale (incluso `CLAUDE.MD` scaricato al bootstrap); leggibile da qualsiasi agent autorizzato per un progetto valido (migration `20260619_02`).
 
 ## Esempio di chiamata
 
