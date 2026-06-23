@@ -21,6 +21,9 @@ Sta nella **root del progetto** (in `.gitignore`), non in App Control. Contiene 
 
 L'agent lo legge da solo a inizio sessione e si collega ad App Control con header `x-app-control-project-id` + `x-app-control-agent-key` + anon key. La sezione Sync (e la chiave agent) si **genera in automatico** alla creazione di un nuovo progetto (`createEmptyProject` -> `createProjectRecord`). Nota: il progetto App Control stesso ha `agentKey` vuoto perche precede questa funzione.
 
+### Fonte unica del prompt di Sync (vincolante)
+Il testo del prompt di Sync e definito da **`defaultSyncPrompt`** in `projectPageConstants.ts` (mostrato nel tab Sync e copiato dall'utente). E la **fonte canonica** e deve essere autosufficiente: include scaricare `CLAUDE.MD`, generare `.env` (colonna `value_text`, mai `value`), `.mcp.json`, git remote col token, e **riscrivere nuove variabili SOLO in `project_env_variables`** (unica tabella scrivibile dal canale agent). `resolveSyncPrompt` rimpiazza automaticamente le versioni legacy (`legacyDefaultSyncPrompt`, `previousDefaultSyncPrompt`, `priorDefaultSyncPrompt`) con quella corrente, cosi anche i progetti esistenti mostrano il prompt aggiornato. Il prompt **BOOTSTRAP** (tabella `prompts`) e allineato a questa stessa logica: non deve divergere.
+
 ## Chi inserisce quali variabili
 
 L'utente crea un account/email nuovo per progetto (limiti free tier) -> GitHub, Supabase, Render sono nuovi ogni volta.
