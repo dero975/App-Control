@@ -98,12 +98,3 @@ export type Project = {
   images?: ProjectImage[]
 }
 
-export type VisualAsset = {
-  id: string
-  projectId: string
-  name: string
-  type: 'Logo' | 'Icona' | 'Grafica' | 'Immagine pubblica' | 'Altro asset visivo'
-  path: string
-  notes: string
-}
-

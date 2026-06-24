@@ -90,48 +90,6 @@ export function DeployCredentialsCard({
   )
 }
 
-export function DeployLinksCard({
-  deployLinkVariable,
-  deployAdminLinkVariable,
-  editable,
-  onDelete,
-  onEdit,
-  onUpdate,
-  valueAriaLabel,
-}: {
-  deployLinkVariable: ProjectVariable
-  deployAdminLinkVariable: ProjectVariable
-  editable: boolean
-  onDelete: (id: string) => void
-  onEdit: () => void
-  onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
-  valueAriaLabel: string
-}) {
-  return (
-    <article className={editable ? 'editable-variable-card editable-variable-card--grouped editable-variable-card--editing' : 'editable-variable-card editable-variable-card--grouped'}>
-      <div className="grouped-variable-stack">
-        <GroupedTextRow
-          editable={editable}
-          label={deployLinkVariable.key}
-          value={deployLinkVariable.value}
-          valueAriaLabel={valueAriaLabel}
-          onChange={(value) => onUpdate(deployLinkVariable.id, 'value', value)}
-          action={<><VariableEditButton active={editable} onClick={onEdit} /><GroupedTrashButton label="Elimina LINK_DEPLOY" onClick={() => onDelete(deployLinkVariable.id)} /></>}
-        />
-        <GroupedTextRow
-          editable={editable}
-          label={deployAdminLinkVariable.key}
-          value={deployAdminLinkVariable.value}
-          valueAriaLabel={valueAriaLabel}
-          onChange={(value) => onUpdate(deployAdminLinkVariable.id, 'value', value)}
-          action={<GroupedTrashButton label="Elimina LINK_DEPLOY ADMIN" onClick={() => onDelete(deployAdminLinkVariable.id)} />}
-          singleAction
-        />
-      </div>
-    </article>
-  )
-}
-
 export function GitHubCredentialsCard({
   editable,
   emailVariable,

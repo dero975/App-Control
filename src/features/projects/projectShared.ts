@@ -152,11 +152,6 @@ export function buildProjectVariables(project: Project): ProjectVariable[] {
   return [...canonicalVariables, ...extraVariables]
 }
 
-export function getProjectPreviewMeta(project: Project, normalizeSelectableValue?: (key: string, value: string) => string) {
-  const sheetFields = buildSheetFields(project, normalizeSelectableValue)
-  return `${getFieldValue(sheetFields, 'sviluppo in')} / ${getFieldValue(sheetFields, 'deploy con')}`
-}
-
 export function formatProjectUpdatedAt(value: string) {
   const updatedAtDate = new Date(value)
   if (Number.isNaN(updatedAtDate.getTime())) return 'Data ultima modifica non disponibile'
