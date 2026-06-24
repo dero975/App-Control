@@ -195,14 +195,9 @@ export function getDeployLink(fields: ProjectVariable[], project: Project) {
 }
 
 export function getDeployAdminLink(variables: ProjectVariable[]) {
-  // Nessun default automatico /admina: il link admin si mostra solo se impostato a mano.
+  // Link admin reale del progetto: lo gestisce l'Agent (varia da progetto a progetto),
+  // nessun suffisso dedotto qui. Si mostra il valore scritto in `LINK_DEPLOY ADMIN`.
   return getFieldValue(variables, deployAdminLinkKey.toLowerCase())
-}
-
-export function buildDefaultDeployAdminLink(value: string) {
-  const normalizedValue = value.trim().replace(/\/+$/, '')
-  if (!normalizedValue) return ''
-  return `${normalizedValue}/admina`
 }
 
 export function isDeployPasswordField(key: string) {

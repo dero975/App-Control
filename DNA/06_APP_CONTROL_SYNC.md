@@ -6,6 +6,16 @@ Documento dedicato al lavoro di sincronizzazione agent <-> App Control: come un 
 
 App Control e la "cassaforte" centrale (suo Supabase) con le variabili di tutti i progetti. Da un qualsiasi progetto aperto, l'agent si collega **da remoto** ad App Control, **legge** le variabili del progetto e ne **genera il `.env`**; quando ne nascono di nuove durante lo sviluppo, le **riscrive** in App Control. L'utente non scrive mai a mano nel `.env`.
 
+## Come l'agent "attinge" alle regole — e perche non spreca (enterprise)
+
+Le regole vivono in App Control (tabella `prompts`, prompt `CLAUDE.MD`). Il canale agent le legge via REST (policy `prompts_agent_select`, migration `20260619_02`): leggibile da qualunque agent autorizzato per un progetto valido. Ma il meccanismo che le rende **realmente eseguite senza loop ne spreco** e questo:
+
+- **CLAUDE.md vive come file su disco**, non come lettura ripetuta dal DB. Lo step (2) del Sync scarica `prompts.full_text` (titolo esatto `CLAUDE.MD`) e lo scrive come `CLAUDE.md` nella root. Da li **Claude Code lo carica automaticamente a ogni sessione** (file nativo, vincolante, costo zero). Il file e la **cache**: si ri-scarica solo se **manca o e diverso** da App Control (idempotente). Mai rileggere il DB a ogni messaggio.
+- **Esecuzione con gate temporali (no azioni infinite).** Il protocollo §0 del `CLAUDE.MD` e deterministico: i 5 controlli d'avvio girano **una volta a inizio sessione**, ogni passo con una **condizione** (se gia a posto, salta). Completati, il protocollo e **chiuso**: non si rilancia a ogni turno.
+- **Riconciliazione solo dopo eventi reali (§1bis del CLAUDE.MD).** Variabili e due link si ri-sincronizzano **solo** dopo un evento concreto (nuova variabile/segreto, deploy/URL cambiato, richiesta esplicita). Senza eventi: nessuna lettura/scrittura. Questo e cio che evita lo spreco di crediti.
+
+Regola d'oro: **rigido nell'eseguire, ozioso quando non serve.** Se non c'e niente di nuovo, l'agent non fa nulla e lo dice in una riga.
+
 ## Connessione: il file `.agent/app-control.json`
 
 Sta nella **root del progetto** (in `.gitignore`), non in App Control. Contiene le 4 chiavi del tab **Sync**:
@@ -22,7 +32,7 @@ Sta nella **root del progetto** (in `.gitignore`), non in App Control. Contiene 
 L'agent lo legge da solo a inizio sessione e si collega ad App Control con header `x-app-control-project-id` + `x-app-control-agent-key` + anon key. La sezione Sync (e la chiave agent) si **genera in automatico** alla creazione di un nuovo progetto (`createEmptyProject` -> `createProjectRecord`). Nota: il progetto App Control stesso ha `agentKey` vuoto perche precede questa funzione.
 
 ### Fonte unica del prompt di Sync (vincolante)
-Il testo del prompt di Sync e definito da **`defaultSyncPrompt`** in `projectPageConstants.ts` (mostrato nel tab Sync e copiato dall'utente). E la **fonte canonica** e deve essere autosufficiente: include scaricare `CLAUDE.MD`, generare `.env` (colonna `value_text`, mai `value`), `.mcp.json`, git remote col token, e **riscrivere nuove variabili SOLO in `project_env_variables`** (unica tabella scrivibile dal canale agent). `resolveSyncPrompt` rimpiazza automaticamente le versioni legacy (`legacyDefaultSyncPrompt`, `previousDefaultSyncPrompt`, `priorDefaultSyncPrompt`) con quella corrente, cosi anche i progetti esistenti mostrano il prompt aggiornato. Il prompt **BOOTSTRAP** (tabella `prompts`) e allineato a questa stessa logica: non deve divergere.
+Il testo del prompt di Sync e definito da **`defaultSyncPrompt`** in `projectPageConstants.ts` (mostrato nel tab Sync e copiato dall'utente). E la **fonte canonica** e deve essere autosufficiente: include scaricare `CLAUDE.MD`, generare `.env` (colonna `value_text`, mai `value`), `.mcp.json`, git remote col token, e **riscrivere nuove variabili SOLO in `project_env_variables`** (unica tabella scrivibile dal canale agent). `resolveSyncPrompt` rimpiazza automaticamente **tutte** le versioni legacy registrate in `legacySyncPrompts` (`projectPageModel.ts`) con quella corrente, cosi anche i progetti esistenti mostrano il prompt aggiornato senza toccare il DB. **Regola di manutenzione:** ogni volta che cambi `defaultSyncPrompt`, sposta il valore precedente in una costante legacy e aggiungila a `legacySyncPrompts`, altrimenti i progetti che lo avevano adottato non si auto-aggiornano. Il prompt **BOOTSTRAP** e il prompt **CLAUDE.MD** (tabella `prompts`) sono allineati a questa stessa logica: non devono divergere.
 
 ## Chi inserisce quali variabili
 
@@ -32,7 +42,7 @@ L'utente crea un account/email nuovo per progetto (limiti free tier) -> GitHub, 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (escono insieme creando il progetto Supabase a mano), `RENDER_API_KEY` (dal nuovo account Render), `GITHUB_URL` (l'URL del repo, se gia esistente) e `GITHUB_TOKEN` (scelta dell'owner: inserirlo a mano e piu semplice/robusto — l'agent lo trova pronto, niente `gh auth login` ne `gh repo create`).
 
 **Gestisce l'AGENT:**
-`LINK_DEPLOY` e `LINK_DEPLOY ADMIN` (dopo il deploy), piu **tutte** le variabili/segreti generati durante lo sviluppo (`SESSION_SECRET`, chiavi di altre piattaforme, ecc.). Se `GITHUB_URL` non e stato messo a mano (repo non ancora creato), lo crea lui con `gh repo create` e lo scrive.
+`LINK_DEPLOY` (link pubblico/user) e `LINK_DEPLOY ADMIN` (link admin reale del progetto) dopo il deploy: l'Agent rileva entrambi dal progetto reale e li scrive in `project_env_variables`. Il link admin cambia da progetto a progetto (percorso o sottodominio diverso), quindi va ricavato dal codice/config reali, mai assunto con un suffisso fisso; se i valori salvati non corrispondono ai link reali, l'Agent li corregge a ogni sync (vale anche per i progetti esistenti). Oltre ai due link, l'Agent gestisce **tutte** le variabili/segreti generati durante lo sviluppo (`SESSION_SECRET`, chiavi di altre piattaforme, ecc.). **Riconciliazione a ogni sync (regola rigida):** l'Agent confronta le chiavi del `.env` reale con quelle gia in `project_env_variables` e **carica ogni variabile/segreto nuovo o cambiato**. Non sempre ci sono variabili nuove: se il delta e vuoto non scrive nulla, ma la verifica va fatta **ogni volta**. **Esclude dall'upload** solo: le 7 variabili manuali dell'utente e le derivate `VITE_*`/`SUPABASE_DB_URL` (si rigenerano dal `.env`, non si archiviano). Le variabili caricate appaiono nella UI sotto "**Gestite da Agent**" (classificazione `managedVariables` in `VariablesPanel`). Se `GITHUB_URL` non e stato messo a mano (repo non ancora creato), lo crea lui con `gh repo create` e lo scrive.
 
 App Control va usata come **libretto privato** di tutti i segreti del progetto: oltre alle canoniche, accetta variabili extra.
 

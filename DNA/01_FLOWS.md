@@ -46,7 +46,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Tab interni: `Dati progetto`, `Variabili`, `Immagini`, `Note`, `Sync`.
 - Il tab `Immagini` e caricato in lazy loading: canvas, ottimizzazione immagini e modali restano fuori dal chunk iniziale di `Progetti` finche il tab non viene aperto.
 - L'header dettaglio mostra titolo progetto, link deploy se presente e `Data creazione` formattata sotto al link.
-- Se `LINK_DEPLOY` e presente, l'header dettaglio mostra anche il link admin derivato `.../admina`; il valore puo essere sovrascritto dalla variabile `LINK_DEPLOY ADMIN`.
+- L'header dettaglio mostra il link admin solo se `LINK_DEPLOY ADMIN` e valorizzata. Questa variabile contiene il link admin reale del progetto (percorso/sottodominio variabile per progetto) e la gestisce l'Agent: il frontend non deduce alcun suffisso.
 - `Dati progetto` usa `buildSheetFields(project)` e presenta righe editabili; il salvataggio scrive core fields, campi custom e accessi piattaforme.
 - I box gia consolidati di `Dati progetto` e `Variabili` sono in sola lettura finche Admin non clicca la matita del box. I campi appena aggiunti restano subito editabili per il primo inserimento e permettono anche di compilare il titolo del campo; quando Admin esce dal nuovo box dopo avere inserito titolo o valore, il box viene consolidato e rientra nella logica matita.
 - La modifica con matita e esclusiva: se Admin attiva una matita mentre un'altra card e gia in modifica, la card precedente torna automaticamente in sola lettura. Cliccare la matita gia attiva chiude la modifica.
@@ -55,13 +55,13 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Il salvataggio dei campi custom riallinea completamente `project_data_fields`: le righe rimosse dalla UI non devono ricomparire al reload.
 - `Variabili` usa `buildProjectVariables(project)` e ordina variabili tecniche con `orderedProjectKeys`; il salvataggio scrive `project_env_variables`.
 - Il salvataggio delle variabili riallinea completamente `project_env_variables`: le chiavi eliminate dalla UI non devono ricomparire al reload.
-- Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container; `LINK_DEPLOY ADMIN` nasce automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma resta modificabile manualmente dall'admin.
+- Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container. Entrambe sono valorizzate dall'Agent con i link reali del progetto (user e admin); restano modificabili manualmente dall'admin. Nessuna derivazione automatica con suffisso fisso.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
 - Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
 - Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
-- `LINK_DEPLOY ADMIN` non e una variabile canonica da compilare a mano: il flusso `Sync` deve trattarla come derivata di `LINK_DEPLOY`, salvo override manuale gia presente nel progetto.
+- `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono entrambe gestite dall'Agent durante il `Sync`: l'Agent rileva i due link reali dal deploy del progetto (admin variabile per progetto, mai un suffisso fisso assunto), li scrive in `project_env_variables` e li corregge se quelli salvati non corrispondono ai link reali. Sui progetti esistenti l'allineamento avviene alla prima sincronizzazione.
 - Se il progetto sincronizzato usa Vite o altre env client-side, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vanno derivate rispettivamente da `SUPABASE_URL` e `SUPABASE_ANON_KEY`; non devono essere attese come campi separati dentro App Control.
 - Se uno script o un provider richiede `SUPABASE_DB_URL`, va trattata come alias di `DATABASE_URL` e generata solo quando necessaria.
 - Il prompt di sincronizzazione non deve essere rigenerato per ogni progetto: identifica il flusso. Il JSON cambia per progetto e contiene `projectId` e `agentKey`.
