@@ -62,6 +62,17 @@ I titoli archiviati sono i **nomi canonici di sorgente** e vanno tenuti cosi (no
 
 Il formato "giusto per il provider" lo produce l'export `.env`: per frontend Vite genera `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `SUPABASE_DB_URL` con lo stesso valore. Le variabili che l'agent crea devono seguire questa stessa regola: nome canonico in App Control, prefisso `VITE_` aggiunto solo nel `.env` quando il progetto e Vite.
 
+## Colonne valore: `value_text` vs `value_ciphertext` (regola critica)
+
+Ogni riga di `project_env_variables` ha DUE colonne valore e un flag `is_sensitive`:
+- **NON sensibili** (`is_sensitive=false`): valore in **`value_text`** (es. `GITHUB_URL`, `SUPABASE_URL`, `LINK_DEPLOY`).
+- **Sensibili** (`is_sensitive=true`): valore in **`value_ciphertext`** (es. `GITHUB_TOKEN`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`, `SESSION_SECRET`).
+- La colonna `value` non esiste / non si usa mai.
+
+**In LETTURA** (rigenerare `.env`): per ogni variabile prendi il campo giusto in base a `is_sensitive`. Leggere solo `value_text` lascia VUOTE tutte le sensibili → `.env` con token/chiavi/DATABASE_URL vuoti (bug reale osservato). Mai scrivere valori vuoti nel `.env`.
+
+**In SCRITTURA** (INSERT dal canale agent): includi sempre `project_id` = **UUID** del progetto (ottenuto dalla SELECT su `projects`, NON lo slug dell'header — la policy RLS confronta l'UUID, lo slug da 401). Metti il valore in `value_ciphertext` con `is_sensitive=true` se e un segreto, altrimenti in `value_text` con `is_sensitive=false`.
+
 ## Scrittura sicura (ATTIVA)
 
 Il canale agent supporta ora **lettura e scrittura**, senza usare la service_role ("tasto master"). Migration additiva e reversibile:

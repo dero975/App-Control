@@ -1,71 +1,73 @@
-# CLAUDE.md — App Control
+# CLAUDE.md — Standard operativo enterprise (universale)
 
-Contesto operativo per Claude Code. Leggere prima `README_OPERATIVO.md`, poi i file `DNA/` pertinenti al task.
+Questo file e **vincolante**. Va rispettato al **100%, in modalita enterprise, senza eccezioni**, in ogni sessione e su ogni progetto — con il **minimo consumo di crediti** (massimo rapporto qualita/prezzo). Se una richiesta contraddice queste regole, fermati e segnalalo.
 
----
+## 0 · Protocollo di sessione (deterministico, anti-spreco)
 
-## Progetto
+Esegui questi controlli **una sola volta a inizio sessione**, in ordine, poi **fermati**. Ogni passo ha una **condizione**: se gia soddisfatta, **salta senza agire** (non sprecare crediti). NON ripetere questo protocollo a ogni messaggio: si riesegue solo a nuova sessione o dopo un **evento reale** (vedi §1bis).
 
-App Control è una web app privata in React + TypeScript + Vite. Gestisce progetti, prompt, variabili, immagini e clienti. Backend: solo Supabase (nessun server custom). Deploy: Render Static Site su branch `main`.
+1. **CLAUDE.md presente?** Se il file `CLAUDE.md` non esiste nella root, o e diverso dal prompt `CLAUDE.MD` su App Control, scaricalo (`GET /rest/v1/prompts?title=eq.CLAUDE.MD&select=full_text`) e scrivilo come `CLAUDE.md` nella root. Se gia presente e identico, **non riscaricarlo**. Da qui Claude Code lo carica da solo a ogni sessione: e la tua cache, non rileggerlo dal DB ogni volta.
+2. **DNA letto?** Leggi `DNA/00` e i soli file DNA pertinenti al task corrente. Non leggere tutto il DNA "per sicurezza".
+3. **`.env` allineato?** Connettiti ad App Control (§1) e rigenera `.env` SOLO se manca o se mancano variabili. Se `.env` e gia completo e coerente, **non riscriverlo**.
+4. **Stato progetto:** nuovo -> struttura allo standard (§4); esistente -> allinea (vale il codice). Verifica connessioni in sola lettura, senza dichiararle ok senza prova.
+5. **Output:** un riepilogo breve (stato, connessioni, prossimo passo). Poi **attendi**: non avviare sviluppo, analisi o refactor senza richiesta. Prima di ogni modifica comunica gli step (§1, Regola comunicazione).
 
-## Stack
+**Condizione di stop globale:** completati i 5 punti, il protocollo e CHIUSO per la sessione. Non rilanciarlo, non ri-verificare in loop. Se un passo e gia a posto, dillo in una riga e prosegui.
 
-- Frontend: React 18, TypeScript, Vite, CSS custom, lucide-react
-- Backend: Supabase (database + RLS + funzioni SQL)
-- Deploy: Render Static Site → autodeploy da GitHub `main`
-- Keepalive: GitHub Actions (schedulato)
-- Backup: Google Sheets via Apps Script
+## 1bis · Quando ri-sincronizzare (gate eventi, non a ogni messaggio)
+Ri-esegui la **riconciliazione** (§1: variabili + due link) **solo dopo un evento concreto**, non di continuo:
+- hai **creato/cambiato una variabile o un segreto** nel `.env` -> caricala in App Control;
+- hai fatto un **deploy** o e cambiato un URL -> aggiorna `LINK_DEPLOY` / `LINK_DEPLOY ADMIN`;
+- l'utente **chiede** esplicitamente un sync.
+Fuori da questi eventi, **non leggere e non scrivere** App Control: eviti azioni a vuoto e spreco di crediti. Se non c'e nulla di nuovo, non fare nulla.
 
-## Comandi disponibili
+## 1 · Sincronizzazione App Control (vincolante)
+App Control e la **cassaforte centrale** delle variabili di ogni progetto (suo Supabase). La connessione e **remota**, indipendente dal progetto aperto.
 
-```bash
-npm run dev          # avvio locale (porta 5173 di default)
-npm run build        # build produzione (esegue typecheck + vite build)
-npm run lint         # lint
-npm run typecheck    # solo TypeScript
-npm run check:all    # typecheck + lint + build
-```
+- **Bootstrap:** file `.agent/app-control.json` nella root (in `.gitignore`), con 4 chiavi: `projectId`, `agentKey`, `appControlSupabaseUrl`, `appControlSupabaseAnonKey`. Lo leggi a inizio sessione.
+- **Accesso:** Supabase REST con header `x-app-control-project-id` + `x-app-control-agent-key` + anon key. **Lettura e scrittura**, limitate al **solo** progetto della chiave.
+- **Flusso:** leggi le variabili da App Control -> **generi tu il `.env`** (l'utente non scrive mai a mano nel `.env`). **Riconciliazione (ogni sync):** confronta le chiavi del `.env` reale con quelle gia in `project_env_variables` e **carica in App Control ogni variabile/segreto nuovo o cambiato** (`SESSION_SECRET`, chiavi, URL deploy/repo, qualsiasi segreto). **Escludi** solo le 7 manuali dell'utente e le derivate `VITE_*`/`SUPABASE_DB_URL`. Se non ci sono variabili nuove, non scrivere nulla. Le nuove appaiono in App Control sotto **"Gestite da Agent"**.
+- **Chi inserisce cosa:**
+  - **UTENTE** (manuale, alla creazione): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
+  - **AGENT:** `GITHUB_URL` (crei tu il repo con `gh`), `GITHUB_TOKEN` e tutti i segreti generati. **Due link di deploy (dopo il deploy):** `LINK_DEPLOY` = URL pubblico/user; `LINK_DEPLOY ADMIN` = URL **reale** dell'area admin di QUESTO progetto. Il percorso/sottodominio admin **cambia da progetto a progetto**: ricavalo dal codice/config reali (route admin, deploy Render, README), **mai un suffisso fisso**. Scrivi/aggiorna entrambi in `project_env_variables`; se i valori salvati non corrispondono ai link reali, correggili.
+- **Nomi:** usa i nomi **canonici** (non rinominare). Le `VITE_*` non si archiviano: le generi solo nel `.env` per i frontend Vite (stesso valore).
 
-## Variabili ambiente necessarie (file .env locale)
+**Regola comunicazione (fondamentale).** Prima di ogni modifica o sviluppo, **comunica SEMPRE in modo chiaro tutti gli step necessari** per sincronizzare App Control, separando **"cosa faccio io"** e **"cosa devi fare tu"** — perche l'utente potrebbe dimenticare i passaggi. Una sola azione alla volta:
+`AZIONE ORA: <azione>. Poi rispondi "fatto".`
 
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
+## 2 · Governance non negoziabile
+Le regole sono **vincoli, non suggerimenti**: confrontale **prima** di agire; se violi, correggi **subito**.
+- **Codice = unica fonte di verita.** Doc/DNA divergente -> vale il codice, riallinea la doc.
+- **DB = unica fonte dei dati.** Niente dati hardcoded/mock/locali nel runtime. **Parita admin/user**: ogni entita gestita da admin e letta lato user dalla stessa fonte DB.
+- **DB mai distruttivo.** Schema solo come **migrazioni versionate additive**; mai `db push`/`--force`/sync diretti su produzione. **RLS attive** su ogni tabella con dati utente.
+- **Segreti:** `.env` sempre in `.gitignore`; **mai stampare** token/password/chiavi/URL con credenziali. Service role solo lato backend, mai nel frontend.
+- **Git:** `git status` prima di toccare/committare; **mai committare** `.env`, backup, cache, file generati. Commit/push **solo se richiesto** e dopo che i controlli passano.
+- **Push = alto rischio.** Autodeploy su un branch = **deploy in produzione**: mai pushare senza **ok esplicito**, anche se chiesto genericamente di "committare e pushare".
+- **Free tier:** Supabase Free + Render (deploy unico frontend+backend). Mai saturare i limiti; segnala **prima** di avvicinarli.
+- **Privacy EU:** informativa e cookie banner minimale prima del primo deploy in produzione.
 
-## Architettura src/
+## 3 · Flusso modifiche
+1. Riformula in una riga **cosa fai e cosa non tocchi**.
+2. Se tocca **DB, auth, deploy, architettura** o **elimina dati** -> **fermati e chiedi conferma** (piano).
+3. Implementa il **minimo necessario**; riusa l'esistente; non toccare aree non dichiarate.
+4. Verifica con gli script del progetto (typecheck/lint/build). **Non dichiarare test passati senza eseguirli.**
+5. Chiudi **aggiornando doc/DNA nello stesso intervento**.
 
-- `src/app/` — shell, sidebar, navigazione
-- `src/features/projects/` — gestione progetti, variabili, immagini, sync agent
-- `src/features/prompts/` — libreria prompt
-- `src/features/customers/` — workspace clienti
-- `src/features/dashboard/` — riepilogo read-only
-- `src/features/settings/` — PIN e dispositivo attendibile
-- `src/features/access/` — schermata PIN
-- `src/components/` — componenti condivisi
-- `src/lib/` — supabase client, PIN, clipboard, utilities
-- `src/types/app.ts` — tipi dominio
+Fix piccoli (un testo, un colore): esegui diretto. Bug: **riproducilo e isola la causa radice** prima di pianificare.
 
-## Regole non negoziabili
+## 4 · Struttura progetto (standard)
+- Stack base: **React + Vite + TypeScript**, **Supabase** (dati), **Render** (deploy unico), **GitHub**.
+- **File piccoli e modulari** (sotto il limite di righe, applicato in fase di scrittura); niente duplicazione di logica.
+- **`DNA/`** come contesto canonico leggero: solo cio che un agent **non** ricava rapidamente dal codice; `00` = indice; numerazione per importanza.
+- App avviabile in locale e verificabile (porta **5001** quando previsto).
 
-- Non usare `SUPABASE_SERVICE_ROLE_KEY` nel frontend — mai.
-- Non loggare o stampare segreti, token, password o chiavi.
-- Non aggiungere backend, auth email/password o storage senza richiesta esplicita.
-- Non riattivare RLS permissive `using (true)` sulle tabelle operative.
-- Non duplicare logiche esistenti — verificare prima se esiste già.
-- File sotto 300 righe. Se un file cresce oltre, dividerlo subito.
-- Autosave attivo su dettaglio progetto — nessun pulsante manuale "Salva".
-- Il codice reale è fonte primaria. DNA/ è contesto, non sostituto.
+## 5 · Efficienza e crediti
+- Effort **sobrio** di default; alzalo **solo** per rischio reale (DB/sicurezza/architettura/refactor/bug complesso).
+- **Subagent** solo se realmente necessari.
+- Comunica **una azione alla volta**, sintetico, linguaggio semplice.
 
-## Flusso modifiche
+## 6 · Skill on-demand (vivono in App Control, NON qui)
+Non appesantire questo file: queste operazioni si invocano **solo su richiesta**. Quando l'utente le chiede, **recupera il prompt corrispondente da App Control ed eseguilo**:
+Pulizia e ottimizzazione · Analisi completa (sola diagnosi) · DNA (crea/riallinea) · Aggiorna DNA+Backup+Git · Ottimizzazione navigazione · Responsive mobile nativo · Qualita progetto adattiva · Keepalive Supabase · Testing visivo automatizzato · Fix complesso controllato · Crea/aggiorna `.env` · Refactoring (ripensamento progetto).
 
-1. Leggi `README_OPERATIVO.md` e i file `DNA/` pertinenti.
-2. Verifica il codice reale prima di modificare.
-3. Per modifiche a DB/RLS/SQL: proponi la migration, aspetta conferma.
-4. Per deploy: `git push origin main` → Render autodeploy.
-5. Aggiorna `DNA/` solo se cambia una logica, un vincolo o un'integrazione reale.
-6. Se noti qualcosa di significativo, aggiungilo a `LEARNINGS.md`.
 
-## Agent API (Claude Code su altri progetti)
-
-Ogni progetto in App Control ha `projectId` + `agentKey`. Gli agent esterni leggono i dati progetto via Supabase REST con header `x-app-control-project-id` e `x-app-control-agent-key`. Sola lettura, project-scoped. Documentato in `DNA/05_AGENT_API.md`.

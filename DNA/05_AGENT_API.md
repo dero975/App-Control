@@ -37,7 +37,7 @@ x-app-control-agent-key: <agentKey>
 Con questi header l'agent può leggere (solo lettura, solo il proprio progetto):
 
 - `projects` — metadati progetto (nome, URL deploy, stack, etc.)
-- `project_env_variables` — tutte le variabili (GITHUB_TOKEN, SUPABASE_URL, etc.)
+- `project_env_variables` — tutte le variabili. Valore in `value_text` (NON sensibili) o `value_ciphertext` (sensibili, `is_sensitive=true`): leggi il campo giusto per riga, vedi `DNA/06_APP_CONTROL_SYNC.md`.
 - `project_data_fields` — campi custom (email GitHub, password, etc.)
 - `project_platform_accesses` — accessi piattaforme
 - `project_agent_keys` — prompt sincronizzazione
@@ -48,7 +48,7 @@ Con questi header l'agent può leggere (solo lettura, solo il proprio progetto):
 ```bash
 # Nessun filtro project_id nell'URL: e' la RLS a limitare al proprio progetto
 # (projectId qui = slug del Sync; project_id colonna e' un UUID, non lo slug).
-curl "https://xxx.supabase.co/rest/v1/project_env_variables?select=key,value_text" \
+curl "https://xxx.supabase.co/rest/v1/project_env_variables?select=key,value_text,value_ciphertext,is_sensitive" \
   -H "Authorization: Bearer <anonKey>" \
   -H "apikey: <anonKey>" \
   -H "x-app-control-project-id: <projectId>" \

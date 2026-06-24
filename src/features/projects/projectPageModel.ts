@@ -7,7 +7,7 @@ import {
   normalizeProjectName,
   supabaseServiceKey,
 } from './projectShared'
-import { defaultSyncPrompt, legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, type ProjectListSortMode } from './projectPageConstants'
+import { defaultSyncPrompt, legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, preCiphertextSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, type ProjectListSortMode } from './projectPageConstants'
 
 export function getProjectDetailSignature({
   imageSlotsSignature,
@@ -117,7 +117,7 @@ export function buildNormalizedSheetFields(project: Project) {
   return buildSheetFields(project, normalizeSelectableFieldValue)
 }
 
-const legacySyncPrompts = [legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt]
+const legacySyncPrompts = [legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, preCiphertextSyncPrompt]
 
 export function resolveSyncPrompt(value: string) {
   const normalizedValue = value.trim()
