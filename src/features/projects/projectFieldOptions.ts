@@ -5,11 +5,6 @@ export type SelectableFieldConfig = {
 }
 
 export const selectableFieldConfigs: Record<string, SelectableFieldConfig> = {
-  'sviluppo in': {
-    options: ['Claude Code', 'Windsurf', 'Replit'],
-    promptLabel: 'Nuovo ambiente di sviluppo',
-    fallback: 'Claude Code',
-  },
   'deploy con': {
     options: ['Render', 'CloudeFlare'],
     promptLabel: 'Nuovo provider deploy',

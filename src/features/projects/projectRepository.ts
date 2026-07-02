@@ -8,9 +8,6 @@ import type {
   ProjectVariable,
 } from './projectRepositoryTypes'
 import {
-  fetchDashboardPlatformAccessRows,
-  groupRowsByProjectId,
-  mapPlatformAccessListRow,
   mapProjectListRow,
   mapProjectRow,
   mapProjects,
@@ -20,7 +17,6 @@ import {
   restoreProjectBackup,
   saveDataFields,
   saveEnvVariables,
-  savePlatformAccesses,
   saveProjectImages,
 } from './projectRepositoryWrite'
 
@@ -33,7 +29,7 @@ export async function fetchProjects() {
 
   const { data: projects, error: projectsError } = await client
     .from('projects')
-    .select('id, agent_project_id, name, created_at, updated_at, status, development_environment, deploy_provider, deploy_url')
+    .select('id, agent_project_id, name, created_at, updated_at, status, deploy_provider, deploy_url')
     .order('updated_at', { ascending: false })
   if (projectsError) throw projectsError
 
@@ -45,19 +41,15 @@ export async function fetchDashboardProjects() {
 
   const { data: projects, error: projectsError } = await client
     .from('projects')
-    .select('id, agent_project_id, name, created_at, updated_at, status, development_environment, github_account_email, deploy_provider, deploy_url')
+    .select('id, agent_project_id, name, created_at, updated_at, status, github_account_email, deploy_provider, deploy_url')
     .order('name', { ascending: true })
   if (projectsError) throw projectsError
 
   const projectRows = (projects as ProjectDashboardRow[] | null) ?? []
-  const projectIds = projectRows.map((project) => project.id)
-  const accessRows = projectIds.length ? await fetchDashboardPlatformAccessRows(projectIds) : []
-  const accessRowsByProjectId = groupRowsByProjectId(accessRows)
 
   return projectRows.map((project) => ({
     ...mapProjectListRow(project),
     githubAccountEmail: project.github_account_email,
-    platformAccesses: (accessRowsByProjectId.get(project.id) ?? []).map(mapPlatformAccessListRow),
   }))
 }
 
@@ -67,7 +59,7 @@ export async function fetchProjectById(projectId: string) {
   const { data, error } = await client
     .from('projects')
     .select(
-      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+      'id, agent_project_id, name, created_at, updated_at, status, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
     )
     .eq('id', projectId)
     .single()
@@ -88,7 +80,6 @@ export async function createProjectRecord(project: Project) {
       agent_project_id: project.agent.projectId,
       name: normalizeProjectName(project.name),
       status: project.status,
-      development_environment: project.developmentEnvironment,
       github_repo_url: project.githubRepoUrl,
       github_account_email: project.githubAccountEmail,
       linked_secret_label_ciphertext: project.linkedSecretLabel || null,
@@ -98,7 +89,7 @@ export async function createProjectRecord(project: Project) {
       operational_notes: project.operationalNotes,
     })
     .select(
-      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+      'id, agent_project_id, name, created_at, updated_at, status, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
     )
     .single()
   if (projectError) throw projectError
@@ -138,7 +129,6 @@ export async function createProjectRecord(project: Project) {
     },
     [],
     [],
-    [],
   )
 }
 
@@ -154,7 +144,6 @@ export async function saveProjectSnapshot({ project, sheetFields, variables, ima
   const name = normalizeProjectName(getFieldValue(sheetFields, 'nome progetto') || project.name)
   const githubEmail = getFieldValue(sheetFields, 'mail github')
   const password = getFieldValue(sheetFields, 'Password')
-  const developmentEnvironment = getFieldValue(sheetFields, 'sviluppo in') || project.developmentEnvironment
   const deployProvider = getFieldValue(sheetFields, 'deploy con') || project.deploy.provider
   const linkDeploy = getFieldValue(variables, 'LINK_DEPLOY')
   const githubUrl = getFieldValue(variables, 'GITHUB_URL')
@@ -164,7 +153,6 @@ export async function saveProjectSnapshot({ project, sheetFields, variables, ima
       .from('projects')
       .update({
         name,
-        development_environment: developmentEnvironment,
         github_repo_url: githubUrl,
         github_account_email: githubEmail,
         linked_secret_label_ciphertext: password || null,
@@ -176,7 +164,6 @@ export async function saveProjectSnapshot({ project, sheetFields, variables, ima
     if (projectError) throw projectError
 
     await saveDataFields(project.id, sheetFields)
-    await savePlatformAccesses(project.id, sheetFields)
     await saveEnvVariables(project.id, variables)
     await saveProjectImages(project.id, images)
   } catch (error) {

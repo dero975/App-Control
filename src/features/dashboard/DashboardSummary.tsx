@@ -5,7 +5,6 @@ export function DashboardSummary({
     projectCount: number
     uniqueGithubEmails: number
     duplicatedGithubEmails: number
-    duplicatedPlatformEmails: number
   }
 }) {
   return (
@@ -21,10 +20,6 @@ export function DashboardSummary({
       <div className="info-pill">
         <span>Email GitHub condivise</span>
         <strong>{summary.duplicatedGithubEmails}</strong>
-      </div>
-      <div className="info-pill">
-        <span>Email piattaforma condivise</span>
-        <strong>{summary.duplicatedPlatformEmails}</strong>
       </div>
     </div>
   )

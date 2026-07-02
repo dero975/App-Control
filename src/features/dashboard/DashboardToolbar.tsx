@@ -34,7 +34,7 @@ export function DashboardToolbar({
           type="search"
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder="Progetto, email o piattaforma"
+          placeholder="Progetto o email"
         />
       </label>
 
@@ -65,7 +65,6 @@ export function DashboardToolbar({
         <select value={emailFilter} onChange={(event) => onEmailFilterChange(event.target.value as EmailFilter)}>
           <option value="all">Tutte</option>
           <option value="github-duplicates">GitHub duplicate</option>
-          <option value="any-duplicates">Qualsiasi duplicata</option>
         </select>
       </label>
 

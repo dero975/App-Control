@@ -34,7 +34,6 @@ export function getSortedProjects(projects: Project[], query: string, sortMode: 
     (project) =>
       !normalizedQuery ||
       project.name.toLowerCase().includes(normalizedQuery) ||
-      project.developmentEnvironment.toLowerCase().includes(normalizedQuery) ||
       project.status.toLowerCase().includes(normalizedQuery),
   )
 
@@ -78,7 +77,6 @@ export function createEmptyProject(projectName: string): Project {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: 'Attivo',
-    developmentEnvironment: 'Windsurf',
     githubRepoUrl: '',
     githubAccountEmail: '',
     linkedSecretLabel: '',
@@ -131,12 +129,6 @@ function normalizeProjectVariableForSignature(variable: ProjectVariable) {
     key: variable.key,
     value: variable.value,
     sensitive: variable.sensitive,
-    accessAccounts: (variable.accessAccounts ?? []).map((access) => ({
-      id: access.id,
-      platform: access.platform,
-      email: access.email,
-      password: access.password,
-    })),
   }
 }
 

@@ -60,13 +60,13 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
 - Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
-- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Sviluppo in`, `Accessi piattaforme`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
-- `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono entrambe gestite dall'Agent durante il `Sync`: l'Agent rileva i due link reali dal deploy del progetto (admin variabile per progetto, mai un suffisso fisso assunto), li scrive in `project_env_variables` e li corregge se quelli salvati non corrispondono ai link reali. Sui progetti esistenti l'allineamento avviene alla prima sincronizzazione.
+- Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
+- `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono **manuali dell'utente**: si inseriscono nel box "Da inserire manualmente" del tab `Variabili` e si mostrano come link sotto al titolo. L'Agent li legge (per il `.env` se servono) ma non li scrive ne li sovrascrive in `project_env_variables`.
 - Se il progetto sincronizzato usa Vite o altre env client-side, `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` vanno derivate rispettivamente da `SUPABASE_URL` e `SUPABASE_ANON_KEY`; non devono essere attese come campi separati dentro App Control.
 - Se uno script o un provider richiede `SUPABASE_DB_URL`, va trattata come alias di `DATABASE_URL` e generata solo quando necessaria.
 - Il prompt di sincronizzazione non deve essere rigenerato per ogni progetto: identifica il flusso. Il JSON cambia per progetto e contiene `projectId` e `agentKey`.
 - In `Agent sync`, le icone copia stanno dentro al box relativo e non hanno testo o contorno.
-- Nella lista progetti non mostrare preview tecniche come `sviluppo in / deploy con`, stato o conteggio immagini: nella card lista restano solo titolo, ultima modifica e puntina.
+- Nella lista progetti non mostrare preview tecniche come `deploy con`, stato o conteggio immagini: nella card lista restano solo titolo, ultima modifica e puntina.
 - Le icone cestino delle card editabili devono restare allineate alla riga del controllo bianco, anche quando la card contiene contenuti extra sotto.
 - La pagina `Impostazioni` include la rimozione del dispositivo attendibile del browser corrente.
 
@@ -74,8 +74,6 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 
 - `CLIENTE`: campo del tab `Dati progetto` salvato come campo dati del progetto; sostituisce il vecchio workspace Clienti separato, rimosso da codice e database.
 - `Password`: label canonica; non e trattata come campo sensibile nel tab `Dati progetto`, quindi resta visibile.
-- `sviluppo in`: select con opzioni `Claude Code`, `Windsurf`, `Replit`, piu voce `+ Aggiungi` dentro al menu. `Claude Code` e il default per i nuovi progetti.
-- Dentro `sviluppo in`, `Accessi piattaforme` mostra il pulsante `Aggiungi accesso`; le righe piattaforma/mail/password sono visibili solo dopo creazione esplicita. Possono coesistere accessi separati per Windsurf, Replit o piattaforme custom.
 - `deploy con`: select con opzioni `Render`, `CloudeFlare`, piu voce `+ Aggiungi` dentro al menu.
 - Se un valore non previsto arriva ai select, il codice usa fallback del campo.
 - `+ Aggiungi` apre `window.prompt` e salva il nuovo valore nello stato locale del pannello.
@@ -137,11 +135,11 @@ Fonte: `src/features/settings/SettingsPage.tsx`.
 Fonte: `src/features/dashboard/DashboardPage.tsx`.
 
 - La pagina `Dashboard` e una vista riepilogativa read-only costruita dai dati reali dei progetti.
-- Mostra solo informazioni utili derivabili da `Dati progetto` e dagli `Accessi piattaforme` collegati a `sviluppo in`.
-- La tabella espone: nome progetto, email GitHub, `sviluppo in`, `deploy con`, accessi piattaforme con relative email.
-- I filtri attuali sono: testo libero, piattaforma e filtro su email duplicate.
-- I badge mostrano quando la stessa email GitHub o la stessa email piattaforma compaiono in piu progetti.
-- I valori `sviluppo in` e `deploy con` sono resi come pill solide senza contorno, con palette naturale stabile per i provider gia noti (`Windsurf`, `Replit`, `Render`, `CloudFlare`) e fallback deterministico per eventuali nuovi valori, cosi nuovi record ricevono automaticamente un colore coerente senza alterare quelli gia mappati.
+- Mostra solo informazioni utili derivabili da `Dati progetto`.
+- La tabella espone: nome progetto, email GitHub, `deploy con`.
+- I filtri attuali sono: testo libero, piattaforma (provider deploy) e filtro su email GitHub duplicate.
+- I badge mostrano quando la stessa email GitHub compare in piu progetti.
+- Il valore `deploy con` e reso come pill solida senza contorno, con palette naturale stabile per i provider gia noti (`Render`, `CloudFlare`) e fallback deterministico per eventuali nuovi valori.
 - La Dashboard non modifica i progetti e non introduce nuove tabelle o persistence dedicate.
 
 ## Componenti critici

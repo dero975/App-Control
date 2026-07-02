@@ -338,19 +338,11 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  align-self: start;
+  align-self: center;
   justify-self: start;
   width: 70px;
-  margin-top: 27px;
 }
 
 .grouped-variable-row__actions--single {
   justify-content: flex-start;
-}
-
-/* La riga "Deploy con" usa un select a riga singola: i pulsanti vanno centrati
-   verticalmente come negli altri campi, non spinti in basso. */
-.editable-variable-card--deploy .grouped-variable-stack > .grouped-variable-row:first-of-type .grouped-variable-row__actions {
-  align-self: center;
-  margin-top: 0;
 }

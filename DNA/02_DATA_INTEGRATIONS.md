@@ -22,19 +22,16 @@
 ## Vincoli dati attuali
 
 - I nuovi progetti devono partire senza dati demo o credenziali reali.
-- `developmentEnvironment` e il campo UI `sviluppo in` usano i valori base `Claude Code`, `Windsurf` e `Replit`; `Claude Code` e il default per i nuovi progetti. La UI mantiene fallback per eventuali valori esterni non previsti.
 - `ProjectAgentAccess.agentKey` viene generata localmente per progetto nel formato `XXXXX-XXXXX-XXXXX-XXXXX`; in produzione va salvata come hash e mostrata solo quando serve creare il file `.agent/app-control.json`.
 - `ProjectAgentAccess.syncPrompt` deve restare generico, riutilizzabile e non modificabile dalla UI; l'identificazione del progetto passa dal JSON con `projectId` e `agentKey`.
 - `projectId` (= `projects.agent_project_id`, lo slug del Sync) per i **nuovi** progetti e un codice alfanumerico casuale nel formato `prj-xxxxx` (`generateProjectId` in `projectPageModel.ts`, basato su `crypto.getRandomValues`), non derivato dal nome: univoco, stabile, mai riusato dopo un'eliminazione. NON si rigenera al rename. I progetti **esistenti** mantengono il loro slug storico (es. `nuovo-progetto-18`).
 - La creazione di un nuovo progetto passa da una **modale obbligatoria** (`NameProjectModal`) che chiede il nome: niente piu nome di default "Nuovo progetto N". `createEmptyProject(name)` riceve il nome digitato; il bottone "Crea progetto" resta disabilitato finche il nome e vuoto.
-- Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
-- `LINK_DEPLOY ADMIN` non e input canonico obbligatorio: la UI lo deriva automaticamente da `LINK_DEPLOY` aggiungendo `/admina`, ma puo essere salvato come override manuale dentro `project_env_variables`.
+- Il prompt `Sync` deve sempre trattare come fonte canonica solo le variabili realmente archiviate in App Control: `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
+- `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono input manuali dell'utente (box "Da inserire manualmente"): nessuna derivazione automatica, il valore salvato in `project_env_variables` alimenta i link sotto al titolo. L'Agent li legge ma non li scrive.
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non vengono piu salvate come input canonici: vanno derivate quando il codice reale del progetto sincronizzato usa env client-side Vite.
 - `SUPABASE_DB_URL` non e piu una variabile canonica da compilare: resta solo alias derivabile di `DATABASE_URL` per script o provider che la richiedono.
 - `RENDER_API_KEY` resta variabile canonica server-only e viene classificata con scope `Deploy`, non `Custom`.
 - Il dettaglio progetto mostra `createdAt`; la lista progetti mostra `updatedAt` come `Ultima modifica`.
-- Gli accessi piattaforma del box `sviluppo in` vengono salvati in `project_platform_accesses` solo quando creati dall'utente e salvati.
-- I nuovi progetti partono senza righe `Accessi piattaforme`; ogni accesso viene creato esplicitamente dall'utente.
 - `deploy.provider` alimenta `Deploy con`; se non e tra le opzioni, la UI usa fallback.
 - `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
 - `getDeployAdminLink` usa prima la variabile `LINK_DEPLOY ADMIN` se presente; in assenza di override costruisce automaticamente `${LINK_DEPLOY}/admina` rimuovendo eventuali slash finali.

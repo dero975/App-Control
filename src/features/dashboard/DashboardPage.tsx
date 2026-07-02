@@ -63,53 +63,27 @@ export function DashboardPage() {
     return counts
   }, [projects])
 
-  const platformEmailUsageMap = useMemo(() => {
-    const counts = new Map<string, number>()
-
-    for (const project of projects) {
-      for (const access of project.platformAccesses ?? []) {
-        const email = normalizeEmail(access.email)
-        if (!email) continue
-        counts.set(email, (counts.get(email) ?? 0) + 1)
-      }
-    }
-
-    return counts
-  }, [projects])
-
   const rows = useMemo<DashboardRow[]>(() => {
     return [...projects]
       .sort((left, right) => left.name.localeCompare(right.name, 'it', { sensitivity: 'base' }))
       .map((project) => {
         const githubEmail = project.githubAccountEmail.trim()
         const githubUsageCount = githubUsageMap.get(normalizeEmail(githubEmail)) ?? 0
-        const platformAccesses = (project.platformAccesses ?? []).map((access) => ({
-          ...access,
-          emailUsageCount: platformEmailUsageMap.get(normalizeEmail(access.email)) ?? 0,
-        }))
-        const hasAnyDuplicateEmail =
-          githubUsageCount > 1 || platformAccesses.some((access) => access.email && access.emailUsageCount > 1)
 
         return {
           project,
           githubEmail,
           githubUsageCount,
-          platformAccesses,
-          hasAnyDuplicateEmail,
         }
       })
-  }, [githubUsageMap, platformEmailUsageMap, projects])
+  }, [githubUsageMap, projects])
 
   const platformOptions = useMemo(() => {
     const nextOptions = new Set<string>()
 
     for (const row of rows) {
       if (row.githubEmail) nextOptions.add('GitHub')
-      if (row.project.developmentEnvironment.trim()) nextOptions.add(row.project.developmentEnvironment.trim())
       if (row.project.deploy.provider.trim()) nextOptions.add(row.project.deploy.provider.trim())
-      for (const access of row.platformAccesses) {
-        if (access.platform.trim()) nextOptions.add(access.platform.trim())
-      }
     }
 
     return ['Tutte', ...Array.from(nextOptions).sort((left, right) => left.localeCompare(right, 'it', { sensitivity: 'base' }))]
@@ -132,9 +106,7 @@ export function DashboardPage() {
       if (platformFilter !== 'Tutte') {
         const matchesPlatform =
           (platformFilter === 'GitHub' && Boolean(row.githubEmail)) ||
-          row.project.developmentEnvironment.trim() === platformFilter ||
-          row.project.deploy.provider.trim() === platformFilter ||
-          row.platformAccesses.some((access) => access.platform.trim() === platformFilter)
+          row.project.deploy.provider.trim() === platformFilter
 
         if (!matchesPlatform) return false
       }
@@ -142,16 +114,13 @@ export function DashboardPage() {
       if (githubEmailFilter !== 'Tutte' && row.githubEmail !== githubEmailFilter) return false
 
       if (emailFilter === 'github-duplicates' && row.githubUsageCount <= 1) return false
-      if (emailFilter === 'any-duplicates' && !row.hasAnyDuplicateEmail) return false
 
       if (!normalizedSearch) return true
 
       const haystack = [
         row.project.name,
         row.githubEmail,
-        row.project.developmentEnvironment,
         row.project.deploy.provider,
-        ...row.platformAccesses.flatMap((access) => [access.platform, access.email]),
       ]
         .join(' ')
         .toLowerCase()
@@ -163,15 +132,13 @@ export function DashboardPage() {
   const summary = useMemo(() => {
     const uniqueGithubEmails = githubUsageMap.size
     const duplicatedGithubEmails = Array.from(githubUsageMap.values()).filter((count) => count > 1).length
-    const duplicatedPlatformEmails = Array.from(platformEmailUsageMap.values()).filter((count) => count > 1).length
 
     return {
       projectCount: projects.length,
       uniqueGithubEmails,
       duplicatedGithubEmails,
-      duplicatedPlatformEmails,
     }
-  }, [githubUsageMap, platformEmailUsageMap, projects.length])
+  }, [githubUsageMap, projects.length])
 
   return (
     <div className="page-stack dashboard-page">

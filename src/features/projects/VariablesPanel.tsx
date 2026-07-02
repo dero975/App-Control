@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import { FileText, Plus } from 'lucide-react'
 import { FieldGroup } from '../../components/FieldGroup'
 import { copyToClipboard } from '../../lib/clipboard'
-import type { PlatformAccess, ProjectVariable, ProjectVariableTone } from '../../types/app'
+import type { ProjectVariable, ProjectVariableTone } from '../../types/app'
 import {
   isDeployPasswordField,
   isProjectNameField,
   normalizeProjectName,
 } from './projectShared'
-import { getSelectValue, selectableFieldConfigs } from './projectFieldOptions'
 import { DeployCredentialsCard, GitHubCredentialsCard } from './VariableGroupedCards'
 import { VariableEditorCard } from './VariableEditorCard'
 import { formatVariablesEnvForCopy, isDeployField } from './variableEnvFormatting'
@@ -84,52 +83,6 @@ export function VariablesPanel({
     }
 
     onChange(currentVariables.map((variable) => (variable.id === id ? { ...variable, [field]: nextValue } : variable)))
-  }
-
-  function updatePlatformAccess(variableId: string, accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) {
-    onChange(
-      variables.map((variable) =>
-        variable.id === variableId
-          ? {
-              ...variable,
-              accessAccounts: (variable.accessAccounts ?? []).map((access) =>
-                access.id === accessId ? { ...access, [field]: value } : access,
-              ),
-            }
-          : variable,
-      ),
-    )
-  }
-
-  function addPlatformAccess(variableId: string) {
-    onChange(
-      variables.map((variable) => {
-        if (variable.id !== variableId) return variable
-
-        return {
-          ...variable,
-          accessAccounts: [
-            ...(variable.accessAccounts ?? []),
-            {
-              id: `access-${Date.now()}`,
-              platform: getSelectValue(variable.value, selectableFieldConfigs['sviluppo in']),
-              email: '',
-              password: '',
-            },
-          ],
-        }
-      }),
-    )
-  }
-
-  function deletePlatformAccess(variableId: string, accessId: string) {
-    onChange(
-      variables.map((variable) =>
-        variable.id === variableId
-          ? { ...variable, accessAccounts: (variable.accessAccounts ?? []).filter((access) => access.id !== accessId) }
-          : variable,
-      ),
-    )
   }
 
   function deleteVariable(id: string) {
@@ -213,14 +166,11 @@ export function VariablesPanel({
         editable={isEditingVariable(variable.id)}
         isDraft={isDraftVariable(variable.id)}
         singleEnvCopy={isVariablesPanel}
-        onAddAccess={addPlatformAccess}
         onDelete={deleteVariable}
-        onDeleteAccess={deletePlatformAccess}
         onDraftCommit={finalizeDraftVariable}
         onEdit={() => toggleVariableEditing([variable.id])}
         toneOverride={toneOverrides[variable.id]}
         toneStorageKey={toneStorageKey}
-        onUpdateAccess={updatePlatformAccess}
         onUpdate={updateVariable}
         valueAriaLabel={valueAriaLabel}
       />

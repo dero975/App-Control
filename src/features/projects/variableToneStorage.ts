@@ -17,7 +17,7 @@ export const variableTones: Array<{ value: ProjectVariableTone; label: string }>
 export function isProtectedVariableTitle(variable: ProjectVariable) {
   const normalizedKey = variable.key.trim().toLowerCase()
   const normalizedEnvKey = variable.key.trim().toUpperCase()
-  const protectedDataKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con', 'password deploy'])
+  const protectedDataKeys = new Set(['nome progetto', 'mail github', 'password', 'deploy con', 'password deploy'])
   const protectedEnvKeys = new Set([
     'LINK_DEPLOY',
     deployAdminLinkKey,

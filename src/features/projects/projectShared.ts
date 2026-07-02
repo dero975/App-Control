@@ -72,13 +72,6 @@ export function buildSheetFields(
       sensitive: false,
     },
     {
-      id: 'sheet-sviluppo-in',
-      key: 'sviluppo in',
-      value: normalizeValue('sviluppo in', project.developmentEnvironment),
-      sensitive: false,
-      accessAccounts: project.platformAccesses ?? [],
-    },
-    {
       id: 'sheet-deploy-con',
       key: 'deploy con',
       value: normalizeValue('deploy con', project.deploy.provider),

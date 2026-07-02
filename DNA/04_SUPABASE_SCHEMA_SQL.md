@@ -6,7 +6,7 @@ Stato attuale del codice: Supabase e collegato per PIN app e sezioni Progetti/Pr
 
 Stato setup Supabase eseguito nella fase corrente:
 
-- create le tabelle `projects`, `project_data_fields`, `project_platform_accesses`, `project_env_variables`, `project_images`, `project_agent_keys`;
+- create le tabelle `projects`, `project_data_fields`, `project_env_variables`, `project_images`, `project_agent_keys`;
 - le tabelle del dominio Clienti (`customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`) e le relative viste/funzioni sono state eliminate con la migration `supabase/migrations/20260618_02_drop_customers.sql`; il vecchio workspace Clienti e sostituito dal campo `CLIENTE` del tab `Dati progetto`, salvato in `project_data_fields`;
 - attivati trigger `set_updated_at`;
 - RLS attiva; le policy owner iniziali sono state sostituite dalla fase PIN con policy permissive anon/auth per le tabelle operative;
@@ -39,13 +39,11 @@ Mappatura:
 - Lista progetti e header dettaglio: `projects`.
 - `created_at` alimenta la `Data creazione` del dettaglio; `updated_at` alimenta `Ultima modifica` nella lista progetti.
 - JSON sync progetto: `projects.agent_project_id` piu `project_agent_keys`.
-- Campi tecnici `sviluppo in / deploy con`: `projects.development_environment` e `projects.deploy_provider`; restano nel dettaglio e nella ricerca, ma non nella card lista progetti.
+- Campo tecnico `deploy con`: `projects.deploy_provider`; resta nel dettaglio e nella ricerca, ma non nella card lista progetti.
 - Tab `Dati progetto`:
   - `nome progetto`: `projects.name`
   - `mail github`: `projects.github_account_email`
   - `Password`: `projects.linked_secret_label_ciphertext`
-  - `sviluppo in`: `projects.development_environment`
-  - accessi piattaforme dentro `sviluppo in`: `project_platform_accesses`
   - `deploy con`: `projects.deploy_provider`
   - `CLIENTE` e gli altri campi aggiunti manualmente: `project_data_fields`
 - Tab `Variabili`: `project_env_variables`.
@@ -106,7 +104,7 @@ Tabelle future non attive nella fase corrente:
 - `project_prompts`
 - `app_settings`
 
-Tabelle rimosse: il dominio Clienti (`customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`) e le relative viste/funzioni sono state eliminate con la migration `supabase/migrations/20260618_02_drop_customers.sql`. Non ricrearle: il dato cliente vive ora nel campo `CLIENTE` del tab `Dati progetto`, salvato in `project_data_fields`.
+Tabelle rimosse: il dominio Clienti (`customers`, `customer_projects`, `customer_project_platform_accesses`, `customer_project_env_variables`, `customer_project_data_fields`) e le relative viste/funzioni sono state eliminate con la migration `supabase/migrations/20260618_02_drop_customers.sql`. Non ricrearle: il dato cliente vive ora nel campo `CLIENTE` del tab `Dati progetto`, salvato in `project_data_fields`. Rimossi anche il campo `projects.development_environment` (UI "sviluppo in") e la tabella `project_platform_accesses` (UI "Accessi piattaforme") con la migration `supabase/migrations/20260702_01_drop_sviluppo_in_platform_accesses.sql`: i blocchi SQL di `project_platform_accesses` piu sotto sono STORICI (tabella non piu attiva), da rimuovere in un riallineamento profondo dedicato.
 
 ## Script 0B - PIN app e policy senza Supabase Auth
 
@@ -245,7 +243,6 @@ create table public.projects (
   agent_project_id text not null,
   name text not null,
   status text not null default 'Attivo' check (status in ('Attivo', 'In pausa', 'Archivio', 'Idea')),
-  development_environment text not null default 'Windsurf',
   github_repo_url text not null default '',
   github_account_email text not null default '',
   linked_secret_label_ciphertext text,

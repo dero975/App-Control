@@ -1,17 +1,11 @@
-import type { PlatformAccess, Project } from '../../types/app'
+import type { Project } from '../../types/app'
 
-export type EmailFilter = 'all' | 'github-duplicates' | 'any-duplicates'
+export type EmailFilter = 'all' | 'github-duplicates'
 
 export type DashboardRow = {
   project: Project
   githubEmail: string
   githubUsageCount: number
-  platformAccesses: Array<
-    PlatformAccess & {
-      emailUsageCount: number
-    }
-  >
-  hasAnyDuplicateEmail: boolean
 }
 
 const dashboardProviderToneMap: Record<string, string> = {

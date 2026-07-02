@@ -6,15 +6,13 @@ import type {
   DataFieldRow,
   EnvVariableRow,
   ImageRow,
-  PlatformAccessRow,
-  PlatformAccessWriteRow,
   ProjectBackup,
   ProjectImage,
   ProjectVariable,
 } from './projectRepositoryTypes'
 
 export async function saveDataFields(projectId: string, sheetFields: ProjectVariable[]) {
-  const coreKeys = new Set(['nome progetto', 'mail github', 'password', 'sviluppo in', 'deploy con'])
+  const coreKeys = new Set(['nome progetto', 'mail github', 'password', 'deploy con'])
   const customFields = sheetFields.filter((field) => !coreKeys.has(field.key.trim().toLowerCase()))
   await replaceDataFields(
     projectId,
@@ -25,22 +23,6 @@ export async function saveDataFields(projectId: string, sheetFields: ProjectVari
       value_text: field.sensitive ? '' : field.value,
       value_ciphertext: field.sensitive ? field.value || null : null,
       is_secret: field.sensitive,
-      sort_order: index,
-    })),
-  )
-}
-
-export async function savePlatformAccesses(projectId: string, sheetFields: ProjectVariable[]) {
-  const developmentField = sheetFields.find((field) => field.key.trim().toLowerCase() === 'sviluppo in')
-  const accounts = developmentField?.accessAccounts ?? []
-  await replacePlatformAccesses(
-    projectId,
-    accounts.map((account, index) => ({
-      id: account.id,
-      project_id: projectId,
-      platform: account.platform,
-      email: account.email,
-      password_ciphertext: account.password || null,
       sort_order: index,
     })),
   )
@@ -114,39 +96,6 @@ async function replaceDataFields(projectId: string, rows: Array<Omit<DataFieldRo
   }
 
   await deleteObsoleteRows('project_data_fields', (existingRows as Array<Pick<DataFieldRow, 'id'>> | null) ?? [], keptIds)
-}
-
-async function replacePlatformAccesses(projectId: string, rows: PlatformAccessWriteRow[]) {
-  const client = requireSupabaseClient()
-  const { data: existingRows, error: existingError } = await client
-    .from('project_platform_accesses')
-    .select('id')
-    .eq('project_id', projectId)
-  if (existingError) throw existingError
-
-  const existingIds = new Set(((existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? []).map((row) => row.id))
-  const keptIds: string[] = []
-
-  for (const row of rows) {
-    const { id, ...rowPayload } = row
-    const payload = {
-      ...rowPayload,
-      password_visible_by_default: true,
-    }
-
-    if (id && existingIds.has(id)) {
-      const { error } = await client.from('project_platform_accesses').update(payload).eq('id', id)
-      if (error) throw error
-      keptIds.push(id)
-      continue
-    }
-
-    const { data, error } = await client.from('project_platform_accesses').insert(payload).select('id').single()
-    if (error) throw error
-    keptIds.push((data as Pick<PlatformAccessRow, 'id'>).id)
-  }
-
-  await deleteObsoleteRows('project_platform_accesses', (existingRows as Array<Pick<PlatformAccessRow, 'id'>> | null) ?? [], keptIds)
 }
 
 async function replaceEnvVariables(projectId: string, rows: Array<EnvVariableRow & { sort_order: number }>) {
@@ -252,7 +201,6 @@ export async function fetchProjectBackup(projectId: string): Promise<ProjectBack
   return {
     projectRow,
     envRows: relations.envRows.filter((row) => row.project_id === projectId),
-    accessRows: relations.accessRows.filter((row) => row.project_id === projectId),
     fieldRows: relations.fieldRows.filter((row) => row.project_id === projectId),
     imageRows: relations.imageRows.filter((row) => row.project_id === projectId),
   }
@@ -268,7 +216,6 @@ export async function restoreProjectBackup(backup: ProjectBackup) {
       agent_project_id: projectRow.agent_project_id,
       name: projectRow.name,
       status: projectRow.status,
-      development_environment: projectRow.development_environment,
       github_repo_url: projectRow.github_repo_url,
       github_account_email: projectRow.github_account_email,
       linked_secret_label_ciphertext: projectRow.linked_secret_label_ciphertext,
@@ -289,17 +236,6 @@ export async function restoreProjectBackup(backup: ProjectBackup) {
       value_text: row.value_text,
       value_ciphertext: row.value_ciphertext,
       is_secret: row.is_secret,
-      sort_order: row.sort_order ?? index,
-    })),
-  )
-  await replacePlatformAccesses(
-    projectRow.id,
-    backup.accessRows.map((row, index) => ({
-      id: row.id,
-      project_id: row.project_id,
-      platform: row.platform,
-      email: row.email,
-      password_ciphertext: row.password_ciphertext,
       sort_order: row.sort_order ?? index,
     })),
   )

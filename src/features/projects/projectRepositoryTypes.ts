@@ -1,4 +1,4 @@
-import type { PlatformAccess, Project, ProjectImage, ProjectVariable } from '../../types/app'
+import type { Project, ProjectImage, ProjectVariable } from '../../types/app'
 
 export type ProjectRow = {
   id: string
@@ -7,7 +7,6 @@ export type ProjectRow = {
   created_at: string
   updated_at: string
   status: Project['status']
-  development_environment: string
   github_repo_url: string
   github_account_email: string
   linked_secret_label_ciphertext: string | null
@@ -19,7 +18,7 @@ export type ProjectRow = {
 
 export type ProjectListRow = Pick<
   ProjectRow,
-  'id' | 'agent_project_id' | 'name' | 'created_at' | 'updated_at' | 'status' | 'development_environment' | 'deploy_provider' | 'deploy_url'
+  'id' | 'agent_project_id' | 'name' | 'created_at' | 'updated_at' | 'status' | 'deploy_provider' | 'deploy_url'
 >
 
 export type ProjectDashboardRow = ProjectListRow & Pick<ProjectRow, 'github_account_email'>
@@ -40,17 +39,6 @@ export type AgentKeyRow = {
   key_ciphertext: string | null
   sync_prompt: string
 }
-
-export type PlatformAccessRow = {
-  id: string
-  project_id: string
-  platform: string
-  email: string
-  password_ciphertext: string | null
-  sort_order: number
-}
-
-export type PlatformAccessListRow = Pick<PlatformAccessRow, 'id' | 'project_id' | 'platform' | 'email' | 'sort_order'>
 
 export type DataFieldRow = {
   id: string
@@ -86,10 +74,8 @@ export type ProjectSnapshot = {
 export type ProjectBackup = {
   projectRow: ProjectRow
   envRows: EnvVariableRow[]
-  accessRows: PlatformAccessRow[]
   fieldRows: DataFieldRow[]
   imageRows: ImageRow[]
 }
 
-export type PlatformAccessWriteRow = Omit<PlatformAccessRow, 'id'> & { id?: string }
-export type { PlatformAccess, Project, ProjectImage, ProjectVariable }
+export type { Project, ProjectImage, ProjectVariable }

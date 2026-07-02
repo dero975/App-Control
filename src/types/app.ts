@@ -2,8 +2,6 @@ export type AdminSection = 'projects' | 'prompts' | 'settings' | 'dashboard'
 
 export type AppSection = AdminSection
 
-export type DevelopmentEnvironment = string
-
 export type ProjectStatus = 'Attivo' | 'In pausa' | 'Archivio' | 'Idea'
 
 export type PromptCategory = 'Prompt iniziali' | 'Prompt manutenzione' | 'Prompt vari'
@@ -21,13 +19,6 @@ export type EnvVariable = {
   value: string
   scope: 'Supabase' | 'GitHub' | 'Deploy' | 'Custom'
   sensitive: boolean
-}
-
-export type PlatformAccess = {
-  id: string
-  platform: string
-  email: string
-  password: string
 }
 
 export type ProjectVariableTone =
@@ -48,7 +39,6 @@ export type ProjectVariable = {
   value: string
   sensitive: boolean
   tone?: ProjectVariableTone
-  accessAccounts?: PlatformAccess[]
 }
 
 export type ProjectImage = {
@@ -73,7 +63,6 @@ export type Project = {
   createdAt: string
   updatedAt: string
   status: ProjectStatus
-  developmentEnvironment: DevelopmentEnvironment
   githubRepoUrl: string
   githubAccountEmail: string
   linkedSecretLabel: string
@@ -94,7 +83,6 @@ export type Project = {
   assetIds: string[]
   env: EnvVariable[]
   dataFields?: ProjectVariable[]
-  platformAccesses?: PlatformAccess[]
   images?: ProjectImage[]
 }
 

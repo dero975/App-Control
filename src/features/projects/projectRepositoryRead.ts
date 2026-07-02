@@ -5,9 +5,6 @@ import type {
   DataFieldRow,
   EnvVariableRow,
   ImageRow,
-  PlatformAccess,
-  PlatformAccessListRow,
-  PlatformAccessRow,
   Project,
   ProjectImage,
   ProjectListRow,
@@ -18,9 +15,8 @@ export async function mapProjects(projects: ProjectRow[]) {
   const projectIds = projects.map((project) => project.id)
   if (!projectIds.length) return []
 
-  const { envRows, agentRows, accessRows, fieldRows, imageRows } = await fetchProjectRelations(projectIds)
+  const { envRows, agentRows, fieldRows, imageRows } = await fetchProjectRelations(projectIds)
   const envByProjectId = groupRowsByProjectId(envRows)
-  const accessByProjectId = groupRowsByProjectId(accessRows)
   const fieldByProjectId = groupRowsByProjectId(fieldRows)
   const imageByProjectId = groupRowsByProjectId(imageRows)
   const agentByProjectId = new Map(agentRows.map((row) => [row.project_id, row]))
@@ -30,7 +26,6 @@ export async function mapProjects(projects: ProjectRow[]) {
       project,
       envByProjectId.get(project.id) ?? [],
       agentByProjectId.get(project.id),
-      accessByProjectId.get(project.id) ?? [],
       fieldByProjectId.get(project.id) ?? [],
       imageByProjectId.get(project.id) ?? [],
     ),
@@ -44,7 +39,6 @@ export function mapProjectListRow(project: ProjectListRow): Project {
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     status: project.status,
-    developmentEnvironment: project.development_environment,
     githubRepoUrl: '',
     githubAccountEmail: '',
     linkedSecretLabel: '',
@@ -69,31 +63,8 @@ export function mapProjectListRow(project: ProjectListRow): Project {
     assetIds: [],
     env: [],
     dataFields: [],
-    platformAccesses: [],
     images: [],
   }
-}
-
-export function mapPlatformAccessListRow(access: PlatformAccessListRow): PlatformAccess {
-  return {
-    id: access.id,
-    platform: access.platform,
-    email: access.email,
-    password: '',
-  }
-}
-
-export async function fetchDashboardPlatformAccessRows(projectIds: string[]) {
-  const client = requireSupabaseClient()
-
-  const { data, error } = await client
-    .from('project_platform_accesses')
-    .select('id, project_id, platform, email, sort_order')
-    .in('project_id', projectIds)
-    .order('sort_order', { ascending: true })
-
-  if (error) throw error
-  return (data as PlatformAccessListRow[] | null) ?? []
 }
 
 export async function fetchProjectRelations(projectIds: string[]) {
@@ -102,7 +73,6 @@ export async function fetchProjectRelations(projectIds: string[]) {
   const [
     { data: envRows, error: envError },
     { data: agentRows, error: agentError },
-    { data: accessRows, error: accessError },
     { data: fieldRows, error: fieldError },
     imageRows,
   ] = await Promise.all([
@@ -113,11 +83,6 @@ export async function fetchProjectRelations(projectIds: string[]) {
       .order('sort_order', { ascending: true }),
     client.from('project_agent_keys').select('project_id, key_prefix, key_ciphertext, sync_prompt').in('project_id', projectIds),
     client
-      .from('project_platform_accesses')
-      .select('id, project_id, platform, email, password_ciphertext, sort_order')
-      .in('project_id', projectIds)
-      .order('sort_order', { ascending: true }),
-    client
       .from('project_data_fields')
       .select('id, project_id, field_key, label, value_text, value_ciphertext, is_secret, sort_order')
       .in('project_id', projectIds)
@@ -127,13 +92,11 @@ export async function fetchProjectRelations(projectIds: string[]) {
 
   if (envError) throw envError
   if (agentError) throw agentError
-  if (accessError) throw accessError
   if (fieldError) throw fieldError
 
   return {
     envRows: (envRows as EnvVariableRow[] | null) ?? [],
     agentRows: (agentRows as AgentKeyRow[] | null) ?? [],
-    accessRows: (accessRows as PlatformAccessRow[] | null) ?? [],
     fieldRows: (fieldRows as DataFieldRow[] | null) ?? [],
     imageRows,
   }
@@ -144,7 +107,7 @@ export async function fetchProjectRowById(projectId: string) {
   const { data, error } = await client
     .from('projects')
     .select(
-      'id, agent_project_id, name, created_at, updated_at, status, development_environment, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+      'id, agent_project_id, name, created_at, updated_at, status, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
     )
     .eq('id', projectId)
     .single()
@@ -172,7 +135,6 @@ export function mapProjectRow(
   project: ProjectRow,
   envRows: EnvVariableRow[],
   agentRow?: AgentKeyRow,
-  platformAccessRows: PlatformAccessRow[] = [],
   dataFieldRows: DataFieldRow[] = [],
   imageRows: ImageRow[] = [],
 ): Project {
@@ -182,7 +144,6 @@ export function mapProjectRow(
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     status: project.status,
-    developmentEnvironment: project.development_environment,
     githubRepoUrl: project.github_repo_url,
     githubAccountEmail: project.github_account_email,
     linkedSecretLabel: project.linked_secret_label_ciphertext ?? '',
@@ -220,7 +181,6 @@ export function mapProjectRow(
       value: field.is_secret ? field.value_ciphertext ?? '' : field.value_text,
       sensitive: field.is_secret,
     })),
-    platformAccesses: platformAccessRows.map(mapPlatformAccess),
     images: imageRows.map(mapProjectImage),
   }
 }
@@ -250,11 +210,3 @@ function mapProjectImage(row: ImageRow): ProjectImage {
   }
 }
 
-function mapPlatformAccess(row: PlatformAccessRow): PlatformAccess {
-  return {
-    id: row.id,
-    platform: row.platform,
-    email: row.email,
-    password: row.password_ciphertext ?? '',
-  }
-}

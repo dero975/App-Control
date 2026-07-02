@@ -1,7 +1,7 @@
 import { type FocusEvent } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
-import type { PlatformAccess, ProjectVariable, ProjectVariableTone } from '../../types/app'
+import type { ProjectVariable, ProjectVariableTone } from '../../types/app'
 import { addSelectOptionValue, getSelectableFieldConfig, getSelectOptions } from './projectFieldOptions'
 import { renderApiKey, supabaseServiceKeyAliases } from './projectShared'
 import { VariableEditButton, VariableFieldTitle, VariableTonePalette } from './VariablePanelControls'
@@ -15,12 +15,9 @@ export function VariableEditorCard({
   toneOverride,
   toneStorageKey,
   variable,
-  onAddAccess,
   onDelete,
-  onDeleteAccess,
   onDraftCommit,
   onEdit,
-  onUpdateAccess,
   onUpdate,
   valueAriaLabel,
 }: {
@@ -30,17 +27,13 @@ export function VariableEditorCard({
   toneOverride?: ProjectVariableTone
   toneStorageKey?: string
   variable: ProjectVariable
-  onAddAccess: (variableId: string) => void
   onDelete: (id: string) => void
-  onDeleteAccess: (variableId: string, accessId: string) => void
   onDraftCommit: (id: string) => void
   onEdit: () => void
-  onUpdateAccess: (variableId: string, accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) => void
   onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
   const selectFieldConfig = getSelectableFieldConfig(variable.key)
-  const isDevelopmentField = variable.key.trim().toLowerCase() === 'sviluppo in'
   const selectOptions = selectFieldConfig ? getSelectOptions(variable.value, selectFieldConfig.options) : []
   const canChooseTone = isDraft || !isProtectedVariableTitle(variable)
   const effectiveTone = getEffectiveVariableTone(variable, toneStorageKey, toneOverride)
@@ -68,7 +61,7 @@ export function VariableEditorCard({
   function handleCardBlur(event: FocusEvent<HTMLElement>) {
     if (!isDraft) return
     if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return
-    if (!variable.key.trim() && !variable.value.trim() && !(variable.accessAccounts ?? []).length) return
+    if (!variable.key.trim() && !variable.value.trim()) return
 
     onDraftCommit(variable.id)
   }
@@ -106,16 +99,6 @@ export function VariableEditorCard({
             <VariableTonePalette selectedTone={effectiveTone} onChange={(tone) => onUpdate(variable.id, 'tone', tone)} />
           ) : null}
         </label>
-        {isDevelopmentField ? (
-          <PlatformAccessList
-            accounts={variable.accessAccounts ?? []}
-            editable={editable}
-            platformOptions={selectFieldConfig?.options ?? []}
-            onAdd={() => onAddAccess(variable.id)}
-            onDelete={(accessId) => onDeleteAccess(variable.id, accessId)}
-            onUpdate={(accessId, field, value) => onUpdateAccess(variable.id, accessId, field, value)}
-          />
-        ) : null}
       </div>
       <div className="editable-variable-card__actions">
         {singleEnvCopy ? (
@@ -127,60 +110,6 @@ export function VariableEditorCard({
         </button>
       </div>
     </article>
-  )
-}
-
-function PlatformAccessList({
-  accounts,
-  editable,
-  platformOptions,
-  onAdd,
-  onDelete,
-  onUpdate,
-}: {
-  accounts: PlatformAccess[]
-  editable: boolean
-  platformOptions: readonly string[]
-  onAdd: () => void
-  onDelete: (accessId: string) => void
-  onUpdate: (accessId: string, field: keyof Omit<PlatformAccess, 'id'>, value: string) => void
-}) {
-  function handlePlatformChange(accessId: string, value: string) {
-    if (value === addSelectOptionValue) {
-      const nextValue = window.prompt('Nuova piattaforma')
-      const normalizedValue = nextValue?.trim()
-      if (!normalizedValue) return
-
-      onUpdate(accessId, 'platform', normalizedValue)
-      return
-    }
-
-    onUpdate(accessId, 'platform', value)
-  }
-
-  return (
-    <div className="platform-access-list">
-      <div className="platform-access-list__header">
-        <span>Accessi piattaforme</span>
-        <button type="button" className="secondary-button platform-access-add-button" disabled={!editable} onClick={onAdd}>
-          <Plus aria-hidden="true" className="button-icon" />
-          Aggiungi accesso
-        </button>
-      </div>
-      {accounts.map((access) => (
-        <div className="platform-access-row" key={access.id}>
-          <select value={access.platform} disabled={!editable} onChange={(event) => handlePlatformChange(access.id, event.target.value)}>
-            {getSelectOptions(access.platform, platformOptions).map((option) => <option value={option} key={option}>{option}</option>)}
-            <option value={addSelectOptionValue}>+ Aggiungi</option>
-          </select>
-          <input value={access.email} type="email" placeholder="Mail accesso" aria-label={`Mail accesso ${access.platform}`} readOnly={!editable} onChange={(event) => onUpdate(access.id, 'email', event.target.value)} />
-          <input value={access.password} type="text" placeholder="Password" aria-label={`Password ${access.platform}`} readOnly={!editable} onChange={(event) => onUpdate(access.id, 'password', event.target.value)} />
-          <button type="button" className="inline-icon-button trash-button" disabled={!editable} onClick={() => onDelete(access.id)} aria-label={`Elimina accesso ${access.platform}`} title={`Elimina accesso ${access.platform}`}>
-            <Trash2 aria-hidden="true" />
-          </button>
-        </div>
-      ))}
-    </div>
   )
 }
 
