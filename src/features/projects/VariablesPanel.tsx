@@ -11,7 +11,7 @@ import {
 import { getSelectValue, selectableFieldConfigs } from './projectFieldOptions'
 import { DeployCredentialsCard, GitHubCredentialsCard } from './VariableGroupedCards'
 import { VariableEditorCard } from './VariableEditorCard'
-import { formatVariablesEnvForCopy, isDeployField, isLinkDeployAdminField, isLinkDeployField } from './variableEnvFormatting'
+import { formatVariablesEnvForCopy, isDeployField } from './variableEnvFormatting'
 import type { VariableUpdateField } from './variablePanelTypes'
 import {
   getEffectiveVariableTone,
@@ -201,12 +201,9 @@ export function VariablesPanel({
   const hasGroupedDeployCredentials = title === 'Dati progetto' && deployIndex !== -1 && deployPasswordIndex !== -1
   const deployCredentialsStartIndex = hasGroupedDeployCredentials ? Math.min(deployIndex, deployPasswordIndex) : -1
   const deployCredentialsEndIndex = hasGroupedDeployCredentials ? Math.max(deployIndex, deployPasswordIndex) : -1
-  const userVariableKeys = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL', 'RENDER_API_KEY', 'GITHUB_URL', 'GITHUB_TOKEN']
+  const userVariableKeys = ['LINK_DEPLOY', 'LINK_DEPLOY ADMIN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL', 'RENDER_API_KEY', 'GITHUB_URL', 'GITHUB_TOKEN']
   const userVariables = variables.filter((variable) => userVariableKeys.includes(variable.key))
-  const managedVariables = variables.filter(
-    (variable) =>
-      !userVariableKeys.includes(variable.key) && !isLinkDeployField(variable.key) && !isLinkDeployAdminField(variable.key),
-  )
+  const managedVariables = variables.filter((variable) => !userVariableKeys.includes(variable.key))
 
   function renderVariableCard(variable: ProjectVariable) {
     return (

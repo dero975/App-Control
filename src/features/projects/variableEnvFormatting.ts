@@ -1,5 +1,4 @@
 import type { ProjectVariable } from '../../types/app'
-import { deployAdminLinkKey } from './projectShared'
 
 export function formatVariablesEnvForCopy(variables: ProjectVariable[]) {
   const exportableVariables = variables
@@ -25,14 +24,6 @@ export function formatVariablesEnvForCopy(variables: ProjectVariable[]) {
 
 export function isDeployField(key: string) {
   return key.trim().toLowerCase() === 'deploy con'
-}
-
-export function isLinkDeployField(key: string) {
-  return key.trim().toUpperCase() === 'LINK_DEPLOY'
-}
-
-export function isLinkDeployAdminField(key: string) {
-  return key.trim().toUpperCase() === deployAdminLinkKey.toUpperCase()
 }
 
 function addDerivedEnvExportValues(variables: Array<{ exportKey: string; value: string }>) {
