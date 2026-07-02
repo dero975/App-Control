@@ -34,7 +34,7 @@
 }
 
 .project-deploy-link a {
-  color: var(--green-strong);
+  color: var(--accent-strong);
   font-size: 14px;
   font-weight: 700;
   overflow-wrap: anywhere;

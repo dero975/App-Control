@@ -9,12 +9,12 @@
 }
 
 .image-preview-backdrop {
-  background: rgba(10, 18, 13, 0.74);
+  background: rgba(20, 14, 7, 0.74);
   backdrop-filter: blur(8px);
 }
 
 .image-editor-backdrop {
-  background: rgba(10, 18, 13, 0.78);
+  background: rgba(20, 14, 7, 0.78);
   backdrop-filter: blur(10px);
 }
 
@@ -68,7 +68,7 @@
 
 .mobile-workspace-modal-backdrop {
   padding: 0;
-  background: rgba(10, 18, 13, 0.78);
+  background: rgba(20, 14, 7, 0.78);
   backdrop-filter: blur(10px);
 }
 
@@ -131,11 +131,11 @@
 }
 
 .status-message--progress {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .status-message--success {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .status-message--error {

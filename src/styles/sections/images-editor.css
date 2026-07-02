@@ -7,7 +7,7 @@
   border: 1px solid var(--nav-border);
   border-radius: var(--radius);
   background: var(--nav-bg);
-  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.38);
+  box-shadow: 0 24px 80px rgba(16, 10, 4, 0.38);
 }
 
 .image-preview-modal__header {
@@ -42,7 +42,7 @@
     linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
-    #101b15;
+    #1a1109;
   background-position: 0 0, 0 12px, 12px -12px, -12px 0;
   background-size: 24px 24px;
 }
@@ -83,7 +83,7 @@
   border: 1px solid var(--nav-border);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.42);
+  box-shadow: 0 24px 80px rgba(16, 10, 4, 0.42);
 }
 
 .home-icon-editor__header {
@@ -145,8 +145,8 @@
 
 .home-icon-editor__preview--dragging {
   background:
-    radial-gradient(circle at 50% 42%, rgba(223, 238, 216, 0.9) 0%, rgba(79, 141, 97, 0.22) 42%, transparent 72%),
-    var(--green-pale);
+    radial-gradient(circle at 50% 42%, rgba(253, 232, 184, 0.9) 0%, rgba(252, 167, 8, 0.22) 42%, transparent 72%),
+    var(--accent-pale);
 }
 
 .home-icon-editor__preview canvas {
@@ -155,7 +155,7 @@
   aspect-ratio: 1;
   display: block;
   border-radius: 21.5%;
-  box-shadow: 0 24px 70px rgba(20, 35, 25, 0.24);
+  box-shadow: 0 24px 70px rgba(30, 22, 12, 0.24);
 }
 
 .home-icon-editor__hint {
@@ -201,7 +201,7 @@
 .editor-reset-button {
   border: 0;
   background: transparent;
-  color: var(--green-strong);
+  color: var(--accent-strong);
   padding: 0;
   font-size: 12px;
   font-weight: 800;
@@ -237,12 +237,12 @@
 
 .color-sample-button {
   background: var(--surface);
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .editor-control-group input[type='range'] {
   padding-inline: 0;
-  accent-color: var(--green-strong);
+  accent-color: var(--accent-strong);
 }
 
 .editor-control-group .checkbox-row {
@@ -279,9 +279,9 @@
 }
 
 .gradient-mode-button--active {
-  border-color: rgba(79, 141, 97, 0.52);
-  background: var(--green-pale);
-  color: var(--green-strong);
+  border-color: rgba(252, 167, 8, 0.52);
+  background: var(--accent-pale);
+  color: var(--accent-strong);
 }
 
 .gradient-mode-button__preview {
@@ -293,15 +293,15 @@
 }
 
 .gradient-mode-button__preview--linear {
-  background: linear-gradient(135deg, #ffffff 0%, #e4ebe1 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f2ead7 100%);
 }
 
 .gradient-mode-button__preview--radial {
-  background: radial-gradient(circle at 35% 28%, #ffffff 0%, #f1f6ef 42%, #d7e2d3 100%);
+  background: radial-gradient(circle at 35% 28%, #ffffff 0%, #fdf3e0 42%, #ecdcb8 100%);
 }
 
 .gradient-mode-button__preview--soft {
-  background: linear-gradient(145deg, #ffffff 0%, #f1f6ef 48%, #d7e2d3 100%);
+  background: linear-gradient(145deg, #ffffff 0%, #fdf3e0 48%, #ecdcb8 100%);
 }
 
 .home-icon-editor__footer {

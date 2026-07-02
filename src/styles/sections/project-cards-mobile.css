@@ -50,9 +50,9 @@
 }
 
 .mobile-project-card--active {
-  border-color: var(--green-strong);
+  border-color: var(--accent-strong);
   background: var(--surface);
-  box-shadow: inset 4px 0 0 var(--green-strong), 0 8px 18px rgba(35, 52, 40, 0.08);
+  box-shadow: inset 4px 0 0 var(--accent-strong), 0 8px 18px rgba(90, 60, 15, 0.08);
 }
 
 .mobile-project-card__trigger {
@@ -90,7 +90,7 @@
 }
 
 .mobile-project-card__link {
-  color: var(--green-strong);
+  color: var(--accent-strong);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.45;

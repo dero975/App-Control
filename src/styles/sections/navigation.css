@@ -68,7 +68,7 @@
 .workspace-switch__button--active {
   background: var(--nav-active);
   border-color: transparent;
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .nav-item {
@@ -92,7 +92,7 @@
 .nav-item--active {
   background: var(--nav-active);
   border-color: transparent;
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .nav-item strong {
@@ -160,8 +160,8 @@
 }
 
 .sidebar-lock-button:hover {
-  background: #284233;
-  border-color: #40624f;
+  background: #3f2d18;
+  border-color: #5a4224;
 }
 
 .sidebar-cli-auth-button {
@@ -184,7 +184,7 @@
   display: grid;
   gap: 4px;
   padding: 10px 12px;
-  border: 1px solid rgba(174, 188, 175, 0.3);
+  border: 1px solid rgba(202, 184, 150, 0.3);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.06);
   color: var(--nav-text);

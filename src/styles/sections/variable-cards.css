@@ -7,7 +7,7 @@
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #f0f3ee 0%, #f5f7f4 100%);
+  background: linear-gradient(180deg, #f9f2e6 0%, #faf6ee 100%);
 }
 
 .variable-user-box {
@@ -15,9 +15,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border: 1px solid rgba(45, 127, 77, 0.28);
+  border: 1px solid rgba(245, 158, 11, 0.28);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #e7f2e8 0%, #f0f7ef 100%);
+  background: linear-gradient(180deg, #f8efdc 0%, #fdf6e8 100%);
 }
 
 .variable-user-box__title,
@@ -26,11 +26,11 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-soft, #5a6b60);
+  color: var(--text-soft, #7c6c54);
 }
 
 .variable-user-box__title {
-  color: #246b42;
+  color: #b45309;
 }
 
 .variable-managed-group {
@@ -89,12 +89,12 @@
 
 .variable-user-box .editable-variable-card + .editable-variable-card,
 .variable-managed-group .editable-variable-card + .editable-variable-card {
-  border-top: 1px solid rgba(45, 80, 60, 0.12);
+  border-top: 1px solid rgba(40, 28, 12, 0.12);
 }
 
 .editable-variable-card--editing {
-  border-color: rgba(65, 121, 79, 0.42);
-  box-shadow: inset 4px 0 0 var(--green-strong), 0 10px 22px rgba(35, 52, 40, 0.06);
+  border-color: rgba(252, 167, 8, 0.42);
+  box-shadow: inset 4px 0 0 var(--accent-strong), 0 10px 22px rgba(90, 60, 15, 0.06);
 }
 
 .editable-variable-card--grouped {
@@ -113,12 +113,12 @@
 }
 
 .variable-edit-button {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .variable-edit-button--active {
-  background: var(--green-pale);
-  color: var(--green-strong);
+  background: var(--accent-pale);
+  color: var(--accent-strong);
 }
 
 .editable-variable-card--github {
@@ -140,12 +140,12 @@
 }
 
 .editable-variable-card--tone-green {
-  border-color: rgba(45, 127, 77, 0.28);
+  border-color: rgba(92, 214, 124, 0.28);
   background: linear-gradient(180deg, rgba(230, 244, 234, 0.98) 0%, rgba(244, 250, 246, 0.99) 100%);
 }
 
 .editable-variable-card--tone-green .fixed-field-name {
-  color: #246b42;
+  color: #2f6f42;
 }
 
 .editable-variable-card--tone-yellow {
@@ -242,14 +242,14 @@
   height: 18px;
   min-height: 18px;
   padding: 0;
-  border: 1px solid rgba(31, 42, 36, 0.16);
+  border: 1px solid rgba(30, 22, 12, 0.16);
   border-radius: 999px;
   background: var(--surface);
   cursor: pointer;
 }
 
 .variable-tone-swatch--active {
-  outline: 2px solid var(--green-strong);
+  outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
 }
 
@@ -325,7 +325,7 @@
 
 .grouped-variable-row + .grouped-variable-row {
   padding-top: 14px;
-  border-top: 1px solid rgba(147, 160, 149, 0.26);
+  border-top: 1px solid rgba(176, 160, 124, 0.26);
 }
 
 .grouped-variable-row > .trash-button {

@@ -35,15 +35,15 @@
 }
 
 .prompt-library-card--open {
-  border-color: rgba(79, 141, 97, 0.34);
-  box-shadow: 0 18px 42px rgba(35, 52, 40, 0.08);
+  border-color: rgba(252, 167, 8, 0.34);
+  box-shadow: 0 18px 42px rgba(90, 60, 15, 0.08);
 }
 
 .prompt-library-card--editing {
   border-color: rgba(166, 106, 0, 0.52);
   box-shadow:
     inset 4px 0 0 var(--amber-strong),
-    0 18px 42px rgba(35, 52, 40, 0.08);
+    0 18px 42px rgba(90, 60, 15, 0.08);
 }
 
 .prompt-library-card__header {
@@ -91,7 +91,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--gray-soft);
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .prompt-library-card__actions {
@@ -102,7 +102,7 @@
 }
 
 .prompt-edit-button {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .prompt-library-card--open .prompt-library-card__toggle {
@@ -145,10 +145,10 @@
 }
 
 .prompt-library-row--drag-over .prompt-library-card {
-  border-color: rgba(65, 121, 79, 0.42);
+  border-color: rgba(252, 167, 8, 0.42);
   box-shadow:
-    0 0 0 1px rgba(65, 121, 79, 0.14),
-    0 12px 28px rgba(15, 30, 20, 0.06);
+    0 0 0 1px rgba(252, 167, 8, 0.14),
+    0 12px 28px rgba(20, 14, 7, 0.06);
 }
 
 .prompt-drag-handle {
@@ -156,17 +156,17 @@
   justify-self: center;
   width: 32px;
   height: 32px;
-  border: 1px solid rgba(188, 202, 186, 0.92);
+  border: 1px solid rgba(220, 196, 150, 0.92);
   border-radius: 12px;
   background:
-    radial-gradient(circle at 30% 35%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
-    radial-gradient(circle at 30% 65%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
-    radial-gradient(circle at 50% 35%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
-    radial-gradient(circle at 50% 65%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
-    radial-gradient(circle at 70% 35%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
-    radial-gradient(circle at 70% 65%, rgba(63, 112, 74, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 30% 35%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 30% 65%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 50% 35%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 50% 65%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 70% 35%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 70% 65%, rgba(252, 167, 8, 0.26) 0 1.4px, transparent 1.6px),
     rgba(246, 250, 245, 0.96);
-  color: var(--green-strong);
+  color: var(--accent-strong);
   cursor: grab;
   transition:
     transform 160ms ease,
@@ -176,8 +176,8 @@
 }
 
 .prompt-drag-handle:hover {
-  border-color: rgba(65, 121, 79, 0.34);
-  box-shadow: 0 8px 16px rgba(15, 30, 20, 0.07);
+  border-color: rgba(252, 167, 8, 0.34);
+  box-shadow: 0 8px 16px rgba(20, 14, 7, 0.07);
 }
 
 .prompt-drag-handle:active {
@@ -206,19 +206,19 @@
 .prompt-library-row--drag-preview .prompt-library-card {
   transform: scale(1.028);
   transform-origin: left center;
-  border-color: rgba(65, 121, 79, 0.34);
+  border-color: rgba(252, 167, 8, 0.34);
   box-shadow:
-    0 24px 44px rgba(15, 30, 20, 0.2),
-    0 10px 20px rgba(15, 30, 20, 0.1);
+    0 24px 44px rgba(20, 14, 7, 0.2),
+    0 10px 20px rgba(20, 14, 7, 0.1);
 }
 
 .prompt-library-row--drag-preview .prompt-drag-handle {
-  box-shadow: 0 12px 24px rgba(15, 30, 20, 0.1);
+  box-shadow: 0 12px 24px rgba(20, 14, 7, 0.1);
 }
 
 .prompt-library-row--drag-over .prompt-drag-handle {
-  border-color: rgba(65, 121, 79, 0.34);
-  box-shadow: 0 10px 18px rgba(15, 30, 20, 0.08);
+  border-color: rgba(252, 167, 8, 0.34);
+  box-shadow: 0 10px 18px rgba(20, 14, 7, 0.08);
 }
 
 .prompt-library-card__content {

@@ -234,7 +234,7 @@
 }
 
 .inline-icon-button:hover {
-  background: var(--green-pale);
+  background: var(--accent-pale);
 }
 
 .inline-icon-button:disabled,
@@ -246,7 +246,7 @@
 }
 
 .editor-icon-button {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .editor-icon-button__glyph {

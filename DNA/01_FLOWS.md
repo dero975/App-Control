@@ -29,7 +29,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
 - Il caricamento iniziale della sezione Progetti deve restare leggero: la lista legge solo metadati essenziali e il dettaglio completo, incluse relazioni e immagini, viene caricato da Supabase solo per il progetto selezionato.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento per ultima modifica dal piu recente al piu vecchio; di default all'apertura parte in ordine alfabetico A-Z.
-- Le card lista progetti mostrano solo nome progetto in maiuscolo e `Ultima modifica`, con separazione visiva minima fra card, sfondo bianco sulla selezione, contorno verde scuro evidente e senza container/pannello esterno dell'elenco.
+- Le card lista progetti mostrano solo nome progetto in maiuscolo e `Ultima modifica`, con separazione visiva minima fra card, sfondo bianco sulla selezione, contorno ambra evidente e senza container/pannello esterno dell'elenco.
 - Il nome progetto viene normalizzato in maiuscolo in creazione, visualizzazione e modifica del campo `nome progetto`.
 - Ogni card progetto puo essere fissata in alto con puntina ambra piena e inclinata quando attiva, senza contorno. La preferenza resta locale al browser tramite `localStorage`, senza scrivere su Supabase e senza modificare la logica del pulsante `ultima modifica`.
 - `Ultima modifica` cambia solo quando vengono salvate modifiche reali ai contenuti del progetto. Selezione card, apertura dettaglio, cambio tab, pin locale e riordinamento lista non devono aggiornare `projects.updated_at`.

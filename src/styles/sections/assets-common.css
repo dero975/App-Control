@@ -41,8 +41,8 @@
 }
 
 .asset-item--dragging {
-  border-color: rgba(79, 141, 97, 0.55);
-  background: var(--green-pale);
+  border-color: rgba(252, 167, 8, 0.55);
+  background: var(--accent-pale);
 }
 
 .asset-thumb {
@@ -53,7 +53,7 @@
   border-radius: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
-  color: var(--green-strong);
+  color: var(--accent-strong);
   font-size: 12px;
   font-weight: 800;
   box-shadow: none;
@@ -67,8 +67,8 @@
 }
 
 .asset-thumb--button:hover {
-  border-color: rgba(79, 141, 97, 0.52);
-  background: var(--green-soft);
+  border-color: rgba(252, 167, 8, 0.52);
+  background: var(--accent-soft);
 }
 
 .asset-thumb img {
@@ -102,13 +102,13 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--green-strong);
+  color: var(--accent-strong);
   padding: 0;
 }
 
 .asset-inline-prompt-button:hover {
   background: transparent;
-  color: #245636;
+  color: #7a4a10;
 }
 
 .asset-inline-prompt-button .button-icon {

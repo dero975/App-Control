@@ -61,7 +61,7 @@
 }
 
 .settings-input input::placeholder {
-  color: rgba(108, 119, 111, 0.4);
+  color: rgba(124, 108, 84, 0.4);
 }
 
 .settings-input .prompt-title-input {
@@ -146,15 +146,15 @@
 .secondary-button.trusted-device-button {
   min-width: 220px;
   min-height: 42px;
-  border-color: rgba(79, 141, 97, 0.28);
-  background: var(--green-pale);
-  color: var(--green-strong);
+  border-color: rgba(252, 167, 8, 0.28);
+  background: var(--accent-pale);
+  color: var(--accent-strong);
 }
 
 .secondary-button.trusted-device-button:not(:disabled):hover {
-  border-color: rgba(47, 111, 66, 0.45);
-  background: var(--green-soft);
-  color: var(--green-strong);
+  border-color: rgba(154, 90, 10, 0.45);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .secondary-button.trusted-device-button:disabled,

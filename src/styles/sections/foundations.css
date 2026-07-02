@@ -1,28 +1,28 @@
 :root {
-  --bg: #eef5ec;
+  --bg: #fdf7ec;
   --surface: #ffffff;
-  --surface-soft: #f1f6ef;
-  --surface-muted: #eef3ec;
-  --text: #1f2a24;
-  --text-muted: #6c776f;
-  --text-soft: #8b968f;
-  --border: #dfe7dd;
-  --border-strong: #cbd8c8;
-  --green: #4f8d61;
-  --green-strong: #2f6f42;
-  --green-soft: #dfeed8;
-  --green-pale: #edf7e9;
+  --surface-soft: #fdf3e0;
+  --surface-muted: #fbeed6;
+  --text: #2b2117;
+  --text-muted: #8a7658;
+  --text-soft: #b3a082;
+  --border: #f0e2c6;
+  --border-strong: #e6cf9f;
+  --accent: #fca708;
+  --accent-strong: #b45309;
+  --accent-soft: #fde8b8;
+  --accent-pale: #fef5e1;
   --danger: #b34034;
   --amber-strong: #a66a00;
   --amber: #c48913;
-  --gray-soft: #f5f6f4;
-  --nav-bg: #17231c;
-  --nav-bg-soft: #203128;
-  --nav-border: #30463a;
-  --nav-text: #f4f8f2;
-  --nav-muted: #aebcaf;
-  --nav-active: #dfeed8;
-  --shadow: 0 18px 50px rgba(35, 52, 40, 0.08);
+  --gray-soft: #f7f5f1;
+  --nav-bg: #241a10;
+  --nav-bg-soft: #34271a;
+  --nav-border: #4c3a25;
+  --nav-text: #fbf5ea;
+  --nav-muted: #cdb994;
+  --nav-active: #fca708;
+  --shadow: 0 18px 50px rgba(90, 60, 15, 0.10);
   --radius: 8px;
   --sidebar-width: 288px;
 }
@@ -67,8 +67,8 @@
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 82%, rgba(95, 145, 109, 0.2) 0%, rgba(46, 87, 58, 0.12) 34%, transparent 68%),
-    linear-gradient(155deg, #07110c 0%, #102119 52%, #1f3d2b 100%);
+    radial-gradient(ellipse at 50% 82%, rgba(252, 167, 8, 0.2) 0%, rgba(154, 90, 10, 0.12) 34%, transparent 68%),
+    linear-gradient(155deg, #100a04 0%, #1c140b 52%, #33250f 100%);
 }
 
 .intro-splash__logo {
@@ -82,7 +82,7 @@
   top: 75svh;
   left: 50%;
   transform: translateX(-50%);
-  color: rgba(244, 248, 242, 0.62);
+  color: rgba(251, 245, 234, 0.62);
   font-size: 15px;
   font-weight: 650;
   letter-spacing: 0;
@@ -136,8 +136,8 @@
   padding: 32px 18px;
   box-sizing: border-box;
   background:
-    radial-gradient(ellipse at 50% 82%, rgba(223, 238, 216, 0.28) 0%, rgba(79, 141, 97, 0.13) 34%, transparent 68%),
-    linear-gradient(155deg, var(--nav-bg) 0%, #1a2b21 48%, #385f47 100%);
+    radial-gradient(ellipse at 50% 82%, rgba(253, 232, 184, 0.28) 0%, rgba(252, 167, 8, 0.13) 34%, transparent 68%),
+    linear-gradient(155deg, var(--nav-bg) 0%, #2a1f12 48%, #5a3f22 100%);
 }
 
 .lock-screen__glow {
@@ -147,7 +147,7 @@
   height: min(960px, 88vw);
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(243, 249, 240, 0.18) 0%, rgba(223, 238, 216, 0.11) 30%, rgba(79, 141, 97, 0.08) 52%, transparent 74%);
+    radial-gradient(circle, rgba(243, 249, 240, 0.18) 0%, rgba(253, 232, 184, 0.11) 30%, rgba(252, 167, 8, 0.08) 52%, transparent 74%);
   filter: blur(12px);
   transform: translateY(4%);
   pointer-events: none;
@@ -162,13 +162,13 @@
   display: grid;
   gap: 18px;
   padding: 24px 24px 19px;
-  border: 1px solid rgba(244, 248, 242, 0.16);
+  border: 1px solid rgba(251, 245, 234, 0.16);
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%),
-    rgba(18, 29, 22, 0.56);
+    rgba(26, 20, 12, 0.56);
   box-shadow:
-    0 30px 80px rgba(7, 14, 10, 0.34),
+    0 30px 80px rgba(16, 10, 4, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(22px);
 }
@@ -187,16 +187,16 @@
 .lock-screen__logo {
   width: clamp(94px, 14.4vw, 125px);
   height: auto;
-  filter: drop-shadow(0 18px 30px rgba(7, 14, 10, 0.22));
+  filter: drop-shadow(0 18px 30px rgba(16, 10, 4, 0.22));
 }
 
 .lock-screen__eyebrow {
   display: inline-flex;
   padding: 6px 12px;
-  border: 1px solid rgba(223, 238, 216, 0.16);
+  border: 1px solid rgba(253, 232, 184, 0.16);
   border-radius: 999px;
-  background: rgba(244, 248, 242, 0.08);
-  color: rgba(244, 248, 242, 0.82);
+  background: rgba(251, 245, 234, 0.08);
+  color: rgba(251, 245, 234, 0.82);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -215,7 +215,7 @@
 .lock-screen__brand p {
   max-width: 400px;
   margin: 0;
-  color: rgba(244, 248, 242, 0.72);
+  color: rgba(251, 245, 234, 0.72);
   font-size: 15px;
   line-height: 1.5;
 }
@@ -231,7 +231,7 @@
 }
 
 .lock-screen__field > span {
-  color: rgba(244, 248, 242, 0.74);
+  color: rgba(251, 245, 234, 0.74);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -240,7 +240,7 @@
 
 .lock-screen__field input {
   min-height: 51px;
-  border: 1px solid rgba(223, 238, 216, 0.18);
+  border: 1px solid rgba(253, 232, 184, 0.18);
   border-radius: 14px;
   background: rgba(250, 252, 249, 0.96);
   color: var(--nav-bg);
@@ -253,7 +253,7 @@
 }
 
 .lock-screen__field input::placeholder {
-  color: rgba(32, 49, 40, 0.34);
+  color: rgba(34, 24, 12, 0.34);
   letter-spacing: 0.22em;
 }
 
@@ -263,32 +263,32 @@
   align-items: center;
   justify-self: center;
   gap: 8px;
-  color: rgba(244, 248, 242, 0.72);
+  color: rgba(251, 245, 234, 0.72);
   font-size: 12px;
   font-weight: 700;
 }
 
 .lock-screen__remember input {
   width: auto;
-  accent-color: var(--green-soft);
+  accent-color: var(--accent-soft);
 }
 
 .lock-screen__submit.secondary-button {
   min-height: 43px;
-  border: 1px solid rgba(223, 238, 216, 0.16);
+  border: 1px solid rgba(253, 232, 184, 0.16);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(223, 238, 216, 0.96) 0%, rgba(190, 220, 197, 0.96) 100%);
-  color: var(--green-strong);
+  background: linear-gradient(180deg, rgba(253, 232, 184, 0.96) 0%, rgba(244, 215, 158, 0.96) 100%);
+  color: var(--accent-strong);
   font-size: 14px;
   font-weight: 800;
   box-shadow:
-    0 16px 30px rgba(9, 18, 13, 0.18),
+    0 16px 30px rgba(18, 12, 5, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.52);
 }
 
 .lock-screen__submit.secondary-button:hover {
-  background: linear-gradient(180deg, #eef7eb 0%, #d8ecd9 100%);
-  border-color: rgba(223, 238, 216, 0.26);
+  background: linear-gradient(180deg, #fdf6e8 0%, #fbe9c0 100%);
+  border-color: rgba(253, 232, 184, 0.26);
 }
 
 .lock-screen__footer {
@@ -299,14 +299,14 @@
 }
 
 .lock-screen__footer > span {
-  color: rgba(244, 248, 242, 0.58);
+  color: rgba(251, 245, 234, 0.58);
   font-size: 10px;
   line-height: 1.4;
 }
 
 .status-message.lock-screen__status {
   min-height: 14px;
-  color: rgba(244, 248, 242, 0.9);
+  color: rgba(251, 245, 234, 0.9);
 }
 
 @keyframes app-entry-fade {

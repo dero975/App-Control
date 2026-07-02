@@ -23,7 +23,7 @@ code {
   border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
-  color: #26352b;
+  color: #2e2216;
   padding: 4px 7px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
@@ -50,7 +50,7 @@ code {
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
-  color: var(--green-strong);
+  color: var(--accent-strong);
   padding: 7px 10px;
   font-size: 13px;
   font-weight: 750;
@@ -86,8 +86,8 @@ code {
 .danger-button:hover,
 .tab-button:hover,
 .tab-button--active {
-  background: var(--green-soft);
-  border-color: rgba(79, 141, 97, 0.38);
+  background: var(--accent-soft);
+  border-color: rgba(252, 167, 8, 0.38);
 }
 
 .tab-button--has-content {
@@ -157,11 +157,11 @@ code {
   border: 0;
   background: transparent;
   padding: 5px;
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }
 
 .copy-button--inside-input:hover {
-  background: var(--green-pale);
+  background: var(--accent-pale);
   border-color: transparent;
 }
 

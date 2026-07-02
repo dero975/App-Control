@@ -48,7 +48,7 @@ App Control va usata come **libretto privato** di tutti i segreti del progetto: 
 
 ## Layout sezione Variabili (implementato)
 
-- Le **9 dell'utente** in un box verde "**Da inserire manualmente**", i due link in cima: `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`, `GITHUB_URL`, `GITHUB_TOKEN`.
+- Le **9 dell'utente** in un box in evidenza "**Da inserire manualmente**", i due link in cima: `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`, `GITHUB_URL`, `GITHUB_TOKEN`.
 - Quelle dell'agent in una lista "**Gestite da Agent**": variabili extra/segreti generati durante lo sviluppo.
 - La classificazione e in `VariablesPanel` (`userVariableKeys` vs `managedVariables`); il flag `singleEnvCopy` arriva da `isVariablesPanel`.
 - Ogni riga: nome + valore sulla **stessa riga**, niente box per singola variabile, divisorio sottile. Un **solo tasto copia** che copia `NOME=valore` (formato .env), allineato con matita e cestino.

@@ -1,5 +1,5 @@
 .prompt-modal-backdrop {
-  background: rgba(10, 18, 13, 0.66);
+  background: rgba(20, 14, 7, 0.66);
   backdrop-filter: blur(10px);
 }
 
@@ -12,7 +12,7 @@
   border: 1px solid var(--nav-border);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.38);
+  box-shadow: 0 24px 80px rgba(16, 10, 4, 0.38);
 }
 
 .prompt-modal__header {
@@ -74,7 +74,7 @@
 .variable-import-summary {
   margin: 10px 2px 0;
   font-size: 0.85rem;
-  color: var(--text-soft, #5a6b60);
+  color: var(--text-soft, #7c6c54);
 }
 
 .prompt-modal__footer {
@@ -84,7 +84,7 @@
   flex-wrap: wrap;
   padding: 16px 18px 18px;
   border-top: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #f7faf5 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #fdf9f0 100%);
 }
 
 .prompt-modal__save {
@@ -97,7 +97,7 @@
   border: 1px solid var(--nav-border);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 24px 80px rgba(7, 14, 10, 0.38);
+  box-shadow: 0 24px 80px rgba(16, 10, 4, 0.38);
 }
 
 .prompt-confirm-modal__header {
@@ -158,5 +158,5 @@
 }
 
 .tab-button--active {
-  color: var(--green-strong);
+  color: var(--accent-strong);
 }

@@ -63,15 +63,15 @@
   display: inline-grid;
   place-items: center;
   align-self: end;
-  border: 1px solid rgba(188, 202, 186, 0.92);
+  border: 1px solid rgba(220, 196, 150, 0.92);
   border-radius: 999px;
-  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.92) 0%, rgba(245, 249, 243, 0.98) 68%, rgba(233, 241, 229, 1) 100%);
-  color: var(--green-strong);
-  box-shadow: 0 6px 18px rgba(32, 56, 38, 0.08);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.92) 0%, rgba(251, 245, 234, 0.98) 68%, rgba(247, 240, 224, 1) 100%);
+  color: var(--accent-strong);
+  box-shadow: 0 6px 18px rgba(36, 26, 12, 0.08);
 }
 
 .dashboard-reset-button:hover {
-  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96) 0%, rgba(238, 246, 234, 0.98) 68%, rgba(223, 238, 216, 1) 100%);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96) 0%, rgba(248, 242, 228, 0.98) 68%, rgba(253, 232, 184, 1) 100%);
 }
 
 .dashboard-table {
@@ -86,8 +86,8 @@
   padding: 14px 16px;
   vertical-align: top;
   text-align: left;
-  border-bottom: 1px solid rgba(203, 216, 200, 0.92);
-  border-right: 1px solid rgba(203, 216, 200, 0.58);
+  border-bottom: 1px solid rgba(230, 207, 159, 0.92);
+  border-right: 1px solid rgba(230, 207, 159, 0.58);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -101,8 +101,8 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: linear-gradient(180deg, #203826 0%, #182c1d 100%);
-  color: rgba(245, 249, 243, 0.96);
+  background: linear-gradient(180deg, #33260f 0%, #281d10 100%);
+  color: rgba(251, 245, 234, 0.96);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -152,7 +152,7 @@
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: #e6ece4;
+  background: #f3ead6;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
@@ -161,8 +161,8 @@
 }
 
 .dashboard-value-pill--sage {
-  background: #cfe3d0;
-  color: #224d2d;
+  background: #f7e6c0;
+  color: #3a2a12;
 }
 
 .dashboard-value-pill--terracotta {
@@ -181,8 +181,8 @@
 }
 
 .dashboard-value-pill--moss {
-  background: #dbe2bf;
-  color: #556122;
+  background: #ece0c0;
+  color: #7a5a2c;
 }
 
 .dashboard-value-pill--slate {
@@ -201,8 +201,8 @@
 }
 
 .dashboard-value-pill--neutral {
-  background: #e6ece4;
-  color: #405245;
+  background: #f3ead6;
+  color: #524230;
 }
 
 .dashboard-access-list {
@@ -225,8 +225,8 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(79, 141, 97, 0.14);
-  color: var(--green-strong);
+  background: rgba(252, 167, 8, 0.14);
+  color: var(--accent-strong);
   font-size: 12px;
   font-weight: 800;
 }

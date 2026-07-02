@@ -31,7 +31,7 @@
 .section-header span,
 .meta-label {
   display: inline-flex;
-  color: var(--green-strong);
+  color: var(--accent-strong);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
@@ -49,9 +49,9 @@
 }
 
 .detail-heading h2 {
-  color: #21412d;
+  color: #37280f;
   font-size: 24px;
-  background: linear-gradient(180deg, #2f6f42 0%, #1f3f2b 100%);
+  background: linear-gradient(180deg, #b45309 0%, #34260f 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -137,9 +137,9 @@
 }
 
 .icon-filter-button--active {
-  background: var(--green-pale);
-  border-color: rgba(79, 141, 97, 0.38);
-  color: var(--green-strong);
+  background: var(--accent-pale);
+  border-color: rgba(252, 167, 8, 0.38);
+  color: var(--accent-strong);
 }
 
 .toolbar--horizontal {
@@ -210,14 +210,14 @@ textarea {
 }
 
 .record-row:hover {
-  background: var(--green-pale);
+  background: var(--accent-pale);
   border-color: var(--border);
 }
 
 .record-row--active {
-  border-color: var(--green-strong);
+  border-color: var(--accent-strong);
   background: var(--surface);
-  box-shadow: inset 4px 0 0 var(--green-strong), 0 8px 18px rgba(35, 52, 40, 0.08);
+  box-shadow: inset 4px 0 0 var(--accent-strong), 0 8px 18px rgba(90, 60, 15, 0.08);
 }
 
 .record-row__main {
