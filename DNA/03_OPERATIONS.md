@@ -160,7 +160,7 @@ npm run dev -- --host 127.0.0.1 --port 5001
 - Dopo modifiche codice: preferire `npm run check:all` quando il tempo lo consente; altrimenti almeno `npm run build`, aggiungendo `npm run lint` quando si cambia TypeScript/React.
 - Dopo modifiche solo documentali: non serve build, salvo sospetto di riferimenti rotti in codice.
 - Dopo modifiche UI: controllare layout desktop/mobile se il task riguarda responsive o visual.
-- Dopo modifiche a manifest o icone pubbliche: eseguire almeno `npm run build` e verificare che gli asset risultino copiati in `dist`.
+- Dopo modifiche a manifest o icone pubbliche: aggiornare anche la versione/cache-busting in `index.html`, `src/lib/browserIdentity.ts` e `public/manifest.webmanifest`, poi eseguire almeno `npm run build` e verificare che gli asset risultino copiati in `dist`.
 
 ## Git e file generati
 

@@ -1,5 +1,5 @@
 const appTitle = 'App Control'
-const browserAssetVersion = 'app-control-20260702'
+const browserAssetVersion = 'app-control-20260703'
 
 type LinkDescriptor = {
   selector: string
