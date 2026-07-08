@@ -27,7 +27,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 
 - Se Supabase e configurato, la sezione Progetti usa il client anon dopo sblocco PIN.
 - Vista principale con lista progetti a sinistra e dettaglio a destra.
-- Il caricamento iniziale della sezione Progetti deve restare leggero: la lista legge solo metadati essenziali e il dettaglio completo, incluse relazioni e immagini, viene caricato da Supabase solo per il progetto selezionato.
+- All'avvio della sezione Progetti si fa prefetch dei dettagli (campi, variabili, note) di tutti i progetti in un unico batch, immagini escluse: la navigazione tra progetti e istantanea. Le immagini (base64 pesanti) si caricano solo quando il progetto e aperto.
 - La lista progetti supporta ricerca locale, ordinamento alfabetico bidirezionale e ordinamento per ultima modifica dal piu recente al piu vecchio; di default all'apertura parte in ordine alfabetico A-Z.
 - Le card lista progetti mostrano solo nome progetto in maiuscolo e `Ultima modifica`, con separazione visiva minima fra card, sfondo bianco sulla selezione, contorno ambra evidente e senza container/pannello esterno dell'elenco.
 - Il nome progetto viene normalizzato in maiuscolo in creazione, visualizzazione e modifica del campo `nome progetto`.
@@ -58,7 +58,7 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 - Nel tab `Variabili`, `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono raggruppate nello stesso container. Entrambe sono valorizzate dall'Agent con i link reali del progetto (user e admin); restano modificabili manualmente dall'admin. Nessuna derivazione automatica con suffisso fisso.
 - `Immagini` mostra gli asset visivi collegati al progetto senza blocco cartelle e senza pulsanti copia path.
 - `Note` espone `operationalNotes` in textarea editabile locale; il valore entra nello snapshot di autosave del dettaglio progetto e viene persistito nella colonna `projects.operational_notes`.
-- Se `Note` contiene testo, il tab `Note` mostra un segnale visivo rosso morbido per evidenziare la presenza di contenuto senza usare lampeggi aggressivi.
+- Il tab `Note` resta neutro come gli altri (nessun segnale colore in presenza di testo). La textarea Note e sempre a tutta altezza (`60vh`), anche vuota.
 - `Sync` contiene il blocco `Agent sync`: espone prima il prompt generico stabile in blocco statico non modificabile e poi il JSON `.agent/app-control.json` specifico del progetto; non duplica Project ID o Agent Key in card separate.
 - Il prompt `Sync` deve istruire l'agent a partire sempre dai dati canonici salvati in App Control: `Nome progetto`, `Mail accesso`, `Password`, `Deploy con`, `Password`, piu le variabili `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `GITHUB_URL`, `GITHUB_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`.
 - `LINK_DEPLOY` e `LINK_DEPLOY ADMIN` sono **manuali dell'utente**: si inseriscono nel box "Da inserire manualmente" del tab `Variabili` e si mostrano come link sotto al titolo. L'Agent li legge (per il `.env` se servono) ma non li scrive ne li sovrascrive in `project_env_variables`.

@@ -39,7 +39,7 @@
 - `operationalNotes` viene letto e scritto nella colonna `projects.operational_notes` tramite il normale autosave del dettaglio progetto.
 - Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI. Nota UI: nei tab `Dati progetto` e `Variabili` il cestino di eliminazione per singolo campo e stato rimosso (i campi si modificano, non si eliminano dalla UI) per prevenire cancellazioni accidentali.
 - Per ridurre il rischio operativo in caso di errore intermedio, il riallineamento delle relazioni progetto aggiorna o inserisce prima le righe correnti e rimuove solo alla fine le righe obsolete; non usare pattern delete-first per questi set relazionali.
-- La lista `Progetti` non deve idratare tutte le relazioni al primo caricamento. `fetchProjects()` legge solo metadati da lista; `fetchProjectById()` carica campi completi, variabili, accessi, campi extra e immagini solo per il dettaglio selezionato.
+- La sezione `Progetti` fa **prefetch** all'avvio: `fetchAllProjectsWithDetails()` carica in un unico batch i dettagli (campi, variabili, note) di TUTTI i progetti ESCLUSE le immagini, cosi la navigazione tra progetti e istantanea senza fetch on-demand ne loader. Le immagini (`data_url` base64, pesanti) restano lazy: `fetchProjectImages(projectId)` le carica solo quando il progetto e aperto (il caricamento allinea la baseline dell'autosave, non salva). `fetchProjectById()` resta per il refresh di un singolo progetto dopo il salvataggio.
 - La Dashboard usa una query dedicata e non deve riusare il caricamento completo progetto: legge solo metadati, email GitHub e accessi piattaforma necessari ai riepiloghi, senza immagini, ENV o campi segreti.
 
 ## Google Sheets Backup
