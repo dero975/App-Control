@@ -106,8 +106,6 @@ export function ProjectDetail({
     setImageSlots(nextImageSlots)
   }
 
-  const hasOperationalNotes = operationalNotes.trim().length > 0
-
   return (
     <div className={mobileModal ? 'detail-stack detail-stack--mobile-modal' : 'detail-stack'}>
       <div className="detail-heading">
@@ -148,7 +146,6 @@ export function ProjectDetail({
               className={[
                 'tab-button',
                 activeTab === tab ? 'tab-button--active' : '',
-                tab === 'Note' && hasOperationalNotes ? 'tab-button--has-content' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
