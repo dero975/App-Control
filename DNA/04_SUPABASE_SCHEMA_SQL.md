@@ -37,7 +37,7 @@ Fonte codice primaria:
 Mappatura:
 
 - Lista progetti e header dettaglio: `projects`.
-- `created_at` alimenta la `Data creazione` del dettaglio; `updated_at` alimenta `Ultima modifica` nella lista progetti.
+- `created_at` e `updated_at` restano in tabella per audit/ordinamento (il sort "recenti" usa `updated_at`), ma non sono piu mostrati in UI: ne "Data creazione" nel dettaglio ne "Ultima modifica" nella card lista.
 - JSON sync progetto: `projects.agent_project_id` piu `project_agent_keys`.
 - Campo tecnico `deploy con`: `projects.deploy_provider`; resta nel dettaglio e nella ricerca, ma non nella card lista progetti.
 - Tab `Dati progetto`:
