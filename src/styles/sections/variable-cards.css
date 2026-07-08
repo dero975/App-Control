@@ -18,7 +18,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px 16px;
+  /* Padding orizzontale > margine negativo: lo sfondo si estende ma resta
+     ~12px di margine interno tra bordo fascia e testi (come Dati progetto). */
+  padding: 14px 28px;
   margin: 0 -16px;
   border: none;
   border-radius: var(--radius);
@@ -38,12 +40,19 @@
   color: #b45309;
 }
 
+.variable-managed-group__title {
+  color: #9a3412;
+}
+
 .variable-managed-group {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-top: 20px;
   padding-top: 20px;
+  /* Stesso offset a sinistra della fascia "Da inserire manualmente" (28-16=12px),
+     cosi titolo e righe si allineano anche senza sfondo colorato. */
+  padding-left: 12px;
   border-top: 1px solid rgba(40, 28, 12, 0.1);
 }
 
@@ -488,7 +497,9 @@
 .variable-flat-group .variable-solo-box,
 .variable-flat-group .variable-group-box {
   border-radius: var(--radius);
-  padding: 12px 14px;
+  /* Padding orizzontale > margine negativo: lo sfondo si estende a tutta larghezza
+     ma resta ~12px di margine interno tra bordo fascia e testi. */
+  padding: 12px 26px;
   margin: 4px -14px 0;
 }
 

@@ -1,7 +1,7 @@
 import { ArrowDownWideNarrow, ArrowUpWideNarrow, ClockArrowDown, FileText, Pin, Plus } from 'lucide-react'
 import type { Project } from '../../types/app'
 import { handleExternalLinkClick } from '../../lib/externalLink'
-import { buildProjectVariables, formatProjectUpdatedAt, getDeployAdminLink, getDeployLink } from './projectShared'
+import { buildProjectVariables, getDeployAdminLink, getDeployLink } from './projectShared'
 import { buildNormalizedSheetFields } from './projectPageModel'
 import type { ProjectListSortMode, ProjectTab } from './projectPageConstants'
 
@@ -117,7 +117,6 @@ function ProjectDesktopList({
           <article key={project.id} className={getProjectRowClassName(project.id, selectedProjectId, isPinned)}>
             <button type="button" className="record-row__main" onClick={() => onSelectProject(project.id, 'Dati progetto')}>
               <strong>{project.name}</strong>
-              <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
             </button>
             <ProjectPinButton isPinned={isPinned} onClick={() => onTogglePinnedProject(project.id)} />
           </article>
@@ -147,18 +146,20 @@ function ProjectMobileList({
       {filteredProjects.map((project) => {
         const isExpanded = project.id === expandedMobileId
         const isPinned = pinnedProjectIds.includes(project.id)
-        const deployLink = getDeployLink(buildNormalizedSheetFields(project), project)
-        const deployAdminLink = getDeployAdminLink(buildProjectVariables(project))
-
+        // I link deploy servono solo quando la card e espansa: evita di ricostruire
+        // le variabili del progetto per ogni card ad ogni render.
         return (
           <article key={project.id} className={getMobileProjectCardClassName(isExpanded, isPinned)}>
             <ProjectPinButton isPinned={isPinned} onClick={() => onTogglePinnedProject(project.id)} />
             <button type="button" className="mobile-project-card__trigger" onClick={() => onSelectProject(project.id, 'Dati progetto')}>
               <strong>{project.name}</strong>
-              <small>{`Ultima modifica: ${formatProjectUpdatedAt(project.updatedAt)}`}</small>
             </button>
             {isExpanded ? (
-              <ProjectMobileLinks deployAdminLink={deployAdminLink} deployLink={deployLink} onOpen={() => onOpenMobileProject(project.id)} />
+              <ProjectMobileLinks
+                deployAdminLink={getDeployAdminLink(buildProjectVariables(project))}
+                deployLink={getDeployLink(buildNormalizedSheetFields(project), project)}
+                onOpen={() => onOpenMobileProject(project.id)}
+              />
             ) : null}
           </article>
         )

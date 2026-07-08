@@ -55,6 +55,17 @@
   box-shadow: inset 4px 0 0 var(--accent-strong), 0 8px 18px rgba(90, 60, 15, 0.08);
 }
 
+/* Card fissata in alto: sfondo dorato pieno, coerente con la lista desktop. */
+.mobile-project-card--pinned {
+  background: #fbe6bf;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.mobile-project-card--pinned.mobile-project-card--active {
+  background: #fbe6bf;
+  border-color: var(--accent-strong);
+}
+
 .mobile-project-card__trigger {
   width: 100%;
   display: grid;

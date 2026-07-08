@@ -57,8 +57,18 @@ export function ProjectsPage() {
 
         const storedPinnedProjectIds = readPinnedRecordIds(pinnedProjectIdsStorageKey)
         const nextVisibleProjectIds = getVisibleProjectIds(projects, '', 'name-asc', storedPinnedProjectIds)
-        setProjectList(projects)
-        setLoadedProjectIds(new Set())
+        // Mantieni in cache i dettagli gia caricati (solo per i progetti ancora
+        // presenti): evita il loader/flicker sul progetto auto-selezionato ad ogni
+        // ricarica della lista. Per gli id gia caricati conserva l'oggetto completo
+        // esistente invece di sostituirlo con la versione leggera.
+        const nextProjectIds = new Set(projects.map((project) => project.id))
+        setProjectList((currentProjects) => {
+          const loadedById = new Map(
+            currentProjects.filter((project) => nextProjectIds.has(project.id)).map((project) => [project.id, project]),
+          )
+          return projects.map((project) => loadedById.get(project.id) ?? project)
+        })
+        setLoadedProjectIds((currentLoadedIds) => new Set([...currentLoadedIds].filter((id) => nextProjectIds.has(id))))
         setPinnedProjectIds(storedPinnedProjectIds)
         setVisibleProjectIds(nextVisibleProjectIds)
         setSelectedId(nextVisibleProjectIds[0] ?? '')

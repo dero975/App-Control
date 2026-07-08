@@ -158,6 +158,12 @@
   padding: 18px;
   color: var(--text-muted);
   box-shadow: none;
+  /* Riserva un'altezza minima cosi il passaggio loader -> contenuto non fa
+     "saltare" il pannello (riduce il layout shift durante la navigazione). */
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .empty-state__title {

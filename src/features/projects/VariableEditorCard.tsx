@@ -12,6 +12,8 @@ export function VariableEditorCard({
   isDraft,
   singleEnvCopy = false,
   maskable = true,
+  deletable = true,
+  readOnly = false,
   toneOverride,
   toneStorageKey,
   variable,
@@ -25,6 +27,8 @@ export function VariableEditorCard({
   isDraft: boolean
   singleEnvCopy?: boolean
   maskable?: boolean
+  deletable?: boolean
+  readOnly?: boolean
   toneOverride?: ProjectVariableTone
   toneStorageKey?: string
   variable: ProjectVariable
@@ -86,18 +90,21 @@ export function VariableEditorCard({
             {revealed ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
           </button>
         )}
-        {/* Copia uniforme tra le azioni (fuori modifica), coerente in tutti i tab. */}
-        {editable ? null : (
+        {/* Copia uniforme tra le azioni (fuori modifica), coerente in tutti i tab.
+            readOnly (es. variabili gestite dall'Agent): solo occhio, niente copia/matita. */}
+        {editable || readOnly ? null : (
           <CopyButton
             value={singleEnvCopy ? `${variable.key.trim()}=${variable.value}` : variable.value}
             iconOnly
             label="Copia valore"
           />
         )}
-        {isDraft ? null : <VariableEditButton active={editable} onClick={onEdit} />}
-        <button type="button" className="inline-icon-button trash-button" onClick={() => onDelete(variable.id)} aria-label="Elimina variabile" title="Elimina variabile">
-          <Trash2 aria-hidden="true" />
-        </button>
+        {isDraft || readOnly ? null : <VariableEditButton active={editable} onClick={onEdit} />}
+        {deletable ? (
+          <button type="button" className="inline-icon-button trash-button" onClick={() => onDelete(variable.id)} aria-label="Elimina variabile" title="Elimina variabile">
+            <Trash2 aria-hidden="true" />
+          </button>
+        ) : null}
       </div>
     </article>
   )

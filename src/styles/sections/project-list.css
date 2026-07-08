@@ -220,6 +220,22 @@ textarea {
   box-shadow: inset 4px 0 0 var(--accent-strong), 0 8px 18px rgba(90, 60, 15, 0.08);
 }
 
+/* Card fissata in alto: sfondo dorato pieno, nettamente diverso dal crema pagina. */
+.record-row--pinned {
+  background: #fbe6bf;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.record-row--pinned:hover {
+  background: #f9ddaa;
+}
+
+/* La card fissata E attiva: mantiene lo sfondo dorato + l'evidenza attiva. */
+.record-row--pinned.record-row--active {
+  background: #fbe6bf;
+  border-color: var(--accent-strong);
+}
+
 .record-row__main {
   width: 100%;
   display: grid;

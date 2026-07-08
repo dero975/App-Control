@@ -31,13 +31,13 @@
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non vengono piu salvate come input canonici: vanno derivate quando il codice reale del progetto sincronizzato usa env client-side Vite.
 - `SUPABASE_DB_URL` non e piu una variabile canonica da compilare: resta solo alias derivabile di `DATABASE_URL` per script o provider che la richiedono.
 - `RENDER_API_KEY` resta variabile canonica server-only e viene classificata con scope `Deploy`, non `Custom`.
-- Il dettaglio progetto mostra `createdAt`; la lista progetti mostra `updatedAt` come `Ultima modifica`.
-- `deploy.provider` alimenta `Deploy con`; se non e tra le opzioni, la UI usa fallback.
+- Il dettaglio progetto mostra `createdAt`; la card della lista progetti mostra solo il nome (nessuna "Ultima modifica").
+- `deploy.provider` alimenta `Deploy con`, ora campo di testo libero editabile a mano (nessuna opzione prefissata ne normalizzazione).
 - `getDeployLink` usa il valore del campo `deploy con` solo se e un URL; altrimenti usa `project.deploy.url`.
 - `getDeployAdminLink` usa prima la variabile `LINK_DEPLOY ADMIN` se presente; in assenza di override costruisce automaticamente `${LINK_DEPLOY}/admina` rimuovendo eventuali slash finali.
 - Il campo `Password` del tab `Dati progetto` oggi viene letto/scritto tramite `projects.linked_secret_label_ciphertext`, non tramite `project_data_fields`.
 - `operationalNotes` viene letto e scritto nella colonna `projects.operational_notes` tramite il normale autosave del dettaglio progetto.
-- Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI: i record rimossi dall'admin vengono eliminati anche da Supabase.
+- Il salvataggio di `project_data_fields` e `project_env_variables` riallinea l'intero set corrente mostrato in UI. Nota UI: nei tab `Dati progetto` e `Variabili` il cestino di eliminazione per singolo campo e stato rimosso (i campi si modificano, non si eliminano dalla UI) per prevenire cancellazioni accidentali.
 - Per ridurre il rischio operativo in caso di errore intermedio, il riallineamento delle relazioni progetto aggiorna o inserisce prima le righe correnti e rimuove solo alla fine le righe obsolete; non usare pattern delete-first per questi set relazionali.
 - La lista `Progetti` non deve idratare tutte le relazioni al primo caricamento. `fetchProjects()` legge solo metadati da lista; `fetchProjectById()` carica campi completi, variabili, accessi, campi extra e immagini solo per il dettaglio selezionato.
 - La Dashboard usa una query dedicata e non deve riusare il caricamento completo progetto: legge solo metadati, email GitHub e accessi piattaforma necessari ai riepiloghi, senza immagini, ENV o campi segreti.

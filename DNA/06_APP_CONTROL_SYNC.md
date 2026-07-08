@@ -49,9 +49,9 @@ App Control va usata come **libretto privato** di tutti i segreti del progetto: 
 ## Layout sezione Variabili (implementato)
 
 - Le **9 dell'utente** in un box in evidenza "**Da inserire manualmente**", i due link in cima: `LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `RENDER_API_KEY`, `GITHUB_URL`, `GITHUB_TOKEN`.
-- Quelle dell'agent in una lista "**Gestite da Agent**": variabili extra/segreti generati durante lo sviluppo.
-- La classificazione e in `VariablesPanel` (`userVariableKeys` vs `managedVariables`); il flag `singleEnvCopy` arriva da `isVariablesPanel`.
-- Ogni riga: nome + valore sulla **stessa riga**, niente box per singola variabile, divisorio sottile. Un **solo tasto copia** che copia `NOME=valore` (formato .env), allineato con matita e cestino.
+- Quelle dell'agent in una lista "**Gestite da Agent**": variabili extra/segreti generati durante lo sviluppo. Sono di sola consultazione: mostrano solo il pulsante **occhio** (rivela il valore mascherato), niente copia/matita/cestino perche le gestisce l'Agent.
+- La classificazione e in `VariablesPanel` (`userVariableKeys` vs `managedVariables`); il flag `singleEnvCopy` arriva da `isVariablesPanel`, `readOnly` marca le managed.
+- Ogni riga: nome piccolo **sopra**, valore **sotto**, righe piatte con divisorio sottile. I valori sensibili sono mascherati di default con l'occhio; gli URL pubblici (`LINK_DEPLOY`, `LINK_DEPLOY ADMIN`, `GITHUB_URL`) non hanno occhio. Nessun cestino (eliminazione rimossa dalla UI).
 - `LINK_DEPLOY` / `LINK_DEPLOY ADMIN` si mostrano in cima al box "Da inserire manualmente" (inserimento manuale) e come link cliccabili sotto al titolo del progetto. Round-trip salva/ricarica: `LINK_DEPLOY` passa da `projects.deploy_url`, `LINK_DEPLOY ADMIN` da `project_env_variables` (entrambi non sensibili, `value_text`).
 - Pulsante `.env` (copia tutte le variabili con derivate `VITE_*`). Rimosso "Aggiorna da .env".
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`: NON si archiviano, sono copie con prefisso generate solo quando serve (frontend Vite).

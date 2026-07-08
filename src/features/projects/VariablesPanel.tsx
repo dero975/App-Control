@@ -156,8 +156,11 @@ export function VariablesPanel({
   const userVariables = variables.filter((variable) => userVariableKeys.includes(variable.key))
   const managedVariables = variables.filter((variable) => !userVariableKeys.includes(variable.key))
 
-  function renderVariableCard(variable: ProjectVariable, maskableOverride?: boolean) {
-    const maskable = maskableOverride ?? isVariablesPanel
+  // URL pubblici, non segreti: nessun mascheramento ne occhio.
+  const nonMaskableKeys = ['LINK_DEPLOY', 'LINK_DEPLOY ADMIN', 'GITHUB_URL']
+
+  function renderVariableCard(variable: ProjectVariable, maskableOverride?: boolean, readOnly = false) {
+    const maskable = nonMaskableKeys.includes(variable.key) ? false : maskableOverride ?? isVariablesPanel
     return (
       <VariableEditorCard
         key={variable.id}
@@ -166,6 +169,8 @@ export function VariablesPanel({
         isDraft={isDraftVariable(variable.id)}
         singleEnvCopy={isVariablesPanel}
         maskable={maskable}
+        deletable={false}
+        readOnly={readOnly}
         onDelete={deleteVariable}
         onDraftCommit={finalizeDraftVariable}
         onEdit={() => toggleVariableEditing([variable.id])}
@@ -216,7 +221,7 @@ export function VariablesPanel({
               {managedVariables.length > 0 ? (
                 <div className="variable-managed-group">
                   <span className="variable-managed-group__title">Gestite da Agent</span>
-                  {managedVariables.map((variable) => renderVariableCard(variable))}
+                  {managedVariables.map((variable) => renderVariableCard(variable, undefined, true))}
                 </div>
               ) : null}
             </>
