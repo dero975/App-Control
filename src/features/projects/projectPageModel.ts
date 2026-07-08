@@ -6,7 +6,7 @@ import {
   normalizeProjectName,
   supabaseServiceKey,
 } from './projectShared'
-import { defaultSyncPrompt, legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, preCiphertextSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, preManualDeployLinksSyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, type ProjectListSortMode } from './projectPageConstants'
+import { defaultSyncPrompt, type ProjectListSortMode } from './projectPageConstants'
 
 export function getProjectDetailSignature({
   imageSlotsSignature,
@@ -114,14 +114,6 @@ export function buildNormalizedSheetFields(project: Project) {
   return buildSheetFields(project)
 }
 
-const legacySyncPrompts = [legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, preCiphertextSyncPrompt, preManualDeployLinksSyncPrompt]
-
-export function resolveSyncPrompt(value: string) {
-  const normalizedValue = value.trim()
-  if (!normalizedValue || legacySyncPrompts.some((p) => normalizedValue === p)) return defaultSyncPrompt
-  return normalizedValue
-}
-
 function normalizeProjectVariableForSignature(variable: ProjectVariable) {
   return {
     id: variable.id,
@@ -135,7 +127,9 @@ function normalizeProjectVariableForSignature(variable: ProjectVariable) {
 // non derivato dal nome. Evita slug ambigui ("nuovo-progetto-18") e il riuso dello
 // stesso slug dopo un'eliminazione. I progetti esistenti mantengono il loro slug.
 function generateProjectId() {
-  return `prj-${generateAgentKeyGroup().toLowerCase()}`
+  // 10 caratteri casuali (2 gruppi da 5): 32^10 combinazioni, collisioni di fatto
+  // impossibili. I vecchi ID (prj- + 5 char) restano validi: solo i nuovi sono piu lunghi.
+  return `prj-${generateAgentKeyGroup()}${generateAgentKeyGroup()}`.toLowerCase()
 }
 
 function generateAgentKey() {

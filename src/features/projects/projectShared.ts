@@ -145,30 +145,6 @@ export function buildProjectVariables(project: Project): ProjectVariable[] {
   return [...canonicalVariables, ...extraVariables]
 }
 
-export function formatProjectUpdatedAt(value: string) {
-  const updatedAtDate = new Date(value)
-  if (Number.isNaN(updatedAtDate.getTime())) return 'Data ultima modifica non disponibile'
-
-  const formatter = new Intl.DateTimeFormat('it-IT', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-
-  const formattedParts = formatter.formatToParts(updatedAtDate)
-  const day = formattedParts.find((part) => part.type === 'day')?.value ?? ''
-  const month = formattedParts.find((part) => part.type === 'month')?.value ?? ''
-  const year = formattedParts.find((part) => part.type === 'year')?.value ?? ''
-  const hour = formattedParts.find((part) => part.type === 'hour')?.value ?? ''
-  const minute = formattedParts.find((part) => part.type === 'minute')?.value ?? ''
-  const capitalizedMonth = month ? `${month.charAt(0).toUpperCase()}${month.slice(1)}` : ''
-
-  return `${day} ${capitalizedMonth} ${year} - ${hour}.${minute}`
-}
-
 export function getFieldValue(fields: ProjectVariable[], key: string) {
   return fields.find((field) => field.key.trim().toLowerCase() === key.toLowerCase())?.value.trim() ?? ''
 }

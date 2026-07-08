@@ -1,27 +1,15 @@
 import { CopyButton } from '../../components/CopyButton'
 import { FieldGroup } from '../../components/FieldGroup'
 import type { Project } from '../../types/app'
-import { resolveSyncPrompt } from './projectPageModel'
 
-export function ProjectAgentPanel({ project }: { project: Project }) {
+// Config di collegamento del progetto (.agent/app-control.json): le 4 chiavi che
+// l'agent usa per collegarsi ad App Control. Mostrata in fondo a "Dati progetto".
+export function ProjectAgentConfig({ project }: { project: Project }) {
   const agentConfig = formatAgentConfig(project)
-  const syncPrompt = resolveSyncPrompt(project.agent.syncPrompt)
 
   return (
     <div className="agent-sync-panel">
-      <FieldGroup title="Agent sync" className="field-group--bare">
-        <div className="agent-sync-block">
-          <div className="agent-sync-block__header">
-            <CopyButton value={syncPrompt} label="Copia prompt" className="copy-button--labeled" />
-            <span>Prompt sincronizzazione</span>
-          </div>
-          <div className="agent-sync-box">
-            <div className="agent-sync-readonly" aria-label="Prompt sincronizzazione">
-              {syncPrompt}
-            </div>
-          </div>
-        </div>
-
+      <FieldGroup title="Collegamento agent" className="field-group--bare">
         <div className="agent-sync-block">
           <div className="agent-sync-block__header">
             <CopyButton value={agentConfig} label="Copia JSON" className="copy-button--labeled" />

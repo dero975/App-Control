@@ -64,7 +64,7 @@ Accesso in sola lettura ai dati progetto per agent esterni tramite Supabase REST
 - RLS valida la chiave contro `project_agent_keys.key_ciphertext` per il progetto specifico.
 - Tabelle accessibili (solo SELECT, solo per il proprio progetto): `projects`, `project_env_variables`, `project_data_fields`, `project_platform_accesses`, `project_agent_keys`.
 - Il file `.agent/app-control.json` nella root di ogni progetto contiene: `projectId`, `agentKey`, `appControlSupabaseUrl`, `appControlSupabaseAnonKey`.
-- Questo file è generato dal tab Sync di App Control e non va mai committato su GitHub.
+- Questo file (`.agent/app-control.json`) si copia dalla sezione in fondo al tab `Dati progetto` di App Control e non va mai committato su GitHub.
 - Dettaglio completo in `DNA/05_AGENT_API.md`.
 
 ## Integrazioni future

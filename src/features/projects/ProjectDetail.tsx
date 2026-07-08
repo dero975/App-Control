@@ -4,11 +4,11 @@ import { CopyButton } from '../../components/CopyButton'
 import { FieldGroup } from '../../components/FieldGroup'
 import { handleExternalLinkClick } from '../../lib/externalLink'
 import type { Project, ProjectVariable } from '../../types/app'
-import { buildProjectVariables, formatProjectUpdatedAt, getDeployAdminLink, getDeployLink, getFieldValue } from './projectShared'
+import { buildProjectVariables, getDeployAdminLink, getDeployLink, getFieldValue } from './projectShared'
 import { buildProjectImageSlots, getProjectImageSlotsSignature, type ProjectImageSlot } from './projectImageModel'
 import { getProjectDetailSignature, buildNormalizedSheetFields } from './projectPageModel'
 import { projectTabs, type ProjectSaveState, type ProjectTab } from './projectPageConstants'
-import { ProjectAgentPanel } from './ProjectAgentPanel'
+import { ProjectAgentConfig } from './ProjectAgentPanel'
 import { VariablesPanel } from './VariablesPanel'
 import { fetchProjectImages, type ProjectSnapshot } from './projectRepository'
 
@@ -50,7 +50,6 @@ export function ProjectDetail({
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
   const deployLink = getFieldValue(variables, 'LINK_DEPLOY') || getDeployLink(sheetFields, project)
   const deployAdminLink = getDeployAdminLink(variables)
-  const createdAtLabel = formatProjectUpdatedAt(project.createdAt)
 
   useEffect(() => {
     saveContextRef.current = { onSave, project }
@@ -163,7 +162,6 @@ export function ProjectDetail({
               <CopyButton value={deployAdminLink} iconOnly />
             </div>
           ) : null}
-          <p className="project-created-at">{`Data creazione: ${createdAtLabel}`}</p>
         </div>
         <div className="detail-heading__actions">
           <button type="button" className="danger-button" onClick={onRequestDelete}>
@@ -211,15 +209,18 @@ export function ProjectDetail({
 
       <div className="tab-scroll-area">
         {activeTab === 'Dati progetto' ? (
-          <VariablesPanel
-            addLabel="Aggiungi campo"
-            onChange={setSheetFields}
-            title="Dati progetto"
-            toneStorageKey={`app-control-variable-tones:project:${project.id}:data`}
-            valueAriaLabel="Valore campo foglio"
-            variables={sheetFields}
-            actionsSlot={tabActionsSlot}
-          />
+          <div className="data-tab-scroll">
+            <VariablesPanel
+              addLabel="Aggiungi campo"
+              onChange={setSheetFields}
+              title="Dati progetto"
+              toneStorageKey={`app-control-variable-tones:project:${project.id}:data`}
+              valueAriaLabel="Valore campo foglio"
+              variables={sheetFields}
+              actionsSlot={tabActionsSlot}
+            />
+            <ProjectAgentConfig project={project} />
+          </div>
         ) : null}
         {activeTab === 'Variabili' ? (
           <VariablesPanel
@@ -249,7 +250,6 @@ export function ProjectDetail({
             </FieldGroup>
           </div>
         ) : null}
-        {activeTab === 'Sync' ? <ProjectAgentPanel project={project} /> : null}
       </div>
     </div>
   )
