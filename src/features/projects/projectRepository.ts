@@ -2,7 +2,6 @@ import type {
   EnvVariableRow,
   Project,
   ProjectDashboardRow,
-  ProjectListRow,
   ProjectRow,
   ProjectSnapshot,
   ProjectVariable,
@@ -12,6 +11,8 @@ import {
   mapProjectRow,
   mapProjects,
 } from './projectRepositoryRead'
+
+export { fetchProjectImages } from './projectRepositoryRead'
 import {
   fetchProjectBackup,
   restoreProjectBackup,
@@ -24,16 +25,21 @@ export type { ProjectSnapshot } from './projectRepositoryTypes'
 import { requireSupabaseClient } from '../../lib/supabase'
 import { normalizeProjectName } from './projectShared'
 
-export async function fetchProjects() {
+// Prefetch di tutti i progetti gia con i dettagli (variabili, campi, note) in un
+// unico batch, ESCLUSE le immagini (base64 pesanti, caricate on-demand). Cosi la
+// navigazione tra progetti e istantanea, senza schermata di caricamento.
+export async function fetchAllProjectsWithDetails() {
   const client = requireSupabaseClient()
 
   const { data: projects, error: projectsError } = await client
     .from('projects')
-    .select('id, agent_project_id, name, created_at, updated_at, status, deploy_provider, deploy_url')
+    .select(
+      'id, agent_project_id, name, created_at, updated_at, status, github_repo_url, github_account_email, linked_secret_label_ciphertext, deploy_provider, deploy_url, deploy_account_email, operational_notes',
+    )
     .order('updated_at', { ascending: false })
   if (projectsError) throw projectsError
 
-  return ((projects as ProjectListRow[] | null) ?? []).map(mapProjectListRow)
+  return mapProjects((projects as ProjectRow[] | null) ?? [], false)
 }
 
 export async function fetchDashboardProjects() {

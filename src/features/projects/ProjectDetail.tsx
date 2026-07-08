@@ -10,7 +10,7 @@ import { getProjectDetailSignature, buildNormalizedSheetFields } from './project
 import { projectTabs, type ProjectSaveState, type ProjectTab } from './projectPageConstants'
 import { ProjectAgentPanel } from './ProjectAgentPanel'
 import { VariablesPanel } from './VariablesPanel'
-import type { ProjectSnapshot } from './projectRepository'
+import { fetchProjectImages, type ProjectSnapshot } from './projectRepository'
 
 const ProjectImagesPanel = lazy(() => import('./ProjectImagesPanel').then((module) => ({ default: module.ProjectImagesPanel })))
 
@@ -44,6 +44,9 @@ export function ProjectDetail({
   const lastSavedSignatureRef = useRef(detailSignature)
   const saveContextRef = useRef({ onSave, project })
   const saveVersionRef = useRef(0)
+  // Le immagini sono escluse dal prefetch iniziale: si caricano on-demand quando
+  // il progetto e aperto. Il caricamento NON deve far scattare l'autosave.
+  const imagesLoadedRef = useRef(false)
   const projectTitle = getFieldValue(sheetFields, 'nome progetto') || project.name
   const deployLink = getFieldValue(variables, 'LINK_DEPLOY') || getDeployLink(sheetFields, project)
   const deployAdminLink = getDeployAdminLink(variables)
@@ -52,6 +55,31 @@ export function ProjectDetail({
   useEffect(() => {
     saveContextRef.current = { onSave, project }
   }, [onSave, project])
+
+  // Carica le immagini del progetto aperto (escluse dal prefetch iniziale).
+  // Allinea la baseline dell'autosave cosi il caricamento non viene salvato.
+  // ProjectDetail si rimonta ad ogni cambio progetto (key=id), quindi questo
+  // effect gira una volta per progetto aperto.
+  useEffect(() => {
+    let isCancelled = false
+    const initialSignature = getProjectImageSlotsSignature(buildProjectImageSlots(project.images))
+    fetchProjectImages(project.id)
+      .then((images) => {
+        if (isCancelled) return
+        const nextSlots = buildProjectImageSlots(images)
+        // Marca il flag solo se il caricamento cambia davvero gli slot (altrimenti
+        // la signature non muta e l'autosave non passerebbe mai ad azzerarlo).
+        if (getProjectImageSlotsSignature(nextSlots) !== initialSignature) {
+          imagesLoadedRef.current = true
+          setImageSlots(nextSlots)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isCancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id])
 
   useEffect(() => {
     if (saveState !== 'saved') return
@@ -66,6 +94,14 @@ export function ProjectDetail({
 
   useEffect(() => {
     if (detailSignature === lastSavedSignatureRef.current) return
+
+    // Il primo popolamento delle immagini (fetch on-demand) cambia la signature
+    // ma NON e una modifica dell'utente: assorbilo come baseline, non salvare.
+    if (imagesLoadedRef.current) {
+      imagesLoadedRef.current = false
+      lastSavedSignatureRef.current = detailSignature
+      return
+    }
 
     const currentSaveVersion = saveVersionRef.current + 1
     saveVersionRef.current = currentSaveVersion

@@ -18,8 +18,8 @@ import { createEmptyProject, getSortedProjects, getVisibleProjectIds } from './p
 import {
   createProjectRecord,
   deleteProjectRecord,
+  fetchAllProjectsWithDetails,
   fetchProjectById,
-  fetchProjects,
   saveProjectSnapshot,
   type ProjectSnapshot,
 } from './projectRepository'
@@ -52,23 +52,17 @@ export function ProjectsPage() {
       setIsLoadingProjects(true)
       setLoadError('')
       try {
-        const projects = await fetchProjects()
+        // Prefetch di TUTTI i progetti gia con i dettagli (immagini escluse):
+        // la navigazione tra progetti e istantanea, nessuna schermata di caricamento.
+        const projects = await fetchAllProjectsWithDetails()
         if (!isMounted) return
 
         const storedPinnedProjectIds = readPinnedRecordIds(pinnedProjectIdsStorageKey)
         const nextVisibleProjectIds = getVisibleProjectIds(projects, '', 'name-asc', storedPinnedProjectIds)
-        // Mantieni in cache i dettagli gia caricati (solo per i progetti ancora
-        // presenti): evita il loader/flicker sul progetto auto-selezionato ad ogni
-        // ricarica della lista. Per gli id gia caricati conserva l'oggetto completo
-        // esistente invece di sostituirlo con la versione leggera.
-        const nextProjectIds = new Set(projects.map((project) => project.id))
-        setProjectList((currentProjects) => {
-          const loadedById = new Map(
-            currentProjects.filter((project) => nextProjectIds.has(project.id)).map((project) => [project.id, project]),
-          )
-          return projects.map((project) => loadedById.get(project.id) ?? project)
-        })
-        setLoadedProjectIds((currentLoadedIds) => new Set([...currentLoadedIds].filter((id) => nextProjectIds.has(id))))
+        setProjectList(projects)
+        // Tutti i progetti sono gia caricati (dettagli testuali): nessun fetch
+        // on-demand ne loader al primo click su un progetto.
+        setLoadedProjectIds(new Set(projects.map((project) => project.id)))
         setPinnedProjectIds(storedPinnedProjectIds)
         setVisibleProjectIds(nextVisibleProjectIds)
         setSelectedId(nextVisibleProjectIds[0] ?? '')

@@ -11,11 +11,11 @@ import type {
   ProjectRow,
 } from './projectRepositoryTypes'
 
-export async function mapProjects(projects: ProjectRow[]) {
+export async function mapProjects(projects: ProjectRow[], includeImages = true) {
   const projectIds = projects.map((project) => project.id)
   if (!projectIds.length) return []
 
-  const { envRows, agentRows, fieldRows, imageRows } = await fetchProjectRelations(projectIds)
+  const { envRows, agentRows, fieldRows, imageRows } = await fetchProjectRelations(projectIds, includeImages)
   const envByProjectId = groupRowsByProjectId(envRows)
   const fieldByProjectId = groupRowsByProjectId(fieldRows)
   const imageByProjectId = groupRowsByProjectId(imageRows)
@@ -67,13 +67,15 @@ export function mapProjectListRow(project: ProjectListRow): Project {
   }
 }
 
-export async function fetchProjectRelations(projectIds: string[]) {
+export async function fetchProjectRelations(projectIds: string[], includeImages = true) {
   const client = requireSupabaseClient()
 
   const [
     { data: envRows, error: envError },
     { data: agentRows, error: agentError },
     { data: fieldRows, error: fieldError },
+    // Le immagini (data_url base64) sono pesanti: si caricano solo su richiesta,
+    // non nel prefetch iniziale di tutti i progetti.
     imageRows,
   ] = await Promise.all([
     client
@@ -87,7 +89,7 @@ export async function fetchProjectRelations(projectIds: string[]) {
       .select('id, project_id, field_key, label, value_text, value_ciphertext, is_secret, sort_order')
       .in('project_id', projectIds)
       .order('sort_order', { ascending: true }),
-    fetchImageRows(projectIds),
+    includeImages ? fetchImageRows(projectIds) : Promise.resolve([] as ImageRow[]),
   ])
 
   if (envError) throw envError
@@ -196,6 +198,13 @@ async function fetchImageRows(projectIds: string[]) {
   if (!error) return (data as ImageRow[] | null) ?? []
   if (error.code === '42703' || error.code === 'PGRST204') return []
   throw error
+}
+
+// Immagini (data_url base64) di un singolo progetto, caricate on-demand quando
+// si apre il progetto: escluse dal prefetch iniziale per non appesantirlo.
+export async function fetchProjectImages(projectId: string): Promise<ProjectImage[]> {
+  const rows = await fetchImageRows([projectId])
+  return rows.map(mapProjectImage)
 }
 
 function mapProjectImage(row: ImageRow): ProjectImage {
