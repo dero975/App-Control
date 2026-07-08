@@ -135,7 +135,6 @@
   .asset-item,
   .editable-variable-card,
   .platform-access-row,
-  .variable-select-row,
   .setting-row {
     grid-template-columns: 1fr;
   }

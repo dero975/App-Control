@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { FileText, Plus } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Copy, Plus } from 'lucide-react'
 import { FieldGroup } from '../../components/FieldGroup'
 import { copyToClipboard } from '../../lib/clipboard'
 import type { ProjectVariable, ProjectVariableTone } from '../../types/app'
@@ -8,7 +9,6 @@ import {
   isProjectNameField,
   normalizeProjectName,
 } from './projectShared'
-import { DeployCredentialsCard, GitHubCredentialsCard } from './VariableGroupedCards'
 import { VariableEditorCard } from './VariableEditorCard'
 import { formatVariablesEnvForCopy, isDeployField } from './variableEnvFormatting'
 import type { VariableUpdateField } from './variablePanelTypes'
@@ -26,6 +26,7 @@ export function VariablesPanel({
   onChange,
   title,
   valueAriaLabel,
+  actionsSlot,
 }: {
   addLabel: string
   toneStorageKey?: string
@@ -33,6 +34,7 @@ export function VariablesPanel({
   onChange: (variables: ProjectVariable[]) => void
   title: string
   valueAriaLabel: string
+  actionsSlot?: HTMLElement | null
 }) {
   const [envBlockCopied, setEnvBlockCopied] = useState(false)
   const [editingVariableIds, setEditingVariableIds] = useState<Set<string>>(() => new Set())
@@ -52,10 +54,6 @@ export function VariablesPanel({
 
   function isEditingVariable(id: string) {
     return draftVariableIds.has(id) || editingVariableIds.has(id)
-  }
-
-  function isEditingVariableGroup(ids: string[]) {
-    return ids.some((id) => draftVariableIds.has(id) || editingVariableIds.has(id))
   }
 
   function toggleVariableEditing(ids: string[]) {
@@ -158,7 +156,8 @@ export function VariablesPanel({
   const userVariables = variables.filter((variable) => userVariableKeys.includes(variable.key))
   const managedVariables = variables.filter((variable) => !userVariableKeys.includes(variable.key))
 
-  function renderVariableCard(variable: ProjectVariable) {
+  function renderVariableCard(variable: ProjectVariable, maskableOverride?: boolean) {
+    const maskable = maskableOverride ?? isVariablesPanel
     return (
       <VariableEditorCard
         key={variable.id}
@@ -166,6 +165,7 @@ export function VariablesPanel({
         editable={isEditingVariable(variable.id)}
         isDraft={isDraftVariable(variable.id)}
         singleEnvCopy={isVariablesPanel}
+        maskable={maskable}
         onDelete={deleteVariable}
         onDraftCommit={finalizeDraftVariable}
         onEdit={() => toggleVariableEditing([variable.id])}
@@ -177,88 +177,78 @@ export function VariablesPanel({
     )
   }
 
+  const actionRow = (
+    <div className="field-group-action-row">
+      {isVariablesPanel ? (
+        <button
+          type="button"
+          className="secondary-button secondary-button--compact"
+          disabled={!envBlock}
+          onClick={copyEnvBlock}
+          title="Copia tutte le variabili in formato .env"
+        >
+          <Copy aria-hidden="true" className="button-icon" />
+          {envBlockCopied ? 'Copiato' : '.env'}
+        </button>
+      ) : null}
+      <button type="button" className="secondary-button" onClick={addVariable}>
+        <Plus aria-hidden="true" className="button-icon" />
+        {addLabel}
+      </button>
+    </div>
+  )
+
   return (
     <div className="tab-panel-stack">
+      {actionsSlot ? createPortal(actionRow, actionsSlot) : null}
       <FieldGroup
         className={isBarePanel ? 'field-group--bare' : ''}
         title={isBarePanel ? undefined : title}
-        action={
-          <div className="field-group-action-row">
-            {isVariablesPanel ? (
-              <button
-                type="button"
-                className="secondary-button secondary-button--compact"
-                disabled={!envBlock}
-                onClick={copyEnvBlock}
-                title="Copia tutte le variabili in formato .env"
-              >
-                <FileText aria-hidden="true" className="button-icon" />
-                {envBlockCopied ? 'Copiato' : '.env'}
-              </button>
-            ) : null}
-            <button type="button" className="secondary-button" onClick={addVariable}>
-              <Plus aria-hidden="true" className="button-icon" />
-              {addLabel}
-            </button>
-          </div>
-        }
+        action={actionsSlot ? undefined : actionRow}
       >
         <div className="editable-variable-list">
           {isVariablesPanel ? (
             <>
               <div className="variable-user-box">
                 <span className="variable-user-box__title">Da inserire manualmente</span>
-                {userVariables.map(renderVariableCard)}
+                {userVariables.map((variable) => renderVariableCard(variable))}
               </div>
               {managedVariables.length > 0 ? (
                 <div className="variable-managed-group">
                   <span className="variable-managed-group__title">Gestite da Agent</span>
-                  {managedVariables.map(renderVariableCard)}
+                  {managedVariables.map((variable) => renderVariableCard(variable))}
                 </div>
               ) : null}
             </>
           ) : (
-            variables.map((variable, index) => {
-              if (hasGroupedGithubCredentials && index === githubCredentialsStartIndex) {
+            <div className="variable-flat-group">
+              {(() => {
+                const soloFields = variables.filter((_variable, index) => {
+                  if (hasGroupedGithubCredentials && (index === githubCredentialsStartIndex || index === githubCredentialsEndIndex)) return false
+                  if (hasGroupedDeployCredentials && (index === deployCredentialsStartIndex || index === deployCredentialsEndIndex)) return false
+                  return true
+                })
+
                 return (
-                  <GitHubCredentialsCard
-                    key="github-credentials"
-                    emailVariable={variables[githubEmailIndex]}
-                    passwordVariable={variables[githubPasswordIndex]}
-                    editable={isEditingVariableGroup([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
-                    onDelete={deleteVariable}
-                    onEdit={() => toggleVariableEditing([variables[githubEmailIndex].id, variables[githubPasswordIndex].id])}
-                    onUpdate={updateVariable}
-                    valueAriaLabel={valueAriaLabel}
-                  />
+                  <>
+                    {soloFields.length > 0 ? (
+                      <div className="variable-solo-box">{soloFields.map((variable) => renderVariableCard(variable))}</div>
+                    ) : null}
+                    {hasGroupedGithubCredentials ? (
+                      <div className="variable-group-box variable-group-box--github">
+                        {renderVariableCard(variables[githubEmailIndex], false)}
+                        {renderVariableCard(variables[githubPasswordIndex], true)}
+                      </div>
+                    ) : null}
+                    {hasGroupedDeployCredentials ? (
+                      <div className="variable-group-box variable-group-box--deploy">
+                        {renderVariableCard(variables[deployIndex], false)}
+                      </div>
+                    ) : null}
+                  </>
                 )
-              }
-
-              if (hasGroupedDeployCredentials && index === deployCredentialsStartIndex) {
-                return (
-                  <DeployCredentialsCard
-                    key="deploy-credentials"
-                    deployVariable={variables[deployIndex]}
-                    passwordVariable={variables[deployPasswordIndex]}
-                    editable={isEditingVariableGroup([variables[deployIndex].id, variables[deployPasswordIndex].id])}
-                    onDelete={deleteVariable}
-                    onEdit={() => toggleVariableEditing([variables[deployIndex].id, variables[deployPasswordIndex].id])}
-                    onUpdate={updateVariable}
-                    valueAriaLabel={valueAriaLabel}
-                  />
-                )
-              }
-
-              if (hasGroupedGithubCredentials && index === githubCredentialsEndIndex) {
-                return null
-              }
-
-              if (hasGroupedDeployCredentials && index === deployCredentialsEndIndex) {
-                return null
-              }
-
-              return renderVariableCard(variable)
-            })
+              })()}
+            </div>
           )}
         </div>
       </FieldGroup>

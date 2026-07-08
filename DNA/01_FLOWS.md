@@ -73,10 +73,9 @@ Fonti principali: `src/features/projects/ProjectsPage.tsx`, `src/features/projec
 ## Campi speciali in Dati progetto
 
 - `CLIENTE`: campo del tab `Dati progetto` salvato come campo dati del progetto; sostituisce il vecchio workspace Clienti separato, rimosso da codice e database.
-- `Password`: label canonica; non e trattata come campo sensibile nel tab `Dati progetto`, quindi resta visibile.
-- `deploy con`: select con opzioni `Render`, `CloudeFlare`, piu voce `+ Aggiungi` dentro al menu.
-- Se un valore non previsto arriva ai select, il codice usa fallback del campo.
-- `+ Aggiungi` apre `window.prompt` e salva il nuovo valore nello stato locale del pannello.
+- `Password` (deploy): campo sensibile mascherato di default con occhio per rivelare; nascosto dalla UI della card Deploy (il valore resta in `project_data_fields`).
+- `deploy con`: campo di testo libero editabile a mano (nessuna opzione prefissata ne normalizzazione); il valore reale vive in `projects.deploy_provider` e si mostra invariato.
+- Ogni campo di `Dati progetto` e indipendente: la sua matita/copia/elimina agiscono solo su quel campo. I gruppi (campi singoli verde, GitHub azzurro, Deploy arancio) sono solo fasce di sfondo colore, senza editing accoppiato.
 
 ## Immagini
 

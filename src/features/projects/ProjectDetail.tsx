@@ -33,6 +33,7 @@ export function ProjectDetail({
   const [variables, setVariables] = useState<ProjectVariable[]>(() => buildProjectVariables(project))
   const [imageSlots, setImageSlots] = useState<ProjectImageSlot[]>(() => buildProjectImageSlots(project.images))
   const [operationalNotes, setOperationalNotes] = useState(project.operationalNotes)
+  const [tabActionsSlot, setTabActionsSlot] = useState<HTMLDivElement | null>(null)
   const [saveState, setSaveState] = useState<ProjectSaveState>('idle')
   const [saveMessage, setSaveMessage] = useState('')
   const imageSlotsSignature = useMemo(() => getProjectImageSlotsSignature(imageSlots), [imageSlots])
@@ -139,22 +140,25 @@ export function ProjectDetail({
       </div>
 
       <div className="tab-row" role="tablist" aria-label="Sezioni progetto">
-        {projectTabs.map((tab) => (
-          <button
-            type="button"
-            key={tab}
-            className={[
-              'tab-button',
-              activeTab === tab ? 'tab-button--active' : '',
-              tab === 'Note' && hasOperationalNotes ? 'tab-button--has-content' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => onTabChange(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+        <div className="tab-row__tabs">
+          {projectTabs.map((tab) => (
+            <button
+              type="button"
+              key={tab}
+              className={[
+                'tab-button',
+                activeTab === tab ? 'tab-button--active' : '',
+                tab === 'Note' && hasOperationalNotes ? 'tab-button--has-content' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => onTabChange(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className="tab-row__actions" ref={setTabActionsSlot} />
       </div>
 
       {saveMessage ? (
@@ -181,6 +185,7 @@ export function ProjectDetail({
             toneStorageKey={`app-control-variable-tones:project:${project.id}:data`}
             valueAriaLabel="Valore campo foglio"
             variables={sheetFields}
+            actionsSlot={tabActionsSlot}
           />
         ) : null}
         {activeTab === 'Variabili' ? (
@@ -191,6 +196,7 @@ export function ProjectDetail({
             toneStorageKey={`app-control-variable-tones:project:${project.id}:env`}
             valueAriaLabel="Valore variabile"
             variables={variables}
+            actionsSlot={tabActionsSlot}
           />
         ) : null}
         {activeTab === 'Immagini' ? (

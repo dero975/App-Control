@@ -1,10 +1,9 @@
-import { type FocusEvent } from 'react'
-import { Trash2 } from 'lucide-react'
+import { type FocusEvent, useState } from 'react'
+import { Eye, EyeOff, Trash2 } from 'lucide-react'
 import { CopyButton } from '../../components/CopyButton'
 import type { ProjectVariable, ProjectVariableTone } from '../../types/app'
-import { addSelectOptionValue, getSelectableFieldConfig, getSelectOptions } from './projectFieldOptions'
 import { renderApiKey, supabaseServiceKeyAliases } from './projectShared'
-import { VariableEditButton, VariableFieldTitle, VariableTonePalette } from './VariablePanelControls'
+import { VariableEditButton, VariableFieldTitle } from './VariablePanelControls'
 import type { VariableUpdateField } from './variablePanelTypes'
 import { getEffectiveVariableTone, isProtectedVariableTitle } from './variableToneStorage'
 
@@ -12,6 +11,7 @@ export function VariableEditorCard({
   editable,
   isDraft,
   singleEnvCopy = false,
+  maskable = true,
   toneOverride,
   toneStorageKey,
   variable,
@@ -24,6 +24,7 @@ export function VariableEditorCard({
   editable: boolean
   isDraft: boolean
   singleEnvCopy?: boolean
+  maskable?: boolean
   toneOverride?: ProjectVariableTone
   toneStorageKey?: string
   variable: ProjectVariable
@@ -33,30 +34,15 @@ export function VariableEditorCard({
   onUpdate: (id: string, field: VariableUpdateField, value: string | boolean) => void
   valueAriaLabel: string
 }) {
-  const selectFieldConfig = getSelectableFieldConfig(variable.key)
-  const selectOptions = selectFieldConfig ? getSelectOptions(variable.value, selectFieldConfig.options) : []
+  // Sicurezza: i valori sensibili sono nascosti di default; l'occhio li rivela on-demand.
+  const [revealed, setRevealed] = useState(false)
+  // Maschera il valore quando e mascherabile, non e in modifica e non e stato rivelato.
+  // Il valore reale (variable.value) NON viene mai alterato: la maschera e solo visiva.
+  const isMasked = maskable && !editable && !revealed && variable.value.length > 0
+  const displayedValue = isMasked ? '•'.repeat(Math.min(variable.value.length, 32)) : variable.value
   const canChooseTone = isDraft || !isProtectedVariableTitle(variable)
   const effectiveTone = getEffectiveVariableTone(variable, toneStorageKey, toneOverride)
   const cardTone = variable.key.trim().toUpperCase() === renderApiKey ? 'red' : canChooseTone ? effectiveTone : ''
-
-  function addSelectOption() {
-    if (!selectFieldConfig) return
-
-    const nextValue = window.prompt(selectFieldConfig.promptLabel)
-    const normalizedValue = nextValue?.trim()
-    if (!normalizedValue) return
-
-    onUpdate(variable.id, 'value', normalizedValue)
-  }
-
-  function handleSelectChange(value: string) {
-    if (value === addSelectOptionValue) {
-      addSelectOption()
-      return
-    }
-
-    onUpdate(variable.id, 'value', value)
-  }
 
   function handleCardBlur(event: FocusEvent<HTMLElement>) {
     if (!isDraft) return
@@ -73,37 +59,41 @@ export function VariableEditorCard({
           <VariableFieldTitle
             canEdit
             editable={editable}
-            hideCopy={singleEnvCopy}
+            hideCopy
             onChange={(value) => onUpdate(variable.id, 'key', value)}
             value={variable.key}
           />
-          {selectFieldConfig ? (
-            <div className="variable-select-row">
-              <select value={variable.value} disabled={!editable} onChange={(event) => handleSelectChange(event.target.value)}>
-                {selectOptions.map((option) => <option value={option} key={option}>{option}</option>)}
-                <option value={addSelectOptionValue}>+ Aggiungi</option>
-              </select>
-            </div>
-          ) : (
-            <>
-              <input
-                value={variable.value}
-                type="text"
-                readOnly={!editable}
-                onChange={(event) => onUpdate(variable.id, 'value', event.target.value)}
-              />
-              {singleEnvCopy ? null : <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" />}
-            </>
-          )}
-          {editable && canChooseTone ? (
-            <VariableTonePalette selectedTone={effectiveTone} onChange={(tone) => onUpdate(variable.id, 'tone', tone)} />
-          ) : null}
+          <input
+            value={displayedValue}
+            type="text"
+            readOnly={!editable}
+            onChange={(event) => onUpdate(variable.id, 'value', event.target.value)}
+          />
+          {/* Copia inline (dentro il campo) solo in modifica, per copiare mentre editi. */}
+          {editable ? <CopyButton value={variable.value} iconOnly className="copy-button--inside-input" /> : null}
         </label>
       </div>
       <div className="editable-variable-card__actions">
-        {singleEnvCopy ? (
-          <CopyButton value={`${variable.key.trim()}=${variable.value}`} iconOnly label="Copia variabile" />
-        ) : null}
+        {editable || !maskable ? null : (
+          <button
+            type="button"
+            className="inline-icon-button"
+            onClick={() => setRevealed((current) => !current)}
+            aria-label={revealed ? 'Nascondi valore' : 'Mostra valore'}
+            aria-pressed={revealed}
+            title={revealed ? 'Nascondi valore' : 'Mostra valore'}
+          >
+            {revealed ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+          </button>
+        )}
+        {/* Copia uniforme tra le azioni (fuori modifica), coerente in tutti i tab. */}
+        {editable ? null : (
+          <CopyButton
+            value={singleEnvCopy ? `${variable.key.trim()}=${variable.value}` : variable.value}
+            iconOnly
+            label="Copia valore"
+          />
+        )}
         {isDraft ? null : <VariableEditButton active={editable} onClick={onEdit} />}
         <button type="button" className="inline-icon-button trash-button" onClick={() => onDelete(variable.id)} aria-label="Elimina variabile" title="Elimina variabile">
           <Trash2 aria-hidden="true" />

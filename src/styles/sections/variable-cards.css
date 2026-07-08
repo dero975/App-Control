@@ -10,14 +10,19 @@
   background: linear-gradient(180deg, #f9f2e6 0%, #faf6ee 100%);
 }
 
+/* Niente box con bordo: "Da inserire manualmente" ha solo una fascia di sfondo
+   tenue per distinguerlo, ma il testo resta allineato a "Gestite da Agent".
+   Il padding orizzontale e compensato da un margine negativo pari, cosi lo
+   sfondo si estende ma il contenuto NON si sposta. */
 .variable-user-box {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border: 1px solid rgba(245, 158, 11, 0.28);
+  padding: 14px 16px;
+  margin: 0 -16px;
+  border: none;
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #f8efdc 0%, #fdf6e8 100%);
+  background: rgba(245, 158, 11, 0.06);
 }
 
 .variable-user-box__title,
@@ -37,7 +42,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(40, 28, 12, 0.1);
 }
 
 /* Tab Variabili: nome variabile + valore sulla stessa riga, per ottimizzare lo spazio. */
@@ -64,7 +71,18 @@
   align-self: center;
   margin-top: 0;
   width: auto;
-  gap: 6px;
+  gap: 0;
+  justify-content: flex-end;
+}
+
+/* Pulsanti azione compatti e ravvicinati, mantenendo un'area cliccabile comoda. */
+.variable-user-box .editable-variable-card__actions .inline-icon-button,
+.variable-managed-group .editable-variable-card__actions .inline-icon-button,
+.variable-user-box .editable-variable-card__actions .copy-button,
+.variable-managed-group .editable-variable-card__actions .copy-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
 }
 
 /* Layout pulito: niente box per singola variabile, solo righe con divisorio sottile. */
@@ -92,14 +110,121 @@
   border-top: 1px solid rgba(40, 28, 12, 0.12);
 }
 
+/* "Gestite da Agent" e "Da inserire manualmente": lista minimale e compatta —
+   righe dense senza chrome. Il box giallo di "Da inserire manualmente" resta;
+   solo le righe interne diventano piatte. */
+.variable-managed-group .editable-variable-card,
+.variable-user-box .editable-variable-card {
+  padding: 7px 2px;
+  gap: 8px;
+}
+
+.variable-managed-group .editable-variable-card + .editable-variable-card,
+.variable-user-box .editable-variable-card + .editable-variable-card {
+  border-top: 1px solid rgba(40, 28, 12, 0.07);
+}
+
+.variable-managed-group .variable-value-input,
+.variable-user-box .variable-value-input {
+  /* Nome sopra (piccolo), valore sotto a tutta larghezza: nessuna sovrapposizione
+     qualunque sia la lunghezza del nome, valori perfettamente allineati a sinistra. */
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 2px;
+  column-gap: 0;
+}
+
+.variable-managed-group .variable-value-input .fixed-field-name,
+.variable-user-box .variable-value-input .fixed-field-name {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  white-space: normal;
+  /* Azzera l'indent della copia inline: nome a filo con il valore sotto. */
+  padding-left: 0;
+}
+
+/* In modifica: box nome largo esattamente come il box valore (stessa larghezza,
+   a filo a sinistra). La copia del titolo va sopra il box, non sottrae larghezza. */
+.variable-managed-group .field-title-edit-row,
+.variable-user-box .field-title-edit-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: 0;
+  width: 100%;
+}
+
+.variable-managed-group .field-title-edit-row .copy-button--field-title,
+.variable-user-box .field-title-edit-row .copy-button--field-title {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+}
+
+.variable-managed-group .field-title-input,
+.variable-user-box .field-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+/* Il valore non deve mai debordare: resta su una riga e tronca con ellissi. */
+.variable-managed-group .editable-variable-card:not(.editable-variable-card--editing) input,
+.variable-user-box .editable-variable-card:not(.editable-variable-card--editing) input {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.variable-managed-group .variable-value-input .fixed-field-name,
+.variable-user-box .variable-value-input .fixed-field-name {
+  font-size: 0.78rem;
+  color: var(--text-soft, #7c6c54);
+  opacity: 0.85;
+}
+
+.variable-managed-group .editable-variable-card:not(.editable-variable-card--editing) input,
+.variable-user-box .editable-variable-card:not(.editable-variable-card--editing) input {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #9a917f;
+}
+
+/* Nessun accento colore per riga: la lista deve leggersi uniforme e piatta. */
+.variable-managed-group .editable-variable-card:not(.editable-variable-card--editing),
+.variable-user-box .editable-variable-card:not(.editable-variable-card--editing) {
+  background: none;
+  border-left: none;
+  box-shadow: none;
+}
+
+.variable-managed-group .editable-variable-card:not(.editable-variable-card--editing) .fixed-field-name,
+.variable-user-box .editable-variable-card:not(.editable-variable-card--editing) .fixed-field-name {
+  color: var(--text-soft, #7c6c54);
+}
+
+.variable-managed-group .editable-variable-card__actions,
+.variable-user-box .editable-variable-card__actions {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.variable-managed-group .editable-variable-card:hover .editable-variable-card__actions,
+.variable-managed-group .editable-variable-card--editing .editable-variable-card__actions,
+.variable-user-box .editable-variable-card:hover .editable-variable-card__actions,
+.variable-user-box .editable-variable-card--editing .editable-variable-card__actions {
+  opacity: 1;
+}
+
 .editable-variable-card--editing {
   border-color: rgba(252, 167, 8, 0.42);
   box-shadow: inset 4px 0 0 var(--accent-strong), 0 10px 22px rgba(90, 60, 15, 0.06);
-}
-
-.editable-variable-card--grouped {
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
 }
 
 .editable-variable-card__actions {
@@ -293,56 +418,140 @@
   background: #9a6b3f;
 }
 
-.grouped-variable-stack {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
+
+/* ============================================================
+   Tab "Dati progetto": stesso layout piatto/compatto di "Variabili".
+   I campi singoli diventano righe piatte (nome sopra, valore sotto);
+   le card raggruppate GITHUB / DEPLOY CON tengono solo una fascia di
+   sfondo tenue per distinguerle, con le righe interne compatte.
+   ============================================================ */
+
+/* Righe singole piatte (nome progetto, Cliente, ecc.). */
+.variable-flat-group > .editable-variable-card {
+  padding: 7px 2px;
+  gap: 8px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
-.grouped-card-title {
-  display: block;
-  width: 100%;
-  color: #42739d;
-  font-size: 14px;
-  font-weight: 900;
+.variable-flat-group > .editable-variable-card + .editable-variable-card {
+  border-top: 1px solid rgba(40, 28, 12, 0.07);
+}
+
+.variable-flat-group .editable-variable-card .variable-value-input {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 2px;
+  column-gap: 0;
+}
+
+.variable-flat-group .fixed-field-name {
+  font-size: 0.68rem;
   letter-spacing: 0.04em;
-  line-height: 1.2;
-  padding-left: 16px;
-  text-align: left;
-  text-transform: uppercase;
+  white-space: normal;
+  padding-left: 0;
+  /* Colore nome campo = scuro della fascia; ogni fascia imposta --field-name-color. */
+  color: var(--field-name-color, var(--text-soft, #7c6c54));
+  opacity: 0.85;
 }
 
-.grouped-card-title--deploy {
+.variable-group-box--github { --field-name-color: #1e3a5f; }
+.variable-group-box--deploy { --field-name-color: #b7892a; }
+.variable-solo-box { --field-name-color: #2f6f42; }
+
+.variable-flat-group .editable-variable-card:not(.editable-variable-card--editing) input {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #9a917f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Titoli campo della card GitHub in blu scuro (coerente con l'identita GitHub). */
+.variable-flat-group .editable-variable-card--github .fixed-field-name {
+  color: #1e3a5f;
+}
+
+/* Label "Deploy con" nell'arancione originale del deploy. */
+.variable-flat-group .editable-variable-card--deploy .fixed-field-name {
   color: #b7892a;
 }
 
-.grouped-variable-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 70px;
+/* Fasce di gruppo (campi singoli verde, GitHub azzurro, Deploy arancio):
+   stessa identica struttura, cambia solo il colore di sfondo. Ogni campo dentro
+   e una riga INDIPENDENTE (editable-variable-card con proprie icone). */
+.variable-flat-group .variable-solo-box,
+.variable-flat-group .variable-group-box {
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 4px -14px 0;
+}
+
+.variable-flat-group .variable-solo-box {
+  background: rgba(92, 168, 108, 0.08);
+}
+
+.variable-flat-group .variable-group-box--github {
+  background: rgba(111, 154, 191, 0.08);
+}
+
+.variable-flat-group .variable-group-box--deploy {
+  background: rgba(182, 162, 95, 0.09);
+}
+
+/* Righe interne delle fasce: piatte, niente bordo/box per campo, altezza uniforme. */
+.variable-flat-group .variable-solo-box .editable-variable-card,
+.variable-flat-group .variable-group-box .editable-variable-card {
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 8px;
   align-items: center;
-  gap: 12px;
+  min-height: 48px;
 }
 
-.grouped-variable-row + .grouped-variable-row {
-  padding-top: 14px;
-  border-top: 1px solid rgba(176, 160, 124, 0.26);
+.variable-flat-group .variable-solo-box .editable-variable-card__actions,
+.variable-flat-group .variable-group-box .editable-variable-card__actions {
+  align-self: center;
 }
 
-.grouped-variable-row > .trash-button {
-  align-self: start;
-  justify-self: center;
-  margin-top: 27px;
+.variable-flat-group .variable-solo-box .editable-variable-card + .editable-variable-card,
+.variable-flat-group .variable-group-box .editable-variable-card + .editable-variable-card {
+  padding-top: 8px;
+  border-top: 1px solid rgba(40, 28, 12, 0.07);
 }
 
-.grouped-variable-row__actions {
+
+/* Pulsanti azione uniformi e compatti, identici a "Variabili":
+   allineati a destra, gap 0, box 28px, colore muted e opacita ridotta.
+   La copia e il cestino NON restano arancione/rosso pieni: si spengono
+   come in Variabili, e tornano pieni al passaggio del mouse. */
+.variable-flat-group .editable-variable-card__actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  align-self: center;
-  justify-self: start;
-  width: 70px;
+  gap: 0;
+  width: auto;
+  margin-top: 0;
+  justify-content: flex-end;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
 }
 
-.grouped-variable-row__actions--single {
-  justify-content: flex-start;
+.variable-flat-group .editable-variable-card:hover .editable-variable-card__actions,
+.variable-flat-group .editable-variable-card--editing .editable-variable-card__actions {
+  opacity: 1;
+}
+
+.variable-flat-group .editable-variable-card__actions .inline-icon-button,
+.variable-flat-group .editable-variable-card__actions .copy-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
 }

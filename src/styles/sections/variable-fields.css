@@ -17,7 +17,8 @@
   padding-left: 16px;
 }
 
-.fixed-field-name::first-letter {
+.fixed-field-name::first-letter,
+.fixed-field-name > span::first-letter {
   text-transform: uppercase;
 }
 
@@ -62,16 +63,6 @@
 
 .variable-value-input input[readonly] {
   cursor: default;
-}
-
-.variable-select-row {
-  min-width: 0;
-}
-
-.variable-select-row select {
-  width: 100%;
-  min-height: 44px;
-  padding: 11px 16px;
 }
 
 .platform-access-list {

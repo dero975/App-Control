@@ -28,11 +28,7 @@ export function isProjectNameField(key: string) {
   return key.trim().toLowerCase() === projectNameFieldKey
 }
 
-export function buildSheetFields(
-  project: Project,
-  normalizeSelectableValue?: (key: string, value: string) => string,
-): ProjectVariable[] {
-  const normalizeValue = normalizeSelectableValue ?? ((_key: string, value: string) => value)
+export function buildSheetFields(project: Project): ProjectVariable[] {
   const deployPasswordField =
     project.dataFields?.find((field) => isDeployPasswordField(field.key)) ?? {
       id: 'sheet-password-deploy',
@@ -40,13 +36,17 @@ export function buildSheetFields(
       value: '',
       sensitive: true,
     }
-  const clientField =
-    project.dataFields?.find((field) => isClientField(field.key)) ?? {
-      id: 'sheet-cliente',
-      key: clientFieldKey,
-      value: '',
-      sensitive: false,
-    }
+  const existingClientField = project.dataFields?.find((field) => isClientField(field.key))
+  const clientField = existingClientField
+    // Etichetta normalizzata a "Cliente" per coerenza con gli altri campi
+    // (nel DB puo essere salvata "CLIENTE"): solo la label mostrata, il dato resta.
+    ? { ...existingClientField, key: 'Cliente' }
+    : {
+        id: 'sheet-cliente',
+        key: 'Cliente',
+        value: '',
+        sensitive: false,
+      }
   const customDataFields = (project.dataFields ?? []).filter(
     (field) => !isDeployPasswordField(field.key) && !isClientField(field.key),
   )
@@ -74,7 +74,7 @@ export function buildSheetFields(
     {
       id: 'sheet-deploy-con',
       key: 'deploy con',
-      value: normalizeValue('deploy con', project.deploy.provider),
+      value: project.deploy.provider,
       sensitive: false,
     },
     deployPasswordField,

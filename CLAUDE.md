@@ -41,8 +41,8 @@ Le regole sono **vincoli, non suggerimenti**: confrontale **prima** di agire; se
 - **DB = unica fonte dei dati.** Niente dati hardcoded/mock/locali nel runtime. **Parita admin/user**: ogni entita gestita da admin e letta lato user dalla stessa fonte DB.
 - **DB mai distruttivo.** Schema solo come **migrazioni versionate additive**; mai `db push`/`--force`/sync diretti su produzione. **RLS attive** su ogni tabella con dati utente.
 - **Segreti:** `.env` sempre in `.gitignore`; **mai stampare** token/password/chiavi/URL con credenziali. Service role solo lato backend, mai nel frontend.
-- **Git:** `git status` prima di toccare/committare; **mai committare** `.env`, backup, cache, file generati. Commit/push **solo se richiesto** e dopo che i controlli passano.
-- **Push = alto rischio.** Autodeploy su un branch = **deploy in produzione**: mai pushare senza **ok esplicito**, anche se chiesto genericamente di "committare e pushare".
+- **Git (commit automatici, push manuale):** `git status` prima di toccare/committare; **mai committare** `.env`, backup, cache, file generati. **COMMIT = automatico**: dopo ogni blocco di lavoro completato e verificato (typecheck/lint/build/test passati) committa da solo, senza chiedere conferma — il commit e un salvataggio locale sicuro e reversibile, e non committare rischia di perdere lavoro. **PUSH = solo su richiesta esplicita** dell'utente ("push"/"pubblica"/"manda online"): mai in automatico.
+- **Push = alto rischio.** Autodeploy su un branch = **deploy in produzione**: mai pushare senza **ok esplicito**, anche se chiesto genericamente di "committare e pushare" (in quel caso committa, ma per il push attendi conferma).
 - **Free tier:** Supabase Free + Render (deploy unico frontend+backend). Mai saturare i limiti; segnala **prima** di avvicinarli.
 - **Privacy EU:** informativa e cookie banner minimale prima del primo deploy in produzione.
 
@@ -70,7 +70,7 @@ Accessorie: se il prompt e ambiguo ma il rischio e alto -> chiedi upgrade; se il
 2. Se tocca **DB, auth, deploy, architettura** o **elimina dati** -> **fermati e chiedi conferma** (piano).
 3. Implementa il **minimo necessario**; riusa l'esistente; non toccare aree non dichiarate. DURANTE la scrittura verifica che ogni file rispetti i limiti di governance (dimensione, modularita, naming): se un file supera il limite, dividilo subito.
 4. Verifica con gli script del progetto (typecheck/lint/build). **Non dichiarare test passati senza eseguirli.**
-5. Chiudi **aggiornando doc/DNA nello stesso intervento**; registra le decisioni tecniche rilevanti nel **decision-log** (`DNA/06_DECISION_LOG.md`).
+5. Chiudi **aggiornando doc/DNA nello stesso intervento**; registra le decisioni tecniche rilevanti nel **decision-log** (`DNA/06_DECISION_LOG.md`). Poi **committa in automatico** il lavoro verificato (§2 · Git).
 
 Fix piccoli (un testo, un colore): esegui diretto. Bug: **riproducilo e isola la causa radice** prima di pianificare.
 
@@ -88,4 +88,3 @@ Fix piccoli (un testo, un colore): esegui diretto. Bug: **riproducilo e isola la
 ## 6 · Skill on-demand (vivono in App Control, NON qui)
 Non appesantire questo file: queste operazioni si invocano **solo su richiesta**. Quando l'utente le chiede, **recupera il prompt corrispondente da App Control ed eseguilo**:
 Governance (crea/riallinea regole) · Pulizia e ottimizzazione · Analisi completa (sola diagnosi) · DNA (crea/riallinea) · Aggiorna DNA+Backup+Git · Ottimizzazione navigazione · Responsive mobile nativo · Qualita progetto adattiva · Keepalive Supabase · Testing visivo automatizzato · Fix complesso controllato · Crea/aggiorna `.env` · Refactoring (ripensamento progetto).
-

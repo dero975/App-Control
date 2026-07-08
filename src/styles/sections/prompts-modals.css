@@ -148,9 +148,34 @@
 
 .tab-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 2px;
+}
+
+/* Tab a sinistra (scrollabili se troppi), azioni (.env / Aggiungi) a destra. */
+.tab-row__tabs {
+  display: flex;
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 2px;
+  min-width: 0;
+}
+
+.tab-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.tab-row__actions:empty {
+  display: none;
+}
+
+.tab-row__actions .field-group-action-row {
+  margin: 0;
 }
 
 .tab-button {

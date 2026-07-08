@@ -1,6 +1,5 @@
 import { sortPinnedRecordsFirst } from '../../lib/pinnedRecords'
 import type { Project, ProjectVariable } from '../../types/app'
-import { normalizeSelectableFieldValue } from './projectFieldOptions'
 import {
   buildSheetFields,
   deployPasswordFieldKey,
@@ -112,7 +111,7 @@ export function createEmptyProject(projectName: string): Project {
 }
 
 export function buildNormalizedSheetFields(project: Project) {
-  return buildSheetFields(project, normalizeSelectableFieldValue)
+  return buildSheetFields(project)
 }
 
 const legacySyncPrompts = [legacyDefaultSyncPrompt, legacyServiceKeySyncPrompt, previousDefaultSyncPrompt, priorDefaultSyncPrompt, preDeployLinksSyncPrompt, preEnvReconcileSyncPrompt, preCiphertextSyncPrompt, preManualDeployLinksSyncPrompt]
