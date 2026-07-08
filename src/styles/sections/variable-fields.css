@@ -127,6 +127,11 @@
 
 .notes-panel-textarea {
   background: var(--gray-soft);
+  /* Box note sempre a tutta altezza disponibile, anche se vuoto. */
+  min-height: 60vh;
+  height: 60vh;
+  resize: vertical;
+  box-sizing: border-box;
 }
 
 .agent-sync-block {
